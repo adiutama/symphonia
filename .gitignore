@@ -3,3 +3,14 @@
 
 # Local implementation artifacts (machine-only — see docs/README.md)
 .local/
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
