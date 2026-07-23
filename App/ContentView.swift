@@ -8,31 +8,25 @@ struct ContentView: View {
     @EnvironmentObject private var overlays: OverlayController
     @EnvironmentObject private var commandMode: CommandModeController
 
+    @State private var sidebarVisible = true
+
     var body: some View {
         ZStack {
-            VStack(spacing: 8) {
-                headerBar
-
-                if commandMode.scaffoldsExpanded {
-                    WorkspaceScaffoldView()
-                        .padding(.horizontal, 12)
-
-                    AgentScaffoldView()
-                        .padding(.horizontal, 12)
-
-                    SecretStoreScaffoldView()
-                        .padding(.horizontal, 12)
+            HStack(spacing: 0) {
+                if sidebarVisible {
+                    WorkspaceSidebarView()
+                        .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
+                    Divider()
                 }
 
-                OverlayChromeView()
-                    .padding(.horizontal, 12)
-
-                OverlayHostView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 12)
+                VStack(spacing: 0) {
+                    statusBar
+                    OverlayHostView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(minWidth: 640, minHeight: 420)
+            .frame(minWidth: 720, minHeight: 420)
 
             if commandMode.isActive {
                 Color.black.opacity(0.28)
@@ -46,76 +40,62 @@ struct ContentView: View {
             }
         }
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
+        .animation(.easeInOut(duration: 0.15), value: sidebarVisible)
     }
 
-    private var headerBar: some View {
-        VStack(spacing: 6) {
-            HStack {
-                Text("Symphonia")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                Button {
-                    commandMode.scaffoldsExpanded.toggle()
-                } label: {
-                    Label(
-                        commandMode.scaffoldsExpanded ? "Hide panels" : "Show panels",
-                        systemImage: commandMode.scaffoldsExpanded
-                            ? "rectangle.bottomthird.inset.filled"
-                            : "rectangle.split.1x2"
-                    )
-                }
-                .help("Collapse Workspace / Agent / Secrets scaffolds so Main CLI stays visible (⌘⇧H)")
-                .keyboardShortcut("h", modifiers: [.command, .shift])
-
-                if overlays.isShowingOverlay {
-                    Button("Hide Overlay") {
-                        overlays.hide()
-                    }
-                    .help("Return to Main CLI without quitting Overlay")
-                }
+    private var statusBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                sidebarVisible.toggle()
+            } label: {
+                Image(systemName: sidebarVisible
+                    ? "sidebar.left"
+                    : "sidebar.leading")
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 8)
+            .buttonStyle(.borderless)
+            .help(sidebarVisible ? "Hide sidebar" : "Show sidebar")
+            .keyboardShortcut("s", modifiers: [.command, .control])
 
-            HStack(spacing: 12) {
-                Label(
-                    preferences.effective.mainCLICommand.isEmpty
-                        ? "bare shell"
-                        : preferences.effective.mainCLICommand,
-                    systemImage: "terminal"
-                )
-                Label(preferences.effective.editorCommand, systemImage: "pencil")
-                if preferences.effective.editorPresentation == .externalApp {
-                    Text("ext")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                Label(preferences.effective.leaderKey, systemImage: "keyboard")
-                if let current = workspaces.current {
-                    Label(current.slug, systemImage: "folder")
-                }
-                if let focused = agents.focused {
-                    Label(focused.threeWordName, systemImage: "person")
-                }
-                if !commandMode.scaffoldsExpanded {
-                    Text("panels hidden")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                if let info = commandMode.lastInfo, !commandMode.isActive {
-                    Text(info)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+            Text("Symphonia")
+                .font(.headline)
+
+            OverlayStatusCueView()
+
+            Spacer(minLength: 8)
+
+            if let session = agents.focusedSession {
+                Label(session.displayTitle, systemImage: session.isMainRepo ? "shippingbox" : "person")
+                    .lineLimit(1)
+            } else if let current = workspaces.current {
+                Label(current.slug, systemImage: "folder")
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .help("Effective Setting — open Settings (⌘,) to edit Global / Workspace Setting")
-            .padding(.horizontal, 12)
+
+            Label(
+                preferences.effective.mainCLICommand.isEmpty
+                    ? "bare shell"
+                    : preferences.effective.mainCLICommand,
+                systemImage: "terminal"
+            )
+            .lineLimit(1)
+
+            if overlays.isShowingOverlay {
+                Button("Hide Overlay") {
+                    overlays.hide()
+                }
+                .help("Return to Main CLI without quitting Overlay")
+            }
+
+            if let info = commandMode.lastInfo, !commandMode.isActive {
+                Text(info)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.bar)
     }
 }

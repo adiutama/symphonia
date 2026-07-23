@@ -47,12 +47,18 @@ struct SymphoniaApp: App {
                 .environmentObject(overlays)
                 .environmentObject(commandMode)
         }
-        .defaultSize(width: 960, height: 720)
+        .defaultSize(width: 1100, height: 720)
+        .commands {
+            CommandGroup(after: .sidebar) {
+                // Sidebar toggle is also on the status bar (⌃⌘S).
+            }
+        }
 
         Settings {
             PreferencesSettingsView()
                 .environmentObject(preferences)
                 .environmentObject(workspaces)
+                .environmentObject(secrets)
         }
     }
 }

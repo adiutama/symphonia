@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// Observable Agent list / create / focus / remove for chrome scaffolding (P4.7).
+/// Observable Agent list / create / focus / remove + focused session (Main Repo or Agent).
 @MainActor
 final class AgentController: ObservableObject {
     private let store: AgentStore
@@ -11,7 +11,8 @@ final class AgentController: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     @Published private(set) var agents: [AgentSummary] = []
-    @Published private(set) var focused: AgentSummary?
+    /// Main Repo or Agent — drives Main CLI cwd and Overlay scope.
+    @Published private(set) var focusedSession: FocusedSession?
     /// Enabled Secret Store env snapshotted at focus / create (ADR 0002 spawn-only).
     @Published private(set) var focusedSpawnEnvironment: [(key: String, value: String)] = []
     @Published var lastError: String?
@@ -44,14 +45,19 @@ final class AgentController: ObservableObject {
             .store(in: &cancellables)
     }
 
-    /// Effective Main CLI command for the focused Agent’s terminal spawn (empty = bare shell).
+    /// Focused Agent when session is an Agent; nil for Main Repo.
+    var focused: AgentSummary? {
+        focusedSession?.agent
+    }
+
+    /// Effective Main CLI command for the focused session’s terminal spawn (empty = bare shell).
     var focusedMainCLICommand: String {
         preferences.effective.mainCLICommand
     }
 
-    /// Worktree cwd for Ghostty surface when an Agent is focused; nil otherwise.
+    /// Cwd for Ghostty surface when a session is focused; nil otherwise.
     var focusedWorkingDirectory: String? {
-        focused?.worktreeURL.path
+        focusedSession?.workingDirectory
     }
 
     /// Non-empty Main CLI command for surface `command`, or nil for Ghostty default shell.
@@ -60,30 +66,40 @@ final class AgentController: ObservableObject {
         return cmd.isEmpty ? nil : cmd
     }
 
+    /// Session ids whose Overlay PTYs should stay alive (current Workspace Main + Agents).
+    var liveOverlaySessionIDs: Set<String> {
+        var ids = Set(agents.map { FocusedSession.agent($0).id })
+        if let current = workspaces.current {
+            ids.insert(FocusedSession.mainRepo(for: current).id)
+        }
+        return ids
+    }
+
     func refresh() {
         guard let current = workspaces.current else {
             agents = []
-            if focused != nil { focused = nil }
-            focusedSpawnEnvironment = []
+            if focusedSession != nil {
+                focusedSession = nil
+                focusedSpawnEnvironment = []
+            }
             return
         }
 
         do {
             agents = try store.list(workspaceDataDir: current.dataDirURL)
             lastError = nil
-            if let focused,
-               let updated = agents.first(where: { $0.id == focused.id })
-            {
-                self.focused = updated
-            } else if let focused,
-                      !agents.contains(where: { $0.id == focused.id })
-            {
-                self.focused = nil
-                focusedSpawnEnvironment = []
-            }
+            reconcileFocusedSession(workspace: current)
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    /// Agents under any Workspace Data Dir (sidebar expansion).
+    func agents(in workspace: WorkspaceSummary) -> [AgentSummary] {
+        if workspace.id == workspaces.current?.id {
+            return agents
+        }
+        return (try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? []
     }
 
     /// Create Agent under the selected Workspace (P4.1–P4.4).
@@ -115,21 +131,23 @@ final class AgentController: ObservableObject {
         }
     }
 
-    func focus(_ agent: AgentSummary) {
-        focused = agent
-        // Spawn-time inject: snapshot Enabled set now; live Secret Store edits do not rewrite this shell.
-        focusedSpawnEnvironment = secrets?.enabledEnvironment ?? []
-        lastError = nil
+    /// Focus Main Repo for the given Workspace (cwd = `<workspace>/main/`).
+    func focusMain(for workspace: WorkspaceSummary) {
+        applyFocus(.mainRepo(for: workspace))
     }
 
-    /// Re-apply current Enabled Secret Store set by restarting the focused Agent CLI (scaffold helper).
+    func focus(_ agent: AgentSummary) {
+        applyFocus(.agent(agent))
+    }
+
+    /// Re-apply current Enabled Secret Store set by restarting the focused session CLI.
     func respawnWithCurrentSecrets() {
-        guard let focused else { return }
-        focus(focused)
+        guard let focusedSession else { return }
+        applyFocus(focusedSession)
     }
 
     func clearFocus() {
-        focused = nil
+        focusedSession = nil
         focusedSpawnEnvironment = []
     }
 
@@ -159,9 +177,8 @@ final class AgentController: ObservableObject {
                 agent: agent,
                 deleteBranch: pendingRemoveDeleteBranch
             )
-            if focused?.id == agent.id {
-                focused = nil
-                focusedSpawnEnvironment = []
+            if focusedSession?.agent?.id == agent.id {
+                focusMain(for: current)
             }
             pendingRemove = nil
             pendingRemoveDeleteBranch = false
@@ -174,12 +191,47 @@ final class AgentController: ObservableObject {
         }
     }
 
+    // MARK: - Internals
+
+    private func applyFocus(_ session: FocusedSession) {
+        focusedSession = session
+        // Spawn-time inject: snapshot Enabled set now; live Secret Store edits do not rewrite this shell.
+        focusedSpawnEnvironment = secrets?.enabledEnvironment ?? []
+        lastError = nil
+    }
+
+    private func reconcileFocusedSession(workspace: WorkspaceSummary) {
+        switch focusedSession {
+        case .none:
+            focusMain(for: workspace)
+        case .mainRepo(let workspaceId, _, _)?:
+            if workspaceId != workspace.id {
+                focusMain(for: workspace)
+            } else {
+                // Refresh main path / slug if Workspace moved.
+                focusedSession = .mainRepo(for: workspace)
+            }
+        case .agent(let agent)?:
+            if let updated = agents.first(where: { $0.id == agent.id }) {
+                focusedSession = .agent(updated)
+            } else {
+                focusMain(for: workspace)
+            }
+        }
+    }
+
     private func onWorkspaceChanged() {
-        focused = nil
-        focusedSpawnEnvironment = []
         pendingRemove = nil
         pendingRemoveDeleteBranch = false
         draftBranchName = ""
+        guard let current = workspaces.current else {
+            agents = []
+            focusedSession = nil
+            focusedSpawnEnvironment = []
+            return
+        }
         refresh()
+        // Always land on Main Repo when switching Workspace.
+        focusMain(for: current)
     }
 }

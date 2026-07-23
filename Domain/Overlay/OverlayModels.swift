@@ -12,8 +12,8 @@ enum OverlayKind: String, Equatable, Sendable {
 struct OverlaySession: Identifiable, Equatable {
     let id: UUID
     let kind: OverlayKind
-    /// Agent this Overlay belongs to (Worktree cwd scope).
-    let agentId: String
+    /// FocusedSession.id this Overlay belongs to (Main Repo or Agent).
+    let sessionId: String
     /// Switcher label.
     let title: String
     /// Ghostty `command`; nil = bare shell.
@@ -25,7 +25,7 @@ struct OverlaySession: Identifiable, Equatable {
     static func == (lhs: OverlaySession, rhs: OverlaySession) -> Bool {
         lhs.id == rhs.id
             && lhs.kind == rhs.kind
-            && lhs.agentId == rhs.agentId
+            && lhs.sessionId == rhs.sessionId
             && lhs.title == rhs.title
             && lhs.command == rhs.command
             && lhs.workingDirectory == rhs.workingDirectory

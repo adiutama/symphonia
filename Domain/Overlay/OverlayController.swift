@@ -7,6 +7,7 @@ import Foundation
 /// - One visible Overlay at a time (`visibleOverlayID`); nil = Main CLI.
 /// - Hide does not remove the session → PTY stays alive while the surface stays mounted.
 /// - Editor Overlay is first-class; Background CLIs are many freeform peeks.
+/// - Scoped to the focused session (Main Repo or Agent).
 @MainActor
 final class OverlayController: ObservableObject {
     private let preferences: PreferencesController
@@ -14,7 +15,7 @@ final class OverlayController: ObservableObject {
     private let secrets: SecretStoreController
     private var cancellables = Set<AnyCancellable>()
 
-    /// All live Overlay PTYs (may span Agents; host filters by focused Agent).
+    /// All live Overlay PTYs (may span sessions; host filters by focused session).
     @Published private(set) var sessions: [OverlaySession] = []
     /// Currently peeked Overlay; nil shows Main CLI.
     @Published private(set) var visibleOverlayID: UUID?
@@ -33,18 +34,18 @@ final class OverlayController: ObservableObject {
         self.agents = agents
         self.secrets = secrets
 
-        agents.$focused
+        agents.$focusedSession
             .receive(on: RunLoop.main)
             .sink { [weak self] focused in
-                self?.onFocusedAgentChanged(focused)
+                self?.onFocusedSessionChanged(focused)
             }
             .store(in: &cancellables)
     }
 
-    /// Overlay PTYs for the focused Agent (switcher + host).
+    /// Overlay PTYs for the focused session (switcher + host).
     var focusedSessions: [OverlaySession] {
-        guard let focused = agents.focused else { return [] }
-        return sessions.filter { $0.agentId == focused.id }
+        guard let focused = agents.focusedSession else { return [] }
+        return sessions.filter { $0.sessionId == focused.id }
     }
 
     var visibleSession: OverlaySession? {
@@ -52,7 +53,7 @@ final class OverlayController: ObservableObject {
         return sessions.first { $0.id == visibleOverlayID }
     }
 
-    /// Background CLIs for the focused Agent (Status Cue).
+    /// Background CLIs for the focused session (Status Cue).
     var focusedBackgroundCount: Int {
         focusedSessions.filter { $0.kind == .background }.count
     }
@@ -88,14 +89,14 @@ final class OverlayController: ObservableObject {
 
     /// Open Effective Editor: TUI → Overlay PTY; GUI → external launch (no Overlay trap).
     func openEditor() {
-        guard let agent = agents.focused else {
-            lastError = "Focus an Agent before opening the Editor."
+        guard let session = agents.focusedSession else {
+            lastError = "Focus Main Repo or an Agent before opening the Editor."
             return
         }
 
         let command = preferences.effective.editorCommand
         let presentation = preferences.effective.editorPresentation
-        let cwd = agent.worktreeURL.path
+        let cwd = session.workingDirectory
         let env = secrets.enabledEnvironment
 
         switch presentation {
@@ -110,7 +111,7 @@ final class OverlayController: ObservableObject {
 
         case .terminalOverlay:
             if let existing = sessions.first(where: {
-                $0.kind == .editor && $0.agentId == agent.id
+                $0.kind == .editor && $0.sessionId == session.id
             }) {
                 peek(existing.id)
                 lastInfo = "Peeking existing Editor Overlay"
@@ -118,17 +119,17 @@ final class OverlayController: ObservableObject {
                 return
             }
 
-            let session = OverlaySession(
+            let overlay = OverlaySession(
                 id: UUID(),
                 kind: .editor,
-                agentId: agent.id,
+                sessionId: session.id,
                 title: "Editor: \(shortCommand(command))",
                 command: command,
                 workingDirectory: cwd,
                 spawnEnvironment: env
             )
-            sessions.append(session)
-            peek(session.id)
+            sessions.append(overlay)
+            peek(overlay.id)
             lastInfo = "Editor Overlay: \(command)"
             lastError = nil
         }
@@ -138,8 +139,8 @@ final class OverlayController: ObservableObject {
 
     /// Create a Background CLI Overlay and peek it. Empty draft → bare shell.
     func createBackgroundCLI() {
-        guard let agent = agents.focused else {
-            lastError = "Focus an Agent before creating a Background CLI."
+        guard let session = agents.focusedSession else {
+            lastError = "Focus Main Repo or an Agent before creating a Background CLI."
             return
         }
 
@@ -152,35 +153,35 @@ final class OverlayController: ObservableObject {
             title = "BG: shell"
         }
 
-        let session = OverlaySession(
+        let overlay = OverlaySession(
             id: UUID(),
             kind: .background,
-            agentId: agent.id,
+            sessionId: session.id,
             title: title,
             command: command,
-            workingDirectory: agent.worktreeURL.path,
+            workingDirectory: session.workingDirectory,
             spawnEnvironment: secrets.enabledEnvironment
         )
-        sessions.append(session)
+        sessions.append(overlay)
         draftBackgroundCommand = ""
-        peek(session.id)
+        peek(overlay.id)
         lastInfo = "Background CLI created"
         lastError = nil
     }
 
     // MARK: - Internals
 
-    private func onFocusedAgentChanged(_ focused: AgentSummary?) {
-        // Hide when leaving an Agent; keep other Agents' Overlay PTYs alive for return.
+    private func onFocusedSessionChanged(_ focused: FocusedSession?) {
+        // Hide when leaving a session; keep other sessions' Overlay PTYs alive for return.
         if let visibleOverlayID,
-           let session = sessions.first(where: { $0.id == visibleOverlayID }),
-           session.agentId != focused?.id
+           let overlay = sessions.first(where: { $0.id == visibleOverlayID }),
+           overlay.sessionId != focused?.id
         {
             self.visibleOverlayID = nil
         }
-        // Drop sessions whose Agent no longer exists.
-        let liveIDs = Set(agents.agents.map(\.id))
-        sessions.removeAll { !liveIDs.contains($0.agentId) }
+        // Drop sessions whose owner is gone (removed Agent / closed Workspace).
+        let liveIDs = agents.liveOverlaySessionIDs
+        sessions.removeAll { !liveIDs.contains($0.sessionId) }
         if let visibleOverlayID,
            !sessions.contains(where: { $0.id == visibleOverlayID })
         {
