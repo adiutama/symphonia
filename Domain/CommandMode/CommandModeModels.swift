@@ -1,16 +1,25 @@
 import Foundation
 
-/// One row in the Command Mode palette (P7.2 scaffold).
+/// One row in the Command Mode palette.
 struct CommandModeItem: Identifiable, Equatable {
     let id: String
     let title: String
     let subtitle: String?
+    /// Single-key chord shown on the row (root items); matched when filter is empty.
+    let keybind: String?
     let action: CommandModeAction
 
-    init(id: String, title: String, subtitle: String? = nil, action: CommandModeAction) {
+    init(
+        id: String,
+        title: String,
+        subtitle: String? = nil,
+        keybind: String? = nil,
+        action: CommandModeAction
+    ) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
+        self.keybind = keybind
         self.action = action
     }
 }
@@ -19,11 +28,9 @@ struct CommandModeItem: Identifiable, Equatable {
 enum CommandModeAction: Equatable {
     case dismiss
     case back
-    case toggleScaffolds
-    case showScaffolds
-    case hideScaffolds
-    case openSecretStorePanel
+    case openSettings
     case switchWorkspace(id: String)
+    case focusMainRepo
     case focusAgent(id: String)
     case newAgent
     case removeFocusedAgent

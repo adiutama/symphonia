@@ -17,8 +17,8 @@ final class CommandModeController: ObservableObject {
     @Published private(set) var phase: CommandModePhase = .root
     @Published private(set) var items: [CommandModeItem] = []
     @Published var selectedIndex: Int = 0
-    /// Shared with ContentView: collapse / expand Workspace / Agent / Secrets scaffolds.
-    @Published var scaffoldsExpanded = false
+    /// Type-to-filter query (also accumulates printable keys when not a root keybind).
+    @Published var filterQuery: String = ""
     @Published var lastInfo: String?
 
     private var localMonitor: Any?
@@ -36,7 +36,6 @@ final class CommandModeController: ObservableObject {
         self.agents = agents
         self.overlays = overlays
 
-        // Rebuild list when underlying lists change while open.
         Publishers.CombineLatest3(
             workspaces.$workspaces,
             agents.$agents,
@@ -53,8 +52,6 @@ final class CommandModeController: ObservableObject {
     }
 
     deinit {
-        // Monitors must be removed; MainActor deinit cannot call MainActor methods directly
-        // in all Swift versions — capture and remove synchronously.
         if let localMonitor {
             NSEvent.removeMonitor(localMonitor)
         }
@@ -66,6 +63,7 @@ final class CommandModeController: ObservableObject {
         guard !isActive else { return }
         isActive = true
         phase = .root
+        filterQuery = ""
         lastInfo = nil
         resignTerminalFocus()
         rebuildItems(resetSelection: true)
@@ -75,9 +73,15 @@ final class CommandModeController: ObservableObject {
         guard isActive else { return }
         isActive = false
         phase = .root
+        filterQuery = ""
         items = []
         selectedIndex = 0
         restoreTerminalFocus()
+    }
+
+    func setFilter(_ query: String) {
+        filterQuery = query
+        rebuildItems(resetSelection: true)
     }
 
     // MARK: - Navigation / run
@@ -100,38 +104,27 @@ final class CommandModeController: ObservableObject {
 
         case .back:
             phase = .root
+            filterQuery = ""
             rebuildItems(resetSelection: true)
 
-        case .toggleScaffolds:
-            scaffoldsExpanded.toggle()
-            lastInfo = scaffoldsExpanded ? "Panels shown" : "Panels hidden"
-            dismiss()
-
-        case .showScaffolds:
-            scaffoldsExpanded = true
-            lastInfo = "Panels shown"
-            dismiss()
-
-        case .hideScaffolds:
-            scaffoldsExpanded = false
-            lastInfo = "Panels hidden"
-            dismiss()
-
-        case .openSecretStorePanel:
-            scaffoldsExpanded = true
-            lastInfo = "Secret Store panel open"
+        case .openSettings:
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            lastInfo = "Settings"
             dismiss()
 
         case .showWorkspacePicker:
             phase = .pickWorkspace
+            filterQuery = ""
             rebuildItems(resetSelection: true)
 
         case .showAgentPicker:
             phase = .pickAgent
+            filterQuery = ""
             rebuildItems(resetSelection: true)
 
         case .showBackgroundPicker:
             phase = .pickBackground
+            filterQuery = ""
             rebuildItems(resetSelection: true)
 
         case .switchWorkspace(let id):
@@ -141,17 +134,27 @@ final class CommandModeController: ObservableObject {
             }
             dismiss()
 
+        case .focusMainRepo:
+            guard let current = workspaces.current else {
+                lastInfo = "Select a Workspace first"
+                dismiss()
+                return
+            }
+            agents.focusMain(for: current)
+            lastInfo = "Main Repo"
+            dismiss()
+
         case .focusAgent(let id):
             if let agent = agents.agents.first(where: { $0.id == id }) {
                 agents.focus(agent)
-                lastInfo = "Agent: \(agent.threeWordName)"
+                lastInfo = "Agent: \(agent.primaryLabel)"
             }
             dismiss()
 
         case .newAgent:
             agents.createAgent()
             if let focused = agents.focused {
-                lastInfo = "Created Agent: \(focused.threeWordName)"
+                lastInfo = "Created Agent: \(focused.primaryLabel)"
             } else if let err = agents.lastError {
                 lastInfo = err
             }
@@ -163,10 +166,8 @@ final class CommandModeController: ObservableObject {
                 dismiss()
                 return
             }
-            // Hand off to existing AgentScaffold confirm dialog (ADR 0020).
             agents.requestRemove(focused)
-            scaffoldsExpanded = true
-            lastInfo = "Confirm Remove Agent in Agents panel"
+            lastInfo = "Confirm Remove Agent"
             dismiss()
 
         case .openEditor:
@@ -194,18 +195,32 @@ final class CommandModeController: ObservableObject {
     // MARK: - Items
 
     private func rebuildItems(resetSelection: Bool) {
+        let raw: [CommandModeItem]
         switch phase {
         case .root:
-            items = rootItems()
+            raw = rootItems()
         case .pickWorkspace:
-            items = workspacePickerItems()
+            raw = workspacePickerItems()
         case .pickAgent:
-            items = agentPickerItems()
+            raw = agentPickerItems()
         case .pickBackground:
-            items = backgroundPickerItems()
+            raw = backgroundPickerItems()
         }
+        items = filter(raw)
         if resetSelection || selectedIndex >= items.count {
-            selectedIndex = items.isEmpty ? 0 : min(selectedIndex, items.count - 1)
+            selectedIndex = items.isEmpty ? 0 : min(selectedIndex, max(items.count - 1, 0))
+        }
+    }
+
+    private func filter(_ raw: [CommandModeItem]) -> [CommandModeItem] {
+        let q = filterQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return raw }
+        return raw.filter { item in
+            if item.action == .back { return true }
+            let hay = [item.title, item.subtitle, item.keybind]
+                .compactMap { $0?.lowercased() }
+                .joined(separator: " ")
+            return hay.contains(q)
         }
     }
 
@@ -216,36 +231,49 @@ final class CommandModeController: ObservableObject {
             id: "workspaces",
             title: "Switch Workspace…",
             subtitle: workspaces.current.map { "current: \($0.slug)" } ?? "none selected",
+            keybind: "w",
             action: .showWorkspacePicker
         ))
         rows.append(CommandModeItem(
             id: "agents",
-            title: "Focus Agent…",
-            subtitle: agents.focused.map { "focus: \($0.threeWordName)" } ?? "none focused",
+            title: "Focus session…",
+            subtitle: agents.focusedSession.map(\.displayTitle) ?? "none focused",
+            keybind: "a",
             action: .showAgentPicker
+        ))
+        rows.append(CommandModeItem(
+            id: "main",
+            title: "Focus Main Repo",
+            subtitle: workspaces.current.map { $0.slug } ?? "needs Workspace",
+            keybind: "m",
+            action: .focusMainRepo
         ))
         rows.append(CommandModeItem(
             id: "new-agent",
             title: "New Agent",
             subtitle: workspaces.current == nil ? "needs Workspace" : nil,
+            keybind: "n",
             action: .newAgent
         ))
         rows.append(CommandModeItem(
             id: "remove-agent",
             title: "Remove Agent…",
-            subtitle: agents.focused.map { $0.threeWordName } ?? "needs focused Agent",
+            subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Agent",
+            keybind: "x",
             action: .removeFocusedAgent
         ))
         rows.append(CommandModeItem(
             id: "editor",
             title: "Open Editor",
             subtitle: preferences.effective.editorCommand,
+            keybind: "e",
             action: .openEditor
         ))
         rows.append(CommandModeItem(
             id: "bg-create",
             title: "Create Background CLI",
             subtitle: "peek new Overlay (empty = shell)",
+            keybind: "b",
             action: .createBackground
         ))
         rows.append(CommandModeItem(
@@ -254,30 +282,28 @@ final class CommandModeController: ObservableObject {
             subtitle: overlays.focusedSessions.isEmpty
                 ? "no live Overlays"
                 : "\(overlays.focusedSessions.count) session(s)",
+            keybind: "p",
             action: .showBackgroundPicker
         ))
         rows.append(CommandModeItem(
             id: "hide-overlay",
             title: "Hide Overlay → Main CLI",
             subtitle: overlays.isShowingOverlay ? overlays.visibleSession?.title : "already on Main CLI",
+            keybind: "h",
             action: .hideOverlay
         ))
         rows.append(CommandModeItem(
-            id: "toggle-panels",
-            title: scaffoldsExpanded ? "Hide scaffold panels" : "Show scaffold panels",
-            subtitle: "Workspace / Agent / Secrets",
-            action: .toggleScaffolds
-        ))
-        rows.append(CommandModeItem(
-            id: "secrets",
-            title: "Open Secret Store panel",
-            subtitle: "expands scaffolds",
-            action: .openSecretStorePanel
+            id: "settings",
+            title: "Open Settings…",
+            subtitle: "Secret Store lives under Workspace",
+            keybind: ",",
+            action: .openSettings
         ))
         rows.append(CommandModeItem(
             id: "dismiss",
             title: "Dismiss Command Mode",
             subtitle: "Esc",
+            keybind: nil,
             action: .dismiss
         ))
         return rows
@@ -317,21 +343,32 @@ final class CommandModeController: ObservableObject {
                 title: "(select a Workspace first)",
                 action: .back
             ))
-        } else if agents.agents.isEmpty {
-            list.append(CommandModeItem(
-                id: "ag-empty",
-                title: "(no Agents)",
-                action: .back
-            ))
         } else {
-            for agent in agents.agents {
-                let mark = agents.focused?.id == agent.id ? " ← focus" : ""
+            let current = workspaces.current!
+            let mainFocused = agents.focusedSession?.isMainRepo == true
+            list.append(CommandModeItem(
+                id: "ag-main",
+                title: "Main Repo" + (mainFocused ? " ← focus" : ""),
+                subtitle: SymphoniaPaths.workspaceMainDirectory(in: current.dataDirURL).path,
+                keybind: "m",
+                action: .focusMainRepo
+            ))
+            if agents.agents.isEmpty {
                 list.append(CommandModeItem(
-                    id: "ag-\(agent.id)",
-                    title: agent.threeWordName + mark,
-                    subtitle: agent.branchName.map { "branch: \($0)" },
-                    action: .focusAgent(id: agent.id)
+                    id: "ag-empty",
+                    title: "(no Agents)",
+                    action: .back
                 ))
+            } else {
+                for agent in agents.agents {
+                    let mark = agents.focused?.id == agent.id ? " ← focus" : ""
+                    list.append(CommandModeItem(
+                        id: "ag-\(agent.id)",
+                        title: agent.primaryLabel + mark,
+                        subtitle: agent.secondaryLabel ?? agent.threeWordName,
+                        action: .focusAgent(id: agent.id)
+                    ))
+                }
             }
         }
         return list
@@ -372,20 +409,21 @@ final class CommandModeController: ObservableObject {
     }
 
     private func handleKeyDown(_ event: NSEvent) -> NSEvent? {
-        // Always read Effective Setting so Settings changes apply without restart (P7.3).
         let binding = LeaderKeyBinding.parse(preferences.effective.leaderKey)
 
         if !isActive {
             if let binding, binding.matches(event) {
                 enter()
-                return nil // swallow Leader — PTY must not see it
+                return nil
             }
             return event
         }
 
-        // Command Mode active: consume everything so Main CLI / Overlay PTY stay quiet.
         if event.keyCode == 53 { // Escape
-            if phase != .root {
+            if !filterQuery.isEmpty {
+                filterQuery = ""
+                rebuildItems(resetSelection: true)
+            } else if phase != .root {
                 phase = .root
                 rebuildItems(resetSelection: true)
             } else {
@@ -394,7 +432,6 @@ final class CommandModeController: ObservableObject {
             return nil
         }
 
-        // Leader again while active → dismiss.
         if let binding, binding.matches(event) {
             dismiss()
             return nil
@@ -410,9 +447,41 @@ final class CommandModeController: ObservableObject {
         case 36, 76: // return / keypad enter
             runSelected()
             return nil
+        case 51: // delete
+            if !filterQuery.isEmpty {
+                filterQuery.removeLast()
+                rebuildItems(resetSelection: true)
+            }
+            return nil
         default:
+            break
+        }
+
+        // Root keybinds when filter empty and no modifiers (except shift for symbols).
+        let mods = event.modifierFlags.intersection([.control, .option, .command])
+        if mods.isEmpty,
+           filterQuery.isEmpty,
+           let chars = event.charactersIgnoringModifiers?.lowercased(),
+           chars.count == 1,
+           let match = items.first(where: { $0.keybind?.lowercased() == chars })
+        {
+            run(match.action)
             return nil
         }
+
+        // Type-to-filter: append printable characters.
+        if mods.intersection([.control, .option, .command]).isEmpty,
+           let chars = event.charactersIgnoringModifiers,
+           chars.count == 1,
+           let ch = chars.first,
+           (ch.isLetter || ch.isNumber || ch == "," || ch == "." || ch == "-" || ch == "_" || ch == " ")
+        {
+            filterQuery.append(ch)
+            rebuildItems(resetSelection: true)
+            return nil
+        }
+
+        return nil
     }
 
     // MARK: - First responder
@@ -420,7 +489,6 @@ final class CommandModeController: ObservableObject {
     private func resignTerminalFocus() {
         guard let window = NSApp.keyWindow else { return }
         savedFirstResponder = window.firstResponder
-        // Prefer resigning terminal surfaces so the caret stops blinking in the PTY.
         if window.firstResponder is NSView {
             window.makeFirstResponder(nil)
         }
@@ -436,7 +504,6 @@ final class CommandModeController: ObservableObject {
             window.makeFirstResponder(saved)
             return
         }
-        // Fall back: first TerminalSurfaceNSView in the key window.
         if let terminal = findTerminalSurface(in: window.contentView) {
             window.makeFirstResponder(terminal)
         }

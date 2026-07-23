@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Floating Command Mode palette scaffold (P7.2). Ugly on purpose; polish later.
+/// Floating Command Mode palette with search/filter and keybind hints.
 struct CommandModeView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var preferences: PreferencesController
@@ -8,12 +8,13 @@ struct CommandModeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+            filterField
             Divider()
             itemList
             Divider()
             footer
         }
-        .frame(width: 420)
+        .frame(width: 440)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
@@ -32,7 +33,9 @@ struct CommandModeView: View {
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
             Button("Esc") {
-                if commandMode.phase == .root {
+                if !commandMode.filterQuery.isEmpty {
+                    commandMode.setFilter("")
+                } else if commandMode.phase == .root {
                     commandMode.dismiss()
                 } else {
                     commandMode.run(.back)
@@ -46,11 +49,29 @@ struct CommandModeView: View {
         .padding(.vertical, 10)
     }
 
+    private var filterField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.tertiary)
+            Text(commandMode.filterQuery.isEmpty ? "Type to filter…" : commandMode.filterQuery)
+                .font(.body.monospaced())
+                .foregroundStyle(commandMode.filterQuery.isEmpty ? .tertiary : .primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if !commandMode.filterQuery.isEmpty {
+                Text("⌫")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+    }
+
     private var phaseTitle: String {
         switch commandMode.phase {
         case .root: return "Command Mode"
         case .pickWorkspace: return "Switch Workspace"
-        case .pickAgent: return "Focus Agent"
+        case .pickAgent: return "Focus session"
         case .pickBackground: return "Peek Overlay"
         }
     }
@@ -59,15 +80,22 @@ struct CommandModeView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(commandMode.items.enumerated()), id: \.element.id) { index, item in
-                        Button {
-                            commandMode.selectedIndex = index
-                            commandMode.run(item.action)
-                        } label: {
-                            row(item: item, selected: index == commandMode.selectedIndex)
+                    if commandMode.items.isEmpty {
+                        Text("No matches")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(12)
+                    } else {
+                        ForEach(Array(commandMode.items.enumerated()), id: \.element.id) { index, item in
+                            Button {
+                                commandMode.selectedIndex = index
+                                commandMode.run(item.action)
+                            } label: {
+                                row(item: item, selected: index == commandMode.selectedIndex)
+                            }
+                            .buttonStyle(.plain)
+                            .id(item.id)
                         }
-                        .buttonStyle(.plain)
-                        .id(item.id)
                     }
                 }
             }
@@ -96,7 +124,15 @@ struct CommandModeView: View {
                 }
             }
             Spacer(minLength: 8)
-            if selected {
+            if let keybind = item.keybind {
+                Text(keybind)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.secondary.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            } else if selected {
                 Text("↩")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -110,7 +146,7 @@ struct CommandModeView: View {
 
     private var footer: some View {
         HStack {
-            Text("↑↓ navigate · ↩ run · Esc cancel")
+            Text("↑↓ · ↩ · type to filter · keybinds when empty")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
             Spacer()
