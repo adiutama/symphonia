@@ -5,8 +5,12 @@ import Foundation
 /// Phase 2 keeps this as an in-memory / test struct. Persistence under each
 /// Workspace’s `config.json` arrives with Workspace create (Phase 3).
 struct WorkspaceSettingOverrides: Equatable, Sendable {
-    /// Workspace override for Main CLI command (ADR 0005).
+    /// Workspace override for Main CLI command (ADR 0005). Empty string is a valid
+    /// override (bare shell); use `nil` to inherit Global.
     var mainCLICommand: String?
+
+    /// Workspace override for Editor command (ADR 0006). Empty = use `$EDITOR` at resolve.
+    var editorCommand: String?
 
     /// Workspace override for Leader (if ever per-Workspace; ADR 0009 / 0016).
     var leaderKey: String?
@@ -23,11 +27,13 @@ struct WorkspaceSettingOverrides: Equatable, Sendable {
 
     init(
         mainCLICommand: String? = nil,
+        editorCommand: String? = nil,
         leaderKey: String? = nil,
         workspacesRoot: String? = nil,
         baseRef: String? = nil
     ) {
         self.mainCLICommand = mainCLICommand
+        self.editorCommand = editorCommand
         self.leaderKey = leaderKey
         self.workspacesRoot = workspacesRoot
         self.baseRef = baseRef

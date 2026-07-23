@@ -12,7 +12,13 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 16) {
-                Label(preferences.effective.mainCLICommand, systemImage: "terminal")
+                Label(
+                    preferences.effective.mainCLICommand.isEmpty
+                        ? "bare shell"
+                        : preferences.effective.mainCLICommand,
+                    systemImage: "terminal"
+                )
+                Label(preferences.effective.editorCommand, systemImage: "pencil")
                 Label(preferences.effective.leaderKey, systemImage: "keyboard")
                 Label(preferences.effective.baseRef, systemImage: "arrow.triangle.branch")
             }
