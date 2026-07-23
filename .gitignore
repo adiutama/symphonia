@@ -1,0 +1,5 @@
+# Git
+.DS_Store
+
+# Local implementation artifacts (machine-only — see docs/README.md)
+.local/
