@@ -1,19 +1,37 @@
 import SwiftUI
 
-/// Main CLI + Overlay peeks. Visible Overlay is an inset translucent sheet; hide keeps the PTY.
+/// Main CLI surfaces (one live PTY per opened session) + Overlay peeks.
+///
+/// Switching Main/Agent **hides** other Main CLI PTYs (opacity 0) instead of destroying them.
+/// Tear-down happens when the session is removed or the Workspace changes (`AgentController`).
 struct OverlayHostView: View {
     @EnvironmentObject private var agents: AgentController
     @EnvironmentObject private var overlays: OverlayController
 
     var body: some View {
         ZStack {
-            TerminalSurfaceView(
-                workingDirectory: agents.focusedWorkingDirectory,
-                command: agents.focusedSpawnCommand,
-                spawnEnvironment: agents.focusedSpawnEnvironment
-            )
-            .id(agents.focusedSession?.id ?? "none")
-            .zIndex(0)
+            ForEach(agents.openedMainCLISessions) { slot in
+                let isVisible = agents.focusedSession?.id == slot.id && !overlays.isShowingOverlay
+                TerminalSurfaceView(
+                    workingDirectory: slot.workingDirectory,
+                    command: slot.command,
+                    spawnEnvironment: slot.spawnEnvironment,
+                    isActive: isVisible
+                )
+                .id(slot.viewIdentity)
+                .opacity(agents.focusedSession?.id == slot.id ? 1 : 0)
+                .allowsHitTesting(isVisible)
+                .zIndex(agents.focusedSession?.id == slot.id ? 0 : -1)
+            }
+
+            if agents.openedMainCLISessions.isEmpty {
+                Color.black
+                    .overlay {
+                        Text("Select Main Repo or an Agent")
+                            .foregroundStyle(.secondary)
+                    }
+                    .zIndex(-2)
+            }
 
             if overlays.isShowingOverlay {
                 Color.black.opacity(0.32)
@@ -24,7 +42,7 @@ struct OverlayHostView: View {
 
             ForEach(overlays.focusedSessions) { session in
                 let isVisible = overlays.visibleOverlayID == session.id
-                overlayPane(session: session)
+                overlayPane(session: session, isVisible: isVisible)
                     .padding(28)
                     .frame(maxWidth: 920, maxHeight: 640)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -34,16 +52,18 @@ struct OverlayHostView: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: overlays.visibleOverlayID)
+        .animation(.easeOut(duration: 0.12), value: agents.focusedSession?.id)
     }
 
-    private func overlayPane(session: OverlaySession) -> some View {
+    private func overlayPane(session: OverlaySession, isVisible: Bool) -> some View {
         VStack(spacing: 0) {
             sheetHeader(session)
             Divider()
             TerminalSurfaceView(
                 workingDirectory: session.workingDirectory,
                 command: session.command,
-                spawnEnvironment: session.spawnEnvironment
+                spawnEnvironment: session.spawnEnvironment,
+                isActive: isVisible
             )
             .id(session.id)
         }

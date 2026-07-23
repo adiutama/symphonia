@@ -49,7 +49,7 @@ final class TerminalSurfaceNSView: NSView {
         tearDownGhostty()
     }
 
-    /// Apply Agent-focused Worktree cwd + Effective Main CLI + Enabled secrets; restart if running.
+    /// Apply spawn config; restart only when cwd / command / env actually change (not on show/hide).
     func applySpawnConfig(
         workingDirectory: String?,
         command: String?,
@@ -70,6 +70,20 @@ final class TerminalSurfaceNSView: NSView {
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window else { return }
             window.makeFirstResponder(self)
+        }
+    }
+
+    /// When this surface becomes the visible Main CLI / Overlay, take keyboard focus.
+    func setActive(_ active: Bool) {
+        guard window != nil else { return }
+        if active {
+            if window?.firstResponder !== self {
+                window?.makeFirstResponder(self)
+            } else {
+                setSurfaceFocus(true)
+            }
+        } else {
+            setSurfaceFocus(false)
         }
     }
 
@@ -659,13 +673,15 @@ private enum GhosttyBootstrap {
 /// Intentionally not `.focusable()` — AppKit first-responder owns typing focus
 /// so SwiftUI does not steal key events from the surface.
 ///
-/// When `workingDirectory` / `command` / `spawnEnvironment` change (Agent focus or Secret Store),
-/// the surface restarts with Ghostty spawn fields. Nil command = bare shell.
+/// When `workingDirectory` / `command` / `spawnEnvironment` change, the surface restarts.
+/// Nil command = bare shell. `isActive` only toggles focus — it does not respawn.
 struct TerminalSurfaceView: NSViewRepresentable {
     var workingDirectory: String? = nil
     var command: String? = nil
-    /// Enabled Secret Store pairs; applied when an Agent CLI is starting (focused).
+    /// Locale defaults + Enabled Secret Store pairs at spawn.
     var spawnEnvironment: [(key: String, value: String)] = []
+    /// Visible / keyboard-owning surface (Main CLI or peeked Overlay).
+    var isActive: Bool = true
 
     func makeNSView(context: Context) -> TerminalSurfaceNSView {
         let view = TerminalSurfaceNSView(frame: .zero)
@@ -683,5 +699,6 @@ struct TerminalSurfaceView: NSViewRepresentable {
             command: command,
             spawnEnvironment: spawnEnvironment
         )
+        nsView.setActive(isActive)
     }
 }

@@ -97,7 +97,7 @@ final class OverlayController: ObservableObject {
         let command = preferences.effective.editorCommand
         let presentation = preferences.effective.editorPresentation
         let cwd = session.workingDirectory
-        let env = secrets.enabledEnvironment
+        let env = CLISpawnEnvironment.mergingSecrets(secrets.enabledEnvironment)
 
         switch presentation {
         case .externalApp:
@@ -160,7 +160,7 @@ final class OverlayController: ObservableObject {
             title: title,
             command: command,
             workingDirectory: session.workingDirectory,
-            spawnEnvironment: secrets.enabledEnvironment
+            spawnEnvironment: CLISpawnEnvironment.mergingSecrets(secrets.enabledEnvironment)
         )
         sessions.append(overlay)
         draftBackgroundCommand = ""
@@ -206,7 +206,7 @@ final class OverlayController: ObservableObject {
         process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
 
         var env = ProcessInfo.processInfo.environment
-        for pair in environment {
+        for pair in CLISpawnEnvironment.mergingSecrets(environment) {
             env[pair.key] = pair.value
         }
         process.environment = env

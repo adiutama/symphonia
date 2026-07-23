@@ -42,6 +42,8 @@
 		F6A405162738495A6B0D0107 /* OverlayStatusCueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A405162738495A6B0D0108 /* OverlayStatusCueView.swift */; };
 		B8C405162738495A6B0F0101 /* WorkspaceSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */; };
 		B8C405162738495A6B0F0103 /* FocusedSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0104 /* FocusedSession.swift */; };
+		B8C405162738495A6B0F0105 /* MainCLISurfaceSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */; };
+		B8C405162738495A6B0F0107 /* CLISpawnEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */; };
 		A7B405162738495A6B0E0101 /* LeaderKeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */; };
 		A7B405162738495A6B0E0103 /* CommandModeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0104 /* CommandModeModels.swift */; };
 		A7B405162738495A6B0E0105 /* CommandModeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0106 /* CommandModeController.swift */; };
@@ -85,6 +87,8 @@
 		F6A405162738495A6B0D0108 /* OverlayStatusCueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayStatusCueView.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSidebarView.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0104 /* FocusedSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedSession.swift; sourceTree = "<group>"; };
+		B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCLISurfaceSlot.swift; sourceTree = "<group>"; };
+		B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLISpawnEnvironment.swift; sourceTree = "<group>"; };
 		A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderKeyBinding.swift; sourceTree = "<group>"; };
 		A7B405162738495A6B0E0104 /* CommandModeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeModels.swift; sourceTree = "<group>"; };
 		A7B405162738495A6B0E0106 /* CommandModeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeController.swift; sourceTree = "<group>"; };
@@ -219,6 +223,7 @@
 				D2E3F405162738495A6B0B02 /* ThreeWordName.swift */,
 				D2E3F405162738495A6B0B04 /* AgentStore.swift */,
 				B8C405162738495A6B0F0104 /* FocusedSession.swift */,
+				B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */,
 				D2E3F405162738495A6B0B06 /* AgentController.swift */,
 			);
 			path = Agent;
@@ -230,6 +235,7 @@
 				B0C1D2E3F405162738495A6C /* SymphoniaPaths.swift */,
 				B0C1D2E3F405162738495A6E /* GlobalPreferences.swift */,
 				B0C1D2E3F405162738495A78 /* EditorCommandResolver.swift */,
+				B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */,
 				B0C1D2E3F405162738495A70 /* WorkspaceSettingOverrides.swift */,
 				B0C1D2E3F405162738495A72 /* EffectiveSettings.swift */,
 				B0C1D2E3F405162738495A74 /* PreferencesStore.swift */,
@@ -329,6 +335,8 @@
 				D2E3F405162738495A6B0B03 /* AgentStore.swift in Sources */,
 				D2E3F405162738495A6B0B05 /* AgentController.swift in Sources */,
 				B8C405162738495A6B0F0103 /* FocusedSession.swift in Sources */,
+				B8C405162738495A6B0F0105 /* MainCLISurfaceSlot.swift in Sources */,
+				B8C405162738495A6B0F0107 /* CLISpawnEnvironment.swift in Sources */,
 				D2E3F405162738495A6B0B07 /* AgentScaffoldView.swift in Sources */,
 				B8C405162738495A6B0F0101 /* WorkspaceSidebarView.swift in Sources */,
 				E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */,

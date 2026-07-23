@@ -2,6 +2,8 @@ import Foundation
 import Combine
 
 /// Observable Agent list / create / focus / remove + focused session (Main Repo or Agent).
+///
+/// Main CLI PTYs persist per session (show/hide on focus); tear down only on remove / Workspace switch.
 @MainActor
 final class AgentController: ObservableObject {
     private let store: AgentStore
@@ -11,9 +13,11 @@ final class AgentController: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     @Published private(set) var agents: [AgentSummary] = []
-    /// Main Repo or Agent — drives Main CLI cwd and Overlay scope.
+    /// Main Repo or Agent — drives which Main CLI surface is visible and Overlay scope.
     @Published private(set) var focusedSession: FocusedSession?
-    /// Enabled Secret Store env snapshotted at focus / create (ADR 0002 spawn-only).
+    /// Opened Main CLI surfaces (alive PTYs). Host mounts all; only focused is visible.
+    @Published private(set) var openedMainCLISessions: [MainCLISurfaceSlot] = []
+    /// Env snapshotted for the focused session (locale + secrets); used by chrome / respawn hints.
     @Published private(set) var focusedSpawnEnvironment: [(key: String, value: String)] = []
     @Published var lastError: String?
 
@@ -62,8 +66,7 @@ final class AgentController: ObservableObject {
 
     /// Non-empty Main CLI command for surface `command`, or nil for Ghostty default shell.
     var focusedSpawnCommand: String? {
-        let cmd = focusedMainCLICommand.trimmingCharacters(in: .whitespacesAndNewlines)
-        return cmd.isEmpty ? nil : cmd
+        spawnCommandValue()
     }
 
     /// Session ids whose Overlay PTYs should stay alive (current Workspace Main + Agents).
@@ -81,6 +84,7 @@ final class AgentController: ObservableObject {
             if focusedSession != nil {
                 focusedSession = nil
                 focusedSpawnEnvironment = []
+                openedMainCLISessions = []
             }
             return
         }
@@ -89,6 +93,7 @@ final class AgentController: ObservableObject {
             agents = try store.list(workspaceDataDir: current.dataDirURL)
             lastError = nil
             reconcileFocusedSession(workspace: current)
+            pruneOpenedSessionsToLiveSet()
         } catch {
             lastError = error.localizedDescription
         }
@@ -133,17 +138,17 @@ final class AgentController: ObservableObject {
 
     /// Focus Main Repo for the given Workspace (cwd = `<workspace>/main/`).
     func focusMain(for workspace: WorkspaceSummary) {
-        applyFocus(.mainRepo(for: workspace))
+        applyFocus(.mainRepo(for: workspace), forceRespawn: false)
     }
 
     func focus(_ agent: AgentSummary) {
-        applyFocus(.agent(agent))
+        applyFocus(.agent(agent), forceRespawn: false)
     }
 
-    /// Re-apply current Enabled Secret Store set by restarting the focused session CLI.
+    /// Re-apply current Enabled Secret Store + locale by restarting the focused session CLI only.
     func respawnWithCurrentSecrets() {
         guard let focusedSession else { return }
-        applyFocus(focusedSession)
+        applyFocus(focusedSession, forceRespawn: true)
     }
 
     func clearFocus() {
@@ -171,12 +176,15 @@ final class AgentController: ObservableObject {
             return
         }
 
+        let removedSessionID = FocusedSession.agent(agent).id
+
         do {
             try store.remove(
                 workspaceDataDir: current.dataDirURL,
                 agent: agent,
                 deleteBranch: pendingRemoveDeleteBranch
             )
+            openedMainCLISessions.removeAll { $0.id == removedSessionID }
             if focusedSession?.agent?.id == agent.id {
                 focusMain(for: current)
             }
@@ -193,11 +201,43 @@ final class AgentController: ObservableObject {
 
     // MARK: - Internals
 
-    private func applyFocus(_ session: FocusedSession) {
+    private func spawnCommandValue() -> String? {
+        let cmd = preferences.effective.mainCLICommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cmd.isEmpty ? nil : cmd
+    }
+
+    private func currentSpawnEnvironment() -> [(key: String, value: String)] {
+        CLISpawnEnvironment.mergingSecrets(secrets?.enabledEnvironment ?? [])
+    }
+
+    private func applyFocus(_ session: FocusedSession, forceRespawn: Bool) {
         focusedSession = session
-        // Spawn-time inject: snapshot Enabled set now; live Secret Store edits do not rewrite this shell.
-        focusedSpawnEnvironment = secrets?.enabledEnvironment ?? []
+        let env = currentSpawnEnvironment()
+        focusedSpawnEnvironment = env
         lastError = nil
+
+        if let idx = openedMainCLISessions.firstIndex(where: { $0.id == session.id }) {
+            if forceRespawn {
+                openedMainCLISessions[idx].spawnEnvironment = env
+                openedMainCLISessions[idx].generation += 1
+            }
+            return
+        }
+
+        openedMainCLISessions.append(
+            MainCLISurfaceSlot(
+                id: session.id,
+                workingDirectory: session.workingDirectory,
+                command: spawnCommandValue(),
+                spawnEnvironment: env,
+                generation: 0
+            )
+        )
+    }
+
+    private func pruneOpenedSessionsToLiveSet() {
+        let live = liveOverlaySessionIDs
+        openedMainCLISessions.removeAll { !live.contains($0.id) }
     }
 
     private func reconcileFocusedSession(workspace: WorkspaceSummary) {
@@ -208,8 +248,12 @@ final class AgentController: ObservableObject {
             if workspaceId != workspace.id {
                 focusMain(for: workspace)
             } else {
-                // Refresh main path / slug if Workspace moved.
-                focusedSession = .mainRepo(for: workspace)
+                // Refresh main path / slug if Workspace moved; keep existing PTY if same id.
+                let updated = FocusedSession.mainRepo(for: workspace)
+                focusedSession = updated
+                if !openedMainCLISessions.contains(where: { $0.id == updated.id }) {
+                    applyFocus(updated, forceRespawn: false)
+                }
             }
         case .agent(let agent)?:
             if let updated = agents.first(where: { $0.id == agent.id }) {
@@ -224,6 +268,8 @@ final class AgentController: ObservableObject {
         pendingRemove = nil
         pendingRemoveDeleteBranch = false
         draftBranchName = ""
+        // Drop Main CLI PTYs from the previous Workspace (cmux-style: sessions are per workspace).
+        openedMainCLISessions = []
         guard let current = workspaces.current else {
             agents = []
             focusedSession = nil
@@ -231,7 +277,7 @@ final class AgentController: ObservableObject {
             return
         }
         refresh()
-        // Always land on Main Repo when switching Workspace.
+        // Always land on Main Repo when switching Workspace (opens a fresh Main PTY for that workspace).
         focusMain(for: current)
     }
 }
