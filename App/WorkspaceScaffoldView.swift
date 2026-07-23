@@ -89,10 +89,3 @@ struct WorkspaceScaffoldView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
-
-#Preview {
-    let preferences = PreferencesController()
-    return WorkspaceScaffoldView()
-        .environmentObject(WorkspaceController(preferences: preferences))
-        .frame(width: 640)
-}

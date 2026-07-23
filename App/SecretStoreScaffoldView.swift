@@ -225,12 +225,3 @@ struct SecretStoreScaffoldView: View {
         }
     }
 }
-
-#Preview {
-    let preferences = PreferencesController()
-    let workspaces = WorkspaceController(preferences: preferences)
-    return SecretStoreScaffoldView()
-        .environmentObject(workspaces)
-        .environmentObject(SecretStoreController(workspaces: workspaces))
-        .frame(width: 720)
-}

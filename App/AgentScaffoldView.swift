@@ -133,13 +133,3 @@ struct AgentScaffoldView: View {
         return "Remove Agent?"
     }
 }
-
-#Preview {
-    let preferences = PreferencesController()
-    let workspaces = WorkspaceController(preferences: preferences)
-    let secrets = SecretStoreController(workspaces: workspaces)
-    return AgentScaffoldView()
-        .environmentObject(workspaces)
-        .environmentObject(AgentController(preferences: preferences, workspaces: workspaces, secrets: secrets))
-        .frame(width: 640)
-}

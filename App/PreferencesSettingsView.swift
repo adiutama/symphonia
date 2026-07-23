@@ -140,10 +140,3 @@ struct PreferencesSettingsView: View {
         .frame(minWidth: 480, minHeight: 520)
     }
 }
-
-#Preview {
-    let preferences = PreferencesController()
-    PreferencesSettingsView()
-        .environmentObject(preferences)
-        .environmentObject(WorkspaceController(preferences: preferences))
-}
