@@ -1,4 +1,5 @@
-/// Domain module: Global Setting, Workspace Setting, Effective Setting, and Workspace containers.
+/// Domain module: Global Setting, Workspace Setting, Effective Setting,
+/// Workspace containers, and Agent Worktree lifecycle.
 ///
-/// Agent Worktrees / Secret Store land in later phases.
+/// Secret Store lands in a later phase.
 enum DomainModule {}

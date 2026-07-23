@@ -43,9 +43,15 @@ enum SymphoniaPaths {
         dataDir.appendingPathComponent("main", isDirectory: true)
     }
 
-    /// Agent Worktrees parent: `<data-dir>/worktrees/` (empty until Phase 4).
+    /// Agent Worktrees parent: `<data-dir>/worktrees/` (ADR 0003, 0012).
     static func workspaceWorktreesDirectory(in dataDir: URL) -> URL {
         dataDir.appendingPathComponent("worktrees", isDirectory: true)
+    }
+
+    /// One Agent Worktree: `<data-dir>/worktrees/<three-word-name>/` (ADR 0017, 0018).
+    static func agentWorktreeDirectory(in dataDir: URL, threeWordName: String) -> URL {
+        workspaceWorktreesDirectory(in: dataDir)
+            .appendingPathComponent(threeWordName, isDirectory: true)
     }
 
     /// Expand `~` / `$HOME` prefixes to an absolute file URL.

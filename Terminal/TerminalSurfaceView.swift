@@ -15,6 +15,14 @@ final class TerminalSurfaceNSView: NSView {
     private var didStart = false
     private var surfaceFocused = false
 
+    /// Spawn config for Ghostty surface (P4.5). Empty command = bare shell / Ghostty default.
+    private var workingDirectory: String?
+    private var command: String?
+
+    /// Retained C strings for `ghostty_surface_config_s` (must outlive `ghostty_surface_new`).
+    private var workingDirectoryCString: UnsafeMutablePointer<CChar>?
+    private var commandCString: UnsafeMutablePointer<CChar>?
+
     /// Accumulates `insertText` while handling `keyDown` via `interpretKeyEvents`
     /// (same pattern as Ghostty's SurfaceView).
     private var keyTextAccumulator: [String]?
@@ -34,6 +42,24 @@ final class TerminalSurfaceNSView: NSView {
 
     deinit {
         tearDownGhostty()
+    }
+
+    /// Apply Agent-focused Worktree cwd + Effective Main CLI; restart surface if already running.
+    func applySpawnConfig(workingDirectory: String?, command: String?) {
+        let cwdChanged = self.workingDirectory != workingDirectory
+        let cmdChanged = self.command != command
+        guard cwdChanged || cmdChanged else { return }
+
+        self.workingDirectory = workingDirectory
+        self.command = command
+
+        guard didStart, window != nil else { return }
+        tearDownGhostty()
+        startGhostty()
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window else { return }
+            window.makeFirstResponder(self)
+        }
     }
 
     override func viewDidMoveToWindow() {
@@ -379,7 +405,16 @@ final class TerminalSurfaceNSView: NSView {
         )
         surfaceConfig.scale_factor = Double(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2)
         surfaceConfig.font_size = 0 // inherit from config
-        // P1.2: set `command` / env / working_directory from Symphonia session, or feed bytes via PTY APIs.
+        // P4.5: Worktree cwd + Effective Main CLI when an Agent is focused; else Ghostty defaults.
+        releaseSpawnCStrings()
+        if let workingDirectory {
+            workingDirectoryCString = strdup(workingDirectory)
+            surfaceConfig.working_directory = UnsafePointer(workingDirectoryCString)
+        }
+        if let command {
+            commandCString = strdup(command)
+            surfaceConfig.command = UnsafePointer(commandCString)
+        }
         surfaceConfig.wait_after_command = false
         surfaceConfig.context = GHOSTTY_SURFACE_CONTEXT_WINDOW
 
@@ -408,7 +443,19 @@ final class TerminalSurfaceNSView: NSView {
             ghostty_config_free(config)
             ghosttyConfig = nil
         }
+        releaseSpawnCStrings()
         surfaceFocused = false
+    }
+
+    private func releaseSpawnCStrings() {
+        if let workingDirectoryCString {
+            free(workingDirectoryCString)
+            self.workingDirectoryCString = nil
+        }
+        if let commandCString {
+            free(commandCString)
+            self.commandCString = nil
+        }
     }
 
     private func tick() {
@@ -563,10 +610,20 @@ private enum GhosttyBootstrap {
 ///
 /// Intentionally not `.focusable()` — AppKit first-responder owns typing focus
 /// so SwiftUI does not steal key events from the surface.
+///
+/// When `workingDirectory` / `command` change (Agent focus), the surface restarts
+/// with Ghostty `working_directory` / `command`. Nil command = bare shell.
 struct TerminalSurfaceView: NSViewRepresentable {
+    var workingDirectory: String? = nil
+    var command: String? = nil
+
     func makeNSView(context: Context) -> TerminalSurfaceNSView {
-        TerminalSurfaceNSView(frame: .zero)
+        let view = TerminalSurfaceNSView(frame: .zero)
+        view.applySpawnConfig(workingDirectory: workingDirectory, command: command)
+        return view
     }
 
-    func updateNSView(_ nsView: TerminalSurfaceNSView, context: Context) {}
+    func updateNSView(_ nsView: TerminalSurfaceNSView, context: Context) {
+        nsView.applySpawnConfig(workingDirectory: workingDirectory, command: command)
+    }
 }

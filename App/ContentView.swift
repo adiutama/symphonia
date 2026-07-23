@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var workspaces: WorkspaceController
+    @EnvironmentObject private var agents: AgentController
 
     var body: some View {
         VStack(spacing: 12) {
@@ -25,6 +26,9 @@ struct ContentView: View {
                 if let current = workspaces.current {
                     Label(current.slug, systemImage: "folder")
                 }
+                if let focused = agents.focused {
+                    Label(focused.threeWordName, systemImage: "person")
+                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -33,9 +37,15 @@ struct ContentView: View {
             WorkspaceScaffoldView()
                 .padding(.horizontal, 16)
 
-            TerminalSurfaceView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(16)
+            AgentScaffoldView()
+                .padding(.horizontal, 16)
+
+            TerminalSurfaceView(
+                workingDirectory: agents.focusedWorkingDirectory,
+                command: agents.focusedSpawnCommand
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(16)
         }
         .frame(minWidth: 480, minHeight: 320)
     }
@@ -43,7 +53,9 @@ struct ContentView: View {
 
 #Preview {
     let preferences = PreferencesController()
+    let workspaces = WorkspaceController(preferences: preferences)
     ContentView()
         .environmentObject(preferences)
-        .environmentObject(WorkspaceController(preferences: preferences))
+        .environmentObject(workspaces)
+        .environmentObject(AgentController(preferences: preferences, workspaces: workspaces))
 }
