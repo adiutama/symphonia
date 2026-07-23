@@ -9,10 +9,17 @@
 /* Begin PBXBuildFile section */
 		AF7C75C00D054D2DB25BABAE /* SymphoniaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C18422568CB4106B12E7202 /* SymphoniaApp.swift */; };
 		2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620CC0292595445B9FD787B4 /* ContentView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* PreferencesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */; };
 		6A59CCFBAA5045A5B1E97F7D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A6590DB81C34F668323C7B0 /* Assets.xcassets */; };
 		4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115412EC1D89435FBC63B315 /* TerminalModule.swift */; };
 		B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */; };
 		1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37F70031D6C42AEBC6226D2 /* DomainModule.swift */; };
+		B0C1D2E3F405162738495A6B /* SymphoniaPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A6C /* SymphoniaPaths.swift */; };
+		B0C1D2E3F405162738495A6D /* GlobalPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A6E /* GlobalPreferences.swift */; };
+		B0C1D2E3F405162738495A6F /* WorkspaceSettingOverrides.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A70 /* WorkspaceSettingOverrides.swift */; };
+		B0C1D2E3F405162738495A71 /* EffectiveSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A72 /* EffectiveSettings.swift */; };
+		B0C1D2E3F405162738495A73 /* PreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A74 /* PreferencesStore.swift */; };
+		B0C1D2E3F405162738495A75 /* PreferencesController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A76 /* PreferencesController.swift */; };
 		E4A11B0C0D1E4F8A9B2C3D40 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */; };
 		E4A11B0C0D1E4F8A9B2C3D42 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4A11B0C0D1E4F8A9B2C3D43 /* Carbon.framework */; };
 /* End PBXBuildFile section */
@@ -21,10 +28,17 @@
 		7FE8084FD8124194B3CC9CEC /* Symphonia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Symphonia.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C18422568CB4106B12E7202 /* SymphoniaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymphoniaApp.swift; sourceTree = "<group>"; };
 		620CC0292595445B9FD787B4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesSettingsView.swift; sourceTree = "<group>"; };
 		1A6590DB81C34F668323C7B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		115412EC1D89435FBC63B315 /* TerminalModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalModule.swift; sourceTree = "<group>"; };
 		C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurfaceView.swift; sourceTree = "<group>"; };
 		E37F70031D6C42AEBC6226D2 /* DomainModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModule.swift; sourceTree = "<group>"; };
+		B0C1D2E3F405162738495A6C /* SymphoniaPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymphoniaPaths.swift; sourceTree = "<group>"; };
+		B0C1D2E3F405162738495A6E /* GlobalPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalPreferences.swift; sourceTree = "<group>"; };
+		B0C1D2E3F405162738495A70 /* WorkspaceSettingOverrides.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSettingOverrides.swift; sourceTree = "<group>"; };
+		B0C1D2E3F405162738495A72 /* EffectiveSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectiveSettings.swift; sourceTree = "<group>"; };
+		B0C1D2E3F405162738495A74 /* PreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesStore.swift; sourceTree = "<group>"; };
+		B0C1D2E3F405162738495A76 /* PreferencesController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesController.swift; sourceTree = "<group>"; };
 		E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
 		E4A11B0C0D1E4F8A9B2C3D43 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -74,6 +88,7 @@
 			children = (
 				4C18422568CB4106B12E7202 /* SymphoniaApp.swift */,
 				620CC0292595445B9FD787B4 /* ContentView.swift */,
+				A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */,
 				1A6590DB81C34F668323C7B0 /* Assets.xcassets */,
 			);
 			path = App;
@@ -93,8 +108,22 @@
 			isa = PBXGroup;
 			children = (
 				E37F70031D6C42AEBC6226D2 /* DomainModule.swift */,
+				C0D1E2F30415263748596A7B /* Preferences */,
 			);
 			path = Domain;
+			sourceTree = "<group>";
+		};
+		C0D1E2F30415263748596A7B /* Preferences */ = {
+			isa = PBXGroup;
+			children = (
+				B0C1D2E3F405162738495A6C /* SymphoniaPaths.swift */,
+				B0C1D2E3F405162738495A6E /* GlobalPreferences.swift */,
+				B0C1D2E3F405162738495A70 /* WorkspaceSettingOverrides.swift */,
+				B0C1D2E3F405162738495A72 /* EffectiveSettings.swift */,
+				B0C1D2E3F405162738495A74 /* PreferencesStore.swift */,
+				B0C1D2E3F405162738495A76 /* PreferencesController.swift */,
+			);
+			path = Preferences;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -168,9 +197,16 @@
 			files = (
 				AF7C75C00D054D2DB25BABAE /* SymphoniaApp.swift in Sources */,
 				2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* PreferencesSettingsView.swift in Sources */,
 				4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */,
 				B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */,
 				1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */,
+				B0C1D2E3F405162738495A6B /* SymphoniaPaths.swift in Sources */,
+				B0C1D2E3F405162738495A6D /* GlobalPreferences.swift in Sources */,
+				B0C1D2E3F405162738495A6F /* WorkspaceSettingOverrides.swift in Sources */,
+				B0C1D2E3F405162738495A71 /* EffectiveSettings.swift in Sources */,
+				B0C1D2E3F405162738495A73 /* PreferencesStore.swift in Sources */,
+				B0C1D2E3F405162738495A75 /* PreferencesController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
