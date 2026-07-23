@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Minimal list / add / edit / toggle scaffold for Secret Store (P5.4). Ugly on purpose.
+/// Secret Store editor (Settings → Workspace → Secret Store).
 struct SecretStoreScaffoldView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var secrets: SecretStoreController
