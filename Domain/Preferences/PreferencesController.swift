@@ -12,8 +12,8 @@ final class PreferencesController: ObservableObject {
     /// Last load/save error message for chrome, if any.
     @Published var lastError: String?
 
-    /// Optional in-memory Workspace Setting overrides for dogfooding the resolver.
-    /// Not persisted until Workspace domain lands (Phase 3).
+    /// Optional Workspace Setting overrides for Effective Setting.
+    /// Loaded from the selected Workspace’s `config.json` (Phase 3).
     @Published var workspaceOverrides: WorkspaceSettingOverrides = .none
 
     init(store: PreferencesStore = PreferencesStore()) {

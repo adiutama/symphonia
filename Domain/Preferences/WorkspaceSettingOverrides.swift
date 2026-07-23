@@ -2,8 +2,8 @@ import Foundation
 
 /// Optional Workspace Setting values that override Global Setting (ADR 0016).
 ///
-/// Phase 2 keeps this as an in-memory / test struct. Persistence under each
-/// Workspace’s `config.json` arrives with Workspace create (Phase 3).
+/// Persisted on the selected Workspace as `config.json` fields (Phase 3).
+/// `workspacesRoot` here is the product **Prefix** override (ADR 0015).
 struct WorkspaceSettingOverrides: Equatable, Sendable {
     /// Workspace override for Main CLI command (ADR 0005). Empty string is a valid
     /// override (bare shell); use `nil` to inherit Global.

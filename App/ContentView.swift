@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var preferences: PreferencesController
+    @EnvironmentObject private var workspaces: WorkspaceController
 
     var body: some View {
         VStack(spacing: 12) {
@@ -21,10 +22,16 @@ struct ContentView: View {
                 Label(preferences.effective.editorCommand, systemImage: "pencil")
                 Label(preferences.effective.leaderKey, systemImage: "keyboard")
                 Label(preferences.effective.baseRef, systemImage: "arrow.triangle.branch")
+                if let current = workspaces.current {
+                    Label(current.slug, systemImage: "folder")
+                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-            .help("Effective Setting — open Settings (⌘,) to edit Global Setting")
+            .help("Effective Setting — open Settings (⌘,) to edit Global / Workspace Setting")
+
+            WorkspaceScaffoldView()
+                .padding(.horizontal, 16)
 
             TerminalSurfaceView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -35,6 +42,8 @@ struct ContentView: View {
 }
 
 #Preview {
+    let preferences = PreferencesController()
     ContentView()
-        .environmentObject(PreferencesController())
+        .environmentObject(preferences)
+        .environmentObject(WorkspaceController(preferences: preferences))
 }

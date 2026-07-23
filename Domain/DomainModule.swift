@@ -1,4 +1,4 @@
-/// Domain module: Global Setting, Workspace Setting overrides, and Effective Setting resolution.
+/// Domain module: Global Setting, Workspace Setting, Effective Setting, and Workspace containers.
 ///
-/// Workspace create / on-disk Workspace config lands in Phase 3.
+/// Agent Worktrees / Secret Store land in later phases.
 enum DomainModule {}

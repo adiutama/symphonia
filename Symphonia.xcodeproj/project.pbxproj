@@ -21,6 +21,11 @@
 		B0C1D2E3F405162738495A73 /* PreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A74 /* PreferencesStore.swift */; };
 		B0C1D2E3F405162738495A75 /* PreferencesController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A76 /* PreferencesController.swift */; };
 		B0C1D2E3F405162738495A77 /* EditorCommandResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A78 /* EditorCommandResolver.swift */; };
+		C1D2E3F405162738495A6B01 /* WorkspaceSlug.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B02 /* WorkspaceSlug.swift */; };
+		C1D2E3F405162738495A6B03 /* WorkspaceConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B04 /* WorkspaceConfig.swift */; };
+		C1D2E3F405162738495A6B05 /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B06 /* WorkspaceStore.swift */; };
+		C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B08 /* WorkspaceController.swift */; };
+		C1D2E3F405162738495A6B09 /* WorkspaceScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */; };
 		E4A11B0C0D1E4F8A9B2C3D40 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */; };
 		E4A11B0C0D1E4F8A9B2C3D42 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4A11B0C0D1E4F8A9B2C3D43 /* Carbon.framework */; };
 /* End PBXBuildFile section */
@@ -41,6 +46,11 @@
 		B0C1D2E3F405162738495A74 /* PreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesStore.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A76 /* PreferencesController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesController.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A78 /* EditorCommandResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorCommandResolver.swift; sourceTree = "<group>"; };
+		C1D2E3F405162738495A6B02 /* WorkspaceSlug.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSlug.swift; sourceTree = "<group>"; };
+		C1D2E3F405162738495A6B04 /* WorkspaceConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceConfig.swift; sourceTree = "<group>"; };
+		C1D2E3F405162738495A6B06 /* WorkspaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStore.swift; sourceTree = "<group>"; };
+		C1D2E3F405162738495A6B08 /* WorkspaceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceController.swift; sourceTree = "<group>"; };
+		C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceScaffoldView.swift; sourceTree = "<group>"; };
 		E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
 		E4A11B0C0D1E4F8A9B2C3D43 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -90,6 +100,7 @@
 			children = (
 				4C18422568CB4106B12E7202 /* SymphoniaApp.swift */,
 				620CC0292595445B9FD787B4 /* ContentView.swift */,
+				C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */,
 				A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */,
 				1A6590DB81C34F668323C7B0 /* Assets.xcassets */,
 			);
@@ -111,8 +122,20 @@
 			children = (
 				E37F70031D6C42AEBC6226D2 /* DomainModule.swift */,
 				C0D1E2F30415263748596A7B /* Preferences */,
+				C1D2E3F405162738495A6B00 /* Workspace */,
 			);
 			path = Domain;
+			sourceTree = "<group>";
+		};
+		C1D2E3F405162738495A6B00 /* Workspace */ = {
+			isa = PBXGroup;
+			children = (
+				C1D2E3F405162738495A6B02 /* WorkspaceSlug.swift */,
+				C1D2E3F405162738495A6B04 /* WorkspaceConfig.swift */,
+				C1D2E3F405162738495A6B06 /* WorkspaceStore.swift */,
+				C1D2E3F405162738495A6B08 /* WorkspaceController.swift */,
+			);
+			path = Workspace;
 			sourceTree = "<group>";
 		};
 		C0D1E2F30415263748596A7B /* Preferences */ = {
@@ -211,6 +234,11 @@
 				B0C1D2E3F405162738495A71 /* EffectiveSettings.swift in Sources */,
 				B0C1D2E3F405162738495A73 /* PreferencesStore.swift in Sources */,
 				B0C1D2E3F405162738495A75 /* PreferencesController.swift in Sources */,
+				C1D2E3F405162738495A6B01 /* WorkspaceSlug.swift in Sources */,
+				C1D2E3F405162738495A6B03 /* WorkspaceConfig.swift in Sources */,
+				C1D2E3F405162738495A6B05 /* WorkspaceStore.swift in Sources */,
+				C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */,
+				C1D2E3F405162738495A6B09 /* WorkspaceScaffoldView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
