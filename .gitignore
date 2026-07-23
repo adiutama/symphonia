@@ -14,3 +14,10 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+
+# Tooling / vendor checkouts (not committed)
+.tools/
+Vendor/ghostty/
+
+# Built GhosttyKit artifact (~200MB) — rebuild via Terminal/scripts/build-ghosttykit.sh
+Terminal/GhosttyKit.xcframework/
