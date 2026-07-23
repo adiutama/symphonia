@@ -6,34 +6,46 @@ struct ContentView: View {
     @EnvironmentObject private var agents: AgentController
     @EnvironmentObject private var secrets: SecretStoreController
     @EnvironmentObject private var overlays: OverlayController
-
-    /// Terminal-first default: management scaffolds collapsed so Main CLI stays usable.
-    @State private var scaffoldsExpanded = false
+    @EnvironmentObject private var commandMode: CommandModeController
 
     var body: some View {
-        VStack(spacing: 8) {
-            headerBar
+        ZStack {
+            VStack(spacing: 8) {
+                headerBar
 
-            if scaffoldsExpanded {
-                WorkspaceScaffoldView()
+                if commandMode.scaffoldsExpanded {
+                    WorkspaceScaffoldView()
+                        .padding(.horizontal, 12)
+
+                    AgentScaffoldView()
+                        .padding(.horizontal, 12)
+
+                    SecretStoreScaffoldView()
+                        .padding(.horizontal, 12)
+                }
+
+                OverlayChromeView()
                     .padding(.horizontal, 12)
 
-                AgentScaffoldView()
+                OverlayHostView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 12)
-
-                SecretStoreScaffoldView()
-                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
             }
+            .frame(minWidth: 640, minHeight: 420)
 
-            OverlayChromeView()
-                .padding(.horizontal, 12)
+            if commandMode.isActive {
+                Color.black.opacity(0.28)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        commandMode.dismiss()
+                    }
 
-            OverlayHostView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                CommandModeView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            }
         }
-        .frame(minWidth: 640, minHeight: 420)
+        .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
     }
 
     private var headerBar: some View {
@@ -46,11 +58,13 @@ struct ContentView: View {
                 Spacer()
 
                 Button {
-                    scaffoldsExpanded.toggle()
+                    commandMode.scaffoldsExpanded.toggle()
                 } label: {
                     Label(
-                        scaffoldsExpanded ? "Hide panels" : "Show panels",
-                        systemImage: scaffoldsExpanded ? "rectangle.bottomthird.inset.filled" : "rectangle.split.1x2"
+                        commandMode.scaffoldsExpanded ? "Hide panels" : "Show panels",
+                        systemImage: commandMode.scaffoldsExpanded
+                            ? "rectangle.bottomthird.inset.filled"
+                            : "rectangle.split.1x2"
                     )
                 }
                 .help("Collapse Workspace / Agent / Secrets scaffolds so Main CLI stays visible (⌘⇧H)")
@@ -86,10 +100,16 @@ struct ContentView: View {
                 if let focused = agents.focused {
                     Label(focused.threeWordName, systemImage: "person")
                 }
-                if !scaffoldsExpanded {
+                if !commandMode.scaffoldsExpanded {
                     Text("panels hidden")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+                }
+                if let info = commandMode.lastInfo, !commandMode.isActive {
+                    Text(info)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
             .font(.caption)

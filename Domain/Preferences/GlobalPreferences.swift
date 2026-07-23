@@ -14,7 +14,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     var editorCommand: String
 
     /// Leader key binding that enters Command Mode. Default `ctrl+p` (ADR 0009).
-    /// Stored as a binding string; Command Mode UI is Phase 7.
+    /// Stored as a binding string; parsed by ``LeaderKeyBinding`` (Phase 7).
     var leaderKey: String
 
     /// Global Workspaces Root (default parent for Workspace containers). ADR 0015.

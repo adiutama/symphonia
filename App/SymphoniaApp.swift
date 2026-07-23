@@ -7,6 +7,7 @@ struct SymphoniaApp: App {
     @StateObject private var secrets: SecretStoreController
     @StateObject private var agents: AgentController
     @StateObject private var overlays: OverlayController
+    @StateObject private var commandMode: CommandModeController
 
     init() {
         let preferences = PreferencesController()
@@ -22,11 +23,18 @@ struct SymphoniaApp: App {
             agents: agents,
             secrets: secrets
         )
+        let commandMode = CommandModeController(
+            preferences: preferences,
+            workspaces: workspaces,
+            agents: agents,
+            overlays: overlays
+        )
         _preferences = StateObject(wrappedValue: preferences)
         _workspaces = StateObject(wrappedValue: workspaces)
         _secrets = StateObject(wrappedValue: secrets)
         _agents = StateObject(wrappedValue: agents)
         _overlays = StateObject(wrappedValue: overlays)
+        _commandMode = StateObject(wrappedValue: commandMode)
     }
 
     var body: some Scene {
@@ -37,6 +45,7 @@ struct SymphoniaApp: App {
                 .environmentObject(agents)
                 .environmentObject(secrets)
                 .environmentObject(overlays)
+                .environmentObject(commandMode)
         }
         .defaultSize(width: 960, height: 720)
 

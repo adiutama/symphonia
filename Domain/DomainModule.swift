@@ -1,4 +1,4 @@
 /// Domain module: Global Setting, Workspace Setting, Effective Setting,
 /// Workspace containers, Agent Worktree lifecycle, Workspace Secret Store,
-/// and Overlay (Editor / Background CLI) session lifecycle.
+/// Overlay (Editor / Background CLI) session lifecycle, and Command Mode (Leader).
 enum DomainModule {}
