@@ -33,9 +33,19 @@ enum SymphoniaPaths {
         dataDir.appendingPathComponent("config.json", isDirectory: false)
     }
 
-    /// Secret Store placeholder: `<data-dir>/secrets.env` (mode 0600; Phase 5 fills real store).
-    static func workspaceSecretsFile(in dataDir: URL) -> URL {
+    /// Secret Store (canonical): `<data-dir>/secrets.json` (mode 0600; ADR 0001, 0012).
+    static func workspaceSecretsJSONFile(in dataDir: URL) -> URL {
+        dataDir.appendingPathComponent("secrets.json", isDirectory: false)
+    }
+
+    /// Legacy Phase 3 placeholder: `<data-dir>/secrets.env` (migrated away when empty).
+    static func workspaceSecretsEnvFile(in dataDir: URL) -> URL {
         dataDir.appendingPathComponent("secrets.env", isDirectory: false)
+    }
+
+    /// Alias for callers that still say “secrets file” — points at `secrets.json`.
+    static func workspaceSecretsFile(in dataDir: URL) -> URL {
+        workspaceSecretsJSONFile(in: dataDir)
     }
 
     /// Main Repo directory: `<data-dir>/main/` (ADR 0014).

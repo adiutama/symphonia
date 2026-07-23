@@ -30,6 +30,10 @@
 		D2E3F405162738495A6B0B03 /* AgentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B04 /* AgentStore.swift */; };
 		D2E3F405162738495A6B0B05 /* AgentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B06 /* AgentController.swift */; };
 		D2E3F405162738495A6B0B07 /* AgentScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B08 /* AgentScaffoldView.swift */; };
+		E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0102 /* SecretStoreModels.swift */; };
+		E5F405162738495A6B0C0103 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0104 /* SecretStore.swift */; };
+		E5F405162738495A6B0C0105 /* SecretStoreController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0106 /* SecretStoreController.swift */; };
+		E5F405162738495A6B0C0107 /* SecretStoreScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */; };
 		E4A11B0C0D1E4F8A9B2C3D40 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */; };
 		E4A11B0C0D1E4F8A9B2C3D42 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4A11B0C0D1E4F8A9B2C3D43 /* Carbon.framework */; };
 /* End PBXBuildFile section */
@@ -59,6 +63,10 @@
 		D2E3F405162738495A6B0B04 /* AgentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentStore.swift; sourceTree = "<group>"; };
 		D2E3F405162738495A6B0B06 /* AgentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentController.swift; sourceTree = "<group>"; };
 		D2E3F405162738495A6B0B08 /* AgentScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentScaffoldView.swift; sourceTree = "<group>"; };
+		E5F405162738495A6B0C0102 /* SecretStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStoreModels.swift; sourceTree = "<group>"; };
+		E5F405162738495A6B0C0104 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
+		E5F405162738495A6B0C0106 /* SecretStoreController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStoreController.swift; sourceTree = "<group>"; };
+		E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStoreScaffoldView.swift; sourceTree = "<group>"; };
 		E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
 		E4A11B0C0D1E4F8A9B2C3D43 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -110,6 +118,7 @@
 				620CC0292595445B9FD787B4 /* ContentView.swift */,
 				C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */,
 				D2E3F405162738495A6B0B08 /* AgentScaffoldView.swift */,
+				E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */,
 				A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */,
 				1A6590DB81C34F668323C7B0 /* Assets.xcassets */,
 			);
@@ -133,8 +142,19 @@
 				C0D1E2F30415263748596A7B /* Preferences */,
 				C1D2E3F405162738495A6B00 /* Workspace */,
 				D2E3F405162738495A6B0B00 /* Agent */,
+				E5F405162738495A6B0C0100 /* Secrets */,
 			);
 			path = Domain;
+			sourceTree = "<group>";
+		};
+		E5F405162738495A6B0C0100 /* Secrets */ = {
+			isa = PBXGroup;
+			children = (
+				E5F405162738495A6B0C0102 /* SecretStoreModels.swift */,
+				E5F405162738495A6B0C0104 /* SecretStore.swift */,
+				E5F405162738495A6B0C0106 /* SecretStoreController.swift */,
+			);
+			path = Secrets;
 			sourceTree = "<group>";
 		};
 		C1D2E3F405162738495A6B00 /* Workspace */ = {
@@ -263,6 +283,10 @@
 				D2E3F405162738495A6B0B03 /* AgentStore.swift in Sources */,
 				D2E3F405162738495A6B0B05 /* AgentController.swift in Sources */,
 				D2E3F405162738495A6B0B07 /* AgentScaffoldView.swift in Sources */,
+				E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */,
+				E5F405162738495A6B0C0103 /* SecretStore.swift in Sources */,
+				E5F405162738495A6B0C0105 /* SecretStoreController.swift in Sources */,
+				E5F405162738495A6B0C0107 /* SecretStoreScaffoldView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

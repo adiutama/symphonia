@@ -24,7 +24,8 @@ enum WorkspaceSlug {
         let slug = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !slug.isEmpty else { return .failure(.empty) }
 
-        if slug == "." || slug == ".." || slug.lowercased() == "config.json" || slug.lowercased() == "secrets.env" {
+        let reserved = ["config.json", "secrets.json", "secrets.env", "main", "worktrees"]
+        if slug == "." || slug == ".." || reserved.contains(slug.lowercased()) {
             return .failure(.reservedName(slug))
         }
 

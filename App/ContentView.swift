@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var agents: AgentController
+    @EnvironmentObject private var secrets: SecretStoreController
 
     var body: some View {
         VStack(spacing: 12) {
@@ -40,9 +41,13 @@ struct ContentView: View {
             AgentScaffoldView()
                 .padding(.horizontal, 16)
 
+            SecretStoreScaffoldView()
+                .padding(.horizontal, 16)
+
             TerminalSurfaceView(
                 workingDirectory: agents.focusedWorkingDirectory,
-                command: agents.focusedSpawnCommand
+                command: agents.focusedSpawnCommand,
+                spawnEnvironment: agents.focusedSpawnEnvironment
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(16)
@@ -54,8 +59,11 @@ struct ContentView: View {
 #Preview {
     let preferences = PreferencesController()
     let workspaces = WorkspaceController(preferences: preferences)
+    let secrets = SecretStoreController(workspaces: workspaces)
+    let agents = AgentController(preferences: preferences, workspaces: workspaces, secrets: secrets)
     ContentView()
         .environmentObject(preferences)
         .environmentObject(workspaces)
-        .environmentObject(AgentController(preferences: preferences, workspaces: workspaces))
+        .environmentObject(agents)
+        .environmentObject(secrets)
 }

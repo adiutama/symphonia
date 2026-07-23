@@ -76,7 +76,7 @@ struct WorkspaceStore: Sendable {
         return try summary(for: dataDir, fallbackSlug: slug, fallbackPrefix: prefix)
     }
 
-    /// Ensure `config.json`, `secrets.env` (0600), `main/`, `worktrees/` exist.
+    /// Ensure `config.json`, `secrets.json` (0600), `main/`, `worktrees/` exist.
     /// When `initializeMainRepo` is true and `main/` is not yet a git repo, run `git init`.
     func ensureLayout(at dataDir: URL, initializeMainRepo: Bool) throws {
         try fileManager.createDirectory(at: dataDir, withIntermediateDirectories: true)
@@ -87,7 +87,7 @@ struct WorkspaceStore: Sendable {
             try writeConfig(WorkspaceConfig(slug: slug), to: dataDir)
         }
 
-        try ensureSecretsFile(in: dataDir)
+        try SecretStore().ensureStoreFile(in: dataDir)
 
         let mainDir = SymphoniaPaths.workspaceMainDirectory(in: dataDir)
         let worktreesDir = SymphoniaPaths.workspaceWorktreesDirectory(in: dataDir)
@@ -205,25 +205,6 @@ struct WorkspaceStore: Sendable {
         guard let raw else { return nil }
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func ensureSecretsFile(in dataDir: URL) throws {
-        let secretsURL = SymphoniaPaths.workspaceSecretsFile(in: dataDir)
-        if !fileManager.fileExists(atPath: secretsURL.path) {
-            let created = fileManager.createFile(
-                atPath: secretsURL.path,
-                contents: Data(),
-                attributes: [.posixPermissions: 0o600]
-            )
-            if !created {
-                throw StoreError.notAWorkspace(dataDir)
-            }
-        } else {
-            try fileManager.setAttributes(
-                [.posixPermissions: 0o600],
-                ofItemAtPath: secretsURL.path
-            )
-        }
     }
 
     private func isGitRepository(_ mainDir: URL) -> Bool {

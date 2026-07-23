@@ -75,6 +75,11 @@ struct AgentScaffoldView: View {
                         agents.clearFocus()
                     }
 
+                    Button("Respawn w/ secrets") {
+                        agents.respawnWithCurrentSecrets()
+                    }
+                    .help("Restart focused Agent CLI with the current Enabled Secret Store set")
+
                     Button("Remove…", role: .destructive) {
                         agents.requestRemove(focused)
                     }
@@ -132,8 +137,9 @@ struct AgentScaffoldView: View {
 #Preview {
     let preferences = PreferencesController()
     let workspaces = WorkspaceController(preferences: preferences)
+    let secrets = SecretStoreController(workspaces: workspaces)
     return AgentScaffoldView()
         .environmentObject(workspaces)
-        .environmentObject(AgentController(preferences: preferences, workspaces: workspaces))
+        .environmentObject(AgentController(preferences: preferences, workspaces: workspaces, secrets: secrets))
         .frame(width: 640)
 }

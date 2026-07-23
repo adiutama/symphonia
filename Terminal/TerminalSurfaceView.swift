@@ -15,13 +15,18 @@ final class TerminalSurfaceNSView: NSView {
     private var didStart = false
     private var surfaceFocused = false
 
-    /// Spawn config for Ghostty surface (P4.5). Empty command = bare shell / Ghostty default.
+    /// Spawn config for Ghostty surface (P4.5 / P5.3). Empty command = bare shell / Ghostty default.
     private var workingDirectory: String?
     private var command: String?
+    /// Enabled Secret Store Env Vars for this spawn (empty = no Secret Store inject).
+    private var spawnEnvironment: [(key: String, value: String)] = []
 
     /// Retained C strings for `ghostty_surface_config_s` (must outlive `ghostty_surface_new`).
     private var workingDirectoryCString: UnsafeMutablePointer<CChar>?
     private var commandCString: UnsafeMutablePointer<CChar>?
+    private var envKeyCStrings: [UnsafeMutablePointer<CChar>] = []
+    private var envValueCStrings: [UnsafeMutablePointer<CChar>] = []
+    private var envVarsBuffer: UnsafeMutablePointer<ghostty_env_var_s>?
 
     /// Accumulates `insertText` while handling `keyDown` via `interpretKeyEvents`
     /// (same pattern as Ghostty's SurfaceView).
@@ -44,14 +49,20 @@ final class TerminalSurfaceNSView: NSView {
         tearDownGhostty()
     }
 
-    /// Apply Agent-focused Worktree cwd + Effective Main CLI; restart surface if already running.
-    func applySpawnConfig(workingDirectory: String?, command: String?) {
+    /// Apply Agent-focused Worktree cwd + Effective Main CLI + Enabled secrets; restart if running.
+    func applySpawnConfig(
+        workingDirectory: String?,
+        command: String?,
+        spawnEnvironment: [(key: String, value: String)] = []
+    ) {
         let cwdChanged = self.workingDirectory != workingDirectory
         let cmdChanged = self.command != command
-        guard cwdChanged || cmdChanged else { return }
+        let envChanged = !Self.environmentEqual(self.spawnEnvironment, spawnEnvironment)
+        guard cwdChanged || cmdChanged || envChanged else { return }
 
         self.workingDirectory = workingDirectory
         self.command = command
+        self.spawnEnvironment = spawnEnvironment
 
         guard didStart, window != nil else { return }
         tearDownGhostty()
@@ -60,6 +71,17 @@ final class TerminalSurfaceNSView: NSView {
             guard let self, let window = self.window else { return }
             window.makeFirstResponder(self)
         }
+    }
+
+    private static func environmentEqual(
+        _ lhs: [(key: String, value: String)],
+        _ rhs: [(key: String, value: String)]
+    ) -> Bool {
+        guard lhs.count == rhs.count else { return false }
+        for (a, b) in zip(lhs, rhs) {
+            if a.key != b.key || a.value != b.value { return false }
+        }
+        return true
     }
 
     override func viewDidMoveToWindow() {
@@ -405,7 +427,7 @@ final class TerminalSurfaceNSView: NSView {
         )
         surfaceConfig.scale_factor = Double(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2)
         surfaceConfig.font_size = 0 // inherit from config
-        // P4.5: Worktree cwd + Effective Main CLI when an Agent is focused; else Ghostty defaults.
+        // P4.5 / P5.3: Worktree cwd + Effective Main CLI + Enabled Secret Store env.
         releaseSpawnCStrings()
         if let workingDirectory {
             workingDirectoryCString = strdup(workingDirectory)
@@ -414,6 +436,20 @@ final class TerminalSurfaceNSView: NSView {
         if let command {
             commandCString = strdup(command)
             surfaceConfig.command = UnsafePointer(commandCString)
+        }
+        if !spawnEnvironment.isEmpty {
+            let count = spawnEnvironment.count
+            let buffer = UnsafeMutablePointer<ghostty_env_var_s>.allocate(capacity: count)
+            envVarsBuffer = buffer
+            for (index, pair) in spawnEnvironment.enumerated() {
+                let keyPtr = strdup(pair.key)!
+                let valuePtr = strdup(pair.value)!
+                envKeyCStrings.append(keyPtr)
+                envValueCStrings.append(valuePtr)
+                buffer[index] = ghostty_env_var_s(key: keyPtr, value: valuePtr)
+            }
+            surfaceConfig.env_vars = buffer
+            surfaceConfig.env_var_count = count
         }
         surfaceConfig.wait_after_command = false
         surfaceConfig.context = GHOSTTY_SURFACE_CONTEXT_WINDOW
@@ -455,6 +491,18 @@ final class TerminalSurfaceNSView: NSView {
         if let commandCString {
             free(commandCString)
             self.commandCString = nil
+        }
+        for ptr in envKeyCStrings {
+            free(ptr)
+        }
+        for ptr in envValueCStrings {
+            free(ptr)
+        }
+        envKeyCStrings.removeAll(keepingCapacity: false)
+        envValueCStrings.removeAll(keepingCapacity: false)
+        if let envVarsBuffer {
+            envVarsBuffer.deallocate()
+            self.envVarsBuffer = nil
         }
     }
 
@@ -611,19 +659,29 @@ private enum GhosttyBootstrap {
 /// Intentionally not `.focusable()` — AppKit first-responder owns typing focus
 /// so SwiftUI does not steal key events from the surface.
 ///
-/// When `workingDirectory` / `command` change (Agent focus), the surface restarts
-/// with Ghostty `working_directory` / `command`. Nil command = bare shell.
+/// When `workingDirectory` / `command` / `spawnEnvironment` change (Agent focus or Secret Store),
+/// the surface restarts with Ghostty spawn fields. Nil command = bare shell.
 struct TerminalSurfaceView: NSViewRepresentable {
     var workingDirectory: String? = nil
     var command: String? = nil
+    /// Enabled Secret Store pairs; applied when an Agent CLI is starting (focused).
+    var spawnEnvironment: [(key: String, value: String)] = []
 
     func makeNSView(context: Context) -> TerminalSurfaceNSView {
         let view = TerminalSurfaceNSView(frame: .zero)
-        view.applySpawnConfig(workingDirectory: workingDirectory, command: command)
+        view.applySpawnConfig(
+            workingDirectory: workingDirectory,
+            command: command,
+            spawnEnvironment: spawnEnvironment
+        )
         return view
     }
 
     func updateNSView(_ nsView: TerminalSurfaceNSView, context: Context) {
-        nsView.applySpawnConfig(workingDirectory: workingDirectory, command: command)
+        nsView.applySpawnConfig(
+            workingDirectory: workingDirectory,
+            command: command,
+            spawnEnvironment: spawnEnvironment
+        )
     }
 }
