@@ -11,6 +11,7 @@
 		2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620CC0292595445B9FD787B4 /* ContentView.swift */; };
 		6A59CCFBAA5045A5B1E97F7D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A6590DB81C34F668323C7B0 /* Assets.xcassets */; };
 		4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115412EC1D89435FBC63B315 /* TerminalModule.swift */; };
+		B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */; };
 		1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37F70031D6C42AEBC6226D2 /* DomainModule.swift */; };
 /* End PBXBuildFile section */
 
@@ -20,6 +21,7 @@
 		620CC0292595445B9FD787B4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1A6590DB81C34F668323C7B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		115412EC1D89435FBC63B315 /* TerminalModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalModule.swift; sourceTree = "<group>"; };
+		C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurfaceView.swift; sourceTree = "<group>"; };
 		E37F70031D6C42AEBC6226D2 /* DomainModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModule.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -66,6 +68,7 @@
 			isa = PBXGroup;
 			children = (
 				115412EC1D89435FBC63B315 /* TerminalModule.swift */,
+				C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */,
 			);
 			path = Terminal;
 			sourceTree = "<group>";
@@ -150,6 +153,7 @@
 				AF7C75C00D054D2DB25BABAE /* SymphoniaApp.swift in Sources */,
 				2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */,
 				4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */,
+				B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */,
 				1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

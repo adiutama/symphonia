@@ -8,8 +8,12 @@ struct ContentView: View {
                 .fontWeight(.semibold)
             Text("Native host scaffold")
                 .foregroundStyle(.secondary)
+
+            TerminalSurfaceView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(16)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minWidth: 480, minHeight: 320)
     }
 }
 
