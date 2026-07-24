@@ -70,6 +70,7 @@ struct SymphoniaApp: App {
                 .environmentObject(preferences)
                 .environmentObject(workspaces)
                 .environmentObject(secrets)
+                .environmentObject(commandRegistry)
         }
     }
 }

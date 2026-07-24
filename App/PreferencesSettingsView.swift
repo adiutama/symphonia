@@ -72,6 +72,9 @@ struct PreferencesSettingsView: View {
         case .globalEffective:
             globalForm { effectiveFields }
                 .navigationTitle("Effective Setting")
+        case .globalCommands:
+            globalForm { CommandBindingsSettingsView() }
+                .navigationTitle("Commands")
         case .workspaceOverrides(let id):
             workspaceOverridesDetail(id)
         case .workspaceSecrets(let id):
@@ -295,6 +298,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
     case globalLeader
     case globalWorkspacesRoot
     case globalBaseRef
+    case globalCommands
     case globalEffective
     case workspaceOverrides(String)
     case workspaceSecrets(String)
@@ -306,6 +310,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
         case .globalLeader: return "g-leader"
         case .globalWorkspacesRoot: return "g-root"
         case .globalBaseRef: return "g-base"
+        case .globalCommands: return "g-commands"
         case .globalEffective: return "g-effective"
         case .workspaceOverrides(let id): return "wo-\(id)"
         case .workspaceSecrets(let id): return "ws-\(id)"
@@ -319,6 +324,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
         case .globalLeader: return "Leader"
         case .globalWorkspacesRoot: return "Workspaces Root"
         case .globalBaseRef: return "Base Ref"
+        case .globalCommands: return "Commands"
         case .globalEffective: return "Effective Setting"
         case .workspaceOverrides: return "Overrides"
         case .workspaceSecrets: return "Secret Store"
@@ -332,6 +338,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
         case .globalLeader: return "keyboard"
         case .globalWorkspacesRoot: return "externaldrive"
         case .globalBaseRef: return "arrow.triangle.branch"
+        case .globalCommands: return "command"
         case .globalEffective: return "checkmark.seal"
         case .workspaceOverrides: return "slider.horizontal.3"
         case .workspaceSecrets: return "key.fill"
@@ -339,6 +346,9 @@ private enum SettingsNavItem: Hashable, Identifiable {
     }
 
     static var globalItems: [SettingsNavItem] {
-        [.globalMainCLI, .globalEditor, .globalLeader, .globalWorkspacesRoot, .globalBaseRef, .globalEffective]
+        [
+            .globalMainCLI, .globalEditor, .globalLeader, .globalWorkspacesRoot, .globalBaseRef,
+            .globalCommands, .globalEffective,
+        ]
     }
 }
