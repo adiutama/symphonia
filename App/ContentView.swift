@@ -64,7 +64,7 @@ struct ContentView: View {
             Spacer(minLength: 8)
 
             if let session = agents.focusedSession {
-                Label(session.displayTitle, systemImage: session.isMainRepo ? "shippingbox" : "person")
+                Label(session.displayTitle, systemImage: session.isMainRepo ? "shippingbox" : "arrow.triangle.branch")
                     .lineLimit(1)
             } else if let current = workspaces.current {
                 Label(current.slug, systemImage: "folder")

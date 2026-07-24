@@ -153,14 +153,14 @@ final class CommandModeController: ObservableObject {
         case .focusAgent(let id):
             if let agent = agents.agents.first(where: { $0.id == id }) {
                 agents.focus(agent)
-                lastInfo = "Agent: \(agent.primaryLabel)"
+                lastInfo = "Worktree: \(agent.primaryLabel)"
             }
             dismiss()
 
         case .newAgent:
             agents.createAgent()
             if let focused = agents.focused {
-                lastInfo = "Created Agent: \(focused.primaryLabel)"
+                lastInfo = "Created Worktree: \(focused.primaryLabel)"
             } else if let err = agents.lastError {
                 lastInfo = err
             }
@@ -168,12 +168,12 @@ final class CommandModeController: ObservableObject {
 
         case .removeFocusedAgent:
             guard let focused = agents.focused else {
-                lastInfo = "No focused Agent to remove"
+                lastInfo = "No focused Worktree to remove"
                 dismiss()
                 return
             }
             agents.requestRemove(focused)
-            lastInfo = "Confirm Remove Agent"
+            lastInfo = "Confirm Remove Worktree"
             dismiss()
 
         case .openEditor:
@@ -329,7 +329,7 @@ final class CommandModeController: ObservableObject {
             if agents.agents.isEmpty {
                 list.append(CommandModeItem(
                     id: "ag-empty",
-                    title: "(no Agents)",
+                    title: "(no Worktrees)",
                     action: .back
                 ))
             } else {

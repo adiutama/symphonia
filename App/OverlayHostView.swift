@@ -27,7 +27,7 @@ struct OverlayHostView: View {
             if agents.openedMainCLISessions.isEmpty {
                 Color.black
                     .overlay {
-                        Text("Select Main Repo or an Agent")
+                        Text("Select Main Repo or a Worktree")
                             .foregroundStyle(.secondary)
                     }
                     .zIndex(-2)

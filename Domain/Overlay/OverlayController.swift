@@ -90,7 +90,7 @@ final class OverlayController: ObservableObject {
     /// Open Effective Editor: TUI → Overlay PTY; GUI → external launch (no Overlay trap).
     func openEditor() {
         guard let session = agents.focusedSession else {
-            lastError = "Focus Main Repo or an Agent before opening the Editor."
+            lastError = "Focus Main Repo or a Worktree before opening the Editor."
             return
         }
 
@@ -140,7 +140,7 @@ final class OverlayController: ObservableObject {
     /// Create a Background CLI Overlay and peek it. Empty draft → bare shell.
     func createBackgroundCLI() {
         guard let session = agents.focusedSession else {
-            lastError = "Focus Main Repo or an Agent before creating a Background CLI."
+            lastError = "Focus Main Repo or a Worktree before creating a Background CLI."
             return
         }
 

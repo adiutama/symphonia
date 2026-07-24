@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Collapsible left sidebar: Workspaces → Main Repo + Agents.
+/// Collapsible left sidebar: Workspaces → Main Repo + Worktrees.
 struct WorkspaceSidebarView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var agents: AgentController
@@ -179,7 +179,7 @@ struct WorkspaceSidebarView: View {
             Button("Reveal in Finder") {
                 reveal(SymphoniaPaths.workspaceMainDirectory(in: workspace.dataDirURL))
             }
-            Button("New Agent…") {
+            Button("New Worktree…") {
                 selectWorkspace(workspace)
                 createAgentBranch = ""
                 showCreateAgent = true
@@ -195,7 +195,7 @@ struct WorkspaceSidebarView: View {
             agents.focus(agent)
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "person")
+                Image(systemName: "arrow.triangle.branch")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: 14)
@@ -222,7 +222,7 @@ struct WorkspaceSidebarView: View {
         .buttonStyle(.plain)
         .listRowBackground(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
         .contextMenu {
-            Button("Focus Agent") {
+            Button("Focus Worktree") {
                 selectWorkspace(workspace)
                 agents.focus(agent)
             }
@@ -230,7 +230,7 @@ struct WorkspaceSidebarView: View {
                 reveal(agent.worktreeURL)
             }
             Divider()
-            Button("Remove Agent…", role: .destructive) {
+            Button("Remove Worktree…", role: .destructive) {
                 selectWorkspace(workspace)
                 agents.requestRemove(agent)
             }
@@ -246,7 +246,7 @@ struct WorkspaceSidebarView: View {
             selectWorkspace(workspace)
             agents.focusMain(for: workspace)
         }
-        Button("New Agent…") {
+        Button("New Worktree…") {
             selectWorkspace(workspace)
             createAgentBranch = ""
             showCreateAgent = true
@@ -293,7 +293,7 @@ struct WorkspaceSidebarView: View {
 
     private var createAgentSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("New Agent")
+            Text("New Worktree")
                 .font(.headline)
             Text("Optional branch name (empty → Three-Word folder name).")
                 .font(.caption)
@@ -337,8 +337,8 @@ struct WorkspaceSidebarView: View {
 
     private var removeDialogTitle: String {
         if let name = agents.pendingRemove?.primaryLabel {
-            return "Remove Agent “\(name)”?"
+            return "Remove Worktree “\(name)”?"
         }
-        return "Remove Agent?"
+        return "Remove Worktree?"
     }
 }

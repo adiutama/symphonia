@@ -144,7 +144,7 @@ struct PreferencesSettingsView: View {
     private var baseRefFields: some View {
         Section("Base Ref") {
             TextField("Base Ref", text: $preferences.preferences.baseRef)
-            Text("New Agent branches are created from this ref.")
+            Text("New Worktree branches are created from this ref.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

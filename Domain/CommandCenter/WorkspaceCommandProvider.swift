@@ -25,7 +25,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 id: "agent.focusPicker",
                 title: "Focus session…",
                 subtitle: agents.focusedSession.map(\.displayTitle) ?? "none focused",
-                group: "Agent",
+                group: "Worktree",
                 defaultAliases: ["/focus"],
                 defaultShortcut: "a",
                 action: .showAgentPicker
@@ -34,25 +34,25 @@ struct WorkspaceCommandProvider: CommandProvider {
                 id: "agent.focusMain",
                 title: "Focus Main Repo",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
-                group: "Agent",
+                group: "Worktree",
                 defaultAliases: ["/main"],
                 defaultShortcut: "m",
                 action: .focusMainRepo
             ),
             Command(
                 id: "agent.new",
-                title: "New Agent",
+                title: "New Worktree",
                 subtitle: workspaces.current == nil ? "needs Workspace" : nil,
-                group: "Agent",
+                group: "Worktree",
                 defaultAliases: ["/new"],
                 defaultShortcut: "n",
                 action: .newAgent
             ),
             Command(
                 id: "agent.removeFocused",
-                title: "Remove Agent…",
-                subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Agent",
-                group: "Agent",
+                title: "Remove Worktree…",
+                subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
+                group: "Worktree",
                 defaultAliases: ["/remove"],
                 defaultShortcut: "x",
                 action: .removeFocusedAgent

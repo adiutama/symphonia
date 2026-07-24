@@ -7,11 +7,11 @@ struct AgentScaffoldView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Agents")
+            Text("Worktrees")
                 .font(.headline)
 
             if workspaces.current == nil {
-                Text("Select a Workspace to manage Agents.")
+                Text("Select a Workspace to manage Worktrees.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if agents.agents.isEmpty {
@@ -60,7 +60,7 @@ struct AgentScaffoldView: View {
                     .textFieldStyle(.roundedBorder)
                     .disabled(workspaces.current == nil)
 
-                Button("Create Agent") {
+                Button("Create Worktree") {
                     agents.createAgent()
                 }
                 .disabled(workspaces.current == nil)
@@ -78,7 +78,7 @@ struct AgentScaffoldView: View {
                     Button("Respawn w/ secrets") {
                         agents.respawnWithCurrentSecrets()
                     }
-                    .help("Restart focused Agent CLI with the current Enabled Secret Store set")
+                    .help("Restart focused Worktree CLI with the current Enabled Secret Store set")
 
                     Button("Remove…", role: .destructive) {
                         agents.requestRemove(focused)
@@ -128,8 +128,8 @@ struct AgentScaffoldView: View {
 
     private var removeDialogTitle: String {
         if let name = agents.pendingRemove?.threeWordName {
-            return "Remove Agent “\(name)”?"
+            return "Remove Worktree “\(name)”?"
         }
-        return "Remove Agent?"
+        return "Remove Worktree?"
     }
 }

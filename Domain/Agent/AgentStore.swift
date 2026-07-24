@@ -29,13 +29,13 @@ struct AgentStore: Sendable {
         var errorDescription: String? {
             switch self {
             case .noWorkspace:
-                return "Select a Workspace before creating an Agent."
+                return "Select a Workspace before creating a Worktree."
             case .mainNotGitRepo(let url):
                 return "Main Repo is not a git repository: \(url.path)"
             case .alreadyExists(let url):
-                return "Agent Worktree already exists: \(url.path)"
+                return "Worktree already exists: \(url.path)"
             case .missingWorktree(let url):
-                return "Agent Worktree not found: \(url.path)"
+                return "Worktree not found: \(url.path)"
             case .baseRefNotFound(let ref):
                 return "Base Ref “\(ref)” not found in Main Repo. Commit or set Base Ref in Settings."
             case .gitFailed(let detail):
