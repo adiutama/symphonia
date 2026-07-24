@@ -7,6 +7,7 @@ import SwiftUI
 /// P1.1: render surface. P1.3: AppKit first-responder + key/mouse → `ghostty_surface_*`
 /// (mirrors Ghostty's `SurfaceView_AppKit` / `NSEvent+Extension` patterns).
 /// C.5: Ghostty ↔ NSPasteboard (select-to-copy, ⌘C/⌘V, right-click Copy/Paste).
+/// C.6: scrollback enter reset, font zoom via bindings, click-to-focus without eating.
 /// Symphonia-owned PTY / session lifecycle remains P1.2.
 final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     private var ghosttyApp: ghostty_app_t?
@@ -16,6 +17,8 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     /// Ephemeral “Copied” / “Pasted” HUD (auto-dismiss).
     private var clipboardToastLabel: NSTextField?
     private var clipboardToastHideWorkItem: DispatchWorkItem?
+    /// Local monitor: focus on left-click without eating the event (C.6).
+    private var localEventMonitor: Any?
     private var didStart = false
     private var surfaceFocused = false
 
@@ -55,6 +58,7 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     deinit {
         tearDownGhostty()
         removeScreenObserver()
+        removeLocalEventMonitor()
     }
 
     /// Apply spawn config; restart only when cwd / command / env actually change (not on show/hide).
@@ -294,8 +298,8 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         // when `insertText` did not accumulate.
     }
 
-    /// Route Ghostty keybindings (incl. ⌘C / ⌘V) through `keyDown` before the
-    /// Edit menu consumes them — same seam as Ghostty `SurfaceView_AppKit`.
+    /// Route Ghostty keybindings (⌘C/V, ⌘+/−/0 font zoom, …) through `keyDown`
+    /// before the Edit/View menu consumes them — same seam as Ghostty `SurfaceView_AppKit`.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard event.type == .keyDown else { return false }
         guard surfaceFocused, let surface else { return false }
@@ -336,10 +340,11 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         return ghostty_surface_key(surface, keyEvent)
     }
 
-    // MARK: - Mouse (minimal focus + report path)
+    // MARK: - Mouse (focus + report path)
 
     override func mouseDown(with event: NSEvent) {
-        window?.makeFirstResponder(self)
+        // Focus is owned by the local leftMouseDown monitor (C.6) so the first
+        // click still reaches Ghostty — do not steal/eat here.
         guard let surface else { return }
         let mods = GhosttyInput.mods(event.modifierFlags)
         ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, mods)
@@ -410,6 +415,12 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         reportMousePos(event)
     }
 
+    override func mouseEntered(with event: NSEvent) {
+        // Reset cursor into the viewport after exit's -1/-1 (Ghostty: needed for
+        // mouse-report / scrollback hit-testing after re-entry).
+        reportMousePos(event)
+    }
+
     override func mouseExited(with event: NSEvent) {
         guard let surface else { return }
         // Negative coords = left viewport (Ghostty convention).
@@ -430,6 +441,35 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
             momentum: event.momentumPhase
         )
         ghostty_surface_mouse_scroll(surface, x, y, scrollMods)
+    }
+
+    /// Focus this surface on left-click without consuming the event so Ghostty
+    /// still gets the press (inactive-window first click + in-window focus).
+    /// Diverges from Ghostty's split-focus eat path on purpose (C.6).
+    private func handleLocalLeftMouseDown(_ event: NSEvent) -> NSEvent? {
+        guard let window,
+              event.window === window,
+              let content = window.contentView else { return event }
+        let location = content.convert(event.locationInWindow, from: nil)
+        guard content.hitTest(location) === self else { return event }
+        if window.firstResponder !== self {
+            window.makeFirstResponder(self)
+        }
+        return event
+    }
+
+    private func installLocalEventMonitor() {
+        guard localEventMonitor == nil else { return }
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+            self?.handleLocalLeftMouseDown(event) ?? event
+        }
+    }
+
+    private func removeLocalEventMonitor() {
+        if let localEventMonitor {
+            NSEvent.removeMonitor(localEventMonitor)
+            self.localEventMonitor = nil
+        }
     }
 
     private func reportMousePos(_ event: NSEvent) {
@@ -683,11 +723,13 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         }
         syncSurfaceGeometry()
         setSurfaceFocus(true)
+        installLocalEventMonitor()
         ghostty_surface_refresh(surface)
         tick()
     }
 
     private func tearDownGhostty() {
+        removeLocalEventMonitor()
         if let surface {
             ghostty_surface_free(surface)
             self.surface = nil
