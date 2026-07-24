@@ -1,38 +1,94 @@
 import SwiftUI
 
-/// Calm Status Cue for running Background CLIs — dot (and quiet count when >1).
+/// Toggleable calm Status Cue: Editor + Background count → open/resume Overlay (C.7).
+///
+/// Lives in the status strip only — never a third column. Does not list every PTY.
 struct OverlayStatusCueView: View {
     @EnvironmentObject private var overlays: OverlayController
-    @EnvironmentObject private var commandMode: CommandModeController
+    @AppStorage(StatusCueDefaults.listVisibleKey) private var listVisible = false
 
     var body: some View {
-        statusCue
+        HStack(spacing: 8) {
+            Button {
+                listVisible.toggle()
+            } label: {
+                Image(systemName: "list.bullet")
+                    .font(.caption)
+                    .foregroundStyle(listVisible ? Color.secondary : Color.secondary.opacity(0.45))
+            }
+            .buttonStyle(.plain)
+            .help(listVisible ? "Hide status cue" : "Show status cue")
+            .accessibilityLabel(listVisible ? "Hide status cue" : "Show status cue")
+
+            if listVisible {
+                cueList
+            }
+        }
     }
 
     @ViewBuilder
-    private var statusCue: some View {
-        let count = overlays.focusedBackgroundCount
-        if count > 0 {
-            Button {
-                if !commandMode.isActive {
-                    commandMode.enter()
-                }
-                commandMode.run(.showBackgroundPicker)
-            } label: {
-                HStack(spacing: 3) {
-                    Circle()
-                        .fill(Color.secondary.opacity(0.55))
-                        .frame(width: 6, height: 6)
-                    if count > 1 {
-                        Text("\(count)")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
+    private var cueList: some View {
+        HStack(spacing: 10) {
+            editorRow
+
+            let bgCount = overlays.focusedBackgroundCount
+            if bgCount > 0 {
+                backgroundRow(count: bgCount)
             }
-            .buttonStyle(.plain)
-            .help("\(count) background CLI\(count == 1 ? "" : "s") running — Command Center to peek")
-            .accessibilityLabel("\(count) background CLIs running")
+
+            if overlays.isShowingOverlay {
+                Circle()
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(width: 4, height: 4)
+                    .help("Overlay visible — hide returns to Main CLI")
+                    .accessibilityLabel("Overlay visible")
+            }
         }
+    }
+
+    private var editorRow: some View {
+        let editor = overlays.focusedEditor
+        let isLive = editor.map { overlays.visibleOverlayID == $0.id } ?? false
+        return Button {
+            overlays.peekOrOpenEditor()
+        } label: {
+            HStack(spacing: 3) {
+                if isLive {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.7))
+                        .frame(width: 5, height: 5)
+                }
+                Text("editor")
+                    .font(.caption2)
+                    .foregroundStyle(editor == nil ? .tertiary : (isLive ? .secondary : .tertiary))
+            }
+        }
+        .buttonStyle(.plain)
+        .help(editor == nil ? "Open Editor Overlay" : "Peek Editor Overlay")
+        .accessibilityLabel(editor == nil ? "Open editor" : "Peek editor")
+    }
+
+    private func backgroundRow(count: Int) -> some View {
+        let visibleBG = overlays.visibleSession?.kind == .background
+        return Button {
+            overlays.peekPrimaryBackground()
+        } label: {
+            HStack(spacing: 3) {
+                if visibleBG {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.7))
+                        .frame(width: 5, height: 5)
+                }
+                Text("· \(count)")
+                    .font(.caption2)
+                    .foregroundStyle(visibleBG ? .secondary : .tertiary)
+                    .monospacedDigit()
+            }
+        }
+        .buttonStyle(.plain)
+        .help(count == 1
+            ? "Peek Background CLI"
+            : "Peek latest Background CLI (\(count) running) — Command Center to pick")
+        .accessibilityLabel("\(count) background CLIs")
     }
 }

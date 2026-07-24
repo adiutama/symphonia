@@ -239,6 +239,13 @@ final class CommandModeController: ObservableObject {
                 lastInfo = "Already on Main CLI"
             }
             dismiss()
+
+        case .toggleStatusCue:
+            let key = StatusCueDefaults.listVisibleKey
+            let next = !UserDefaults.standard.bool(forKey: key)
+            UserDefaults.standard.set(next, forKey: key)
+            lastInfo = next ? "Status cue on" : "Status cue off"
+            dismiss()
         }
     }
 

@@ -127,6 +127,15 @@ struct ChromeCommandProvider: CommandProvider {
                 action: .openSettings
             ),
             Command(
+                id: "chrome.toggleStatusCue",
+                title: "Toggle Status Cue",
+                subtitle: "Show or hide the calm Overlay info list",
+                group: "Settings",
+                defaultAliases: ["/cue", "/status"],
+                defaultShortcut: nil,
+                action: .toggleStatusCue
+            ),
+            Command(
                 id: "chrome.dismiss",
                 title: "Dismiss Command Center",
                 subtitle: "Esc",

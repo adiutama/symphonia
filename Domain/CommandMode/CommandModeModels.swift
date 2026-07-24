@@ -42,6 +42,8 @@ enum CommandModeAction: Equatable {
     case createBackground
     case peekBackground(id: UUID)
     case hideOverlay
+    /// Toggle Status Cue list visibility (C.7).
+    case toggleStatusCue
 
     /// Drill into a picker list (Workspace / Agent / Background).
     case showWorkspacePicker

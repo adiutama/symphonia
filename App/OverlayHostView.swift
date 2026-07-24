@@ -85,15 +85,20 @@ struct OverlayHostView: View {
 
     private func sheetHeader(_ session: OverlaySession) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: session.kind == .editor ? "pencil" : "arrow.triangle.2.circlepath")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .accessibilityLabel(session.kind == .editor ? "Editor" : "Background")
+            // Sibling switcher inside the Overlay (C.7) — not a third column.
+            if overlays.focusedSessions.count > 1 {
+                overlayTabs(active: session)
+            } else {
+                Image(systemName: session.kind == .editor ? "pencil" : "arrow.triangle.2.circlepath")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .accessibilityLabel(session.kind == .editor ? "Editor" : "Background")
 
-            Text(session.title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                Text(session.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
 
             Spacer(minLength: 8)
 
@@ -121,5 +126,44 @@ struct OverlayHostView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
+    }
+
+    private func overlayTabs(active: OverlaySession) -> some View {
+        HStack(spacing: 2) {
+            ForEach(overlays.focusedSessions) { peer in
+                let isSelected = peer.id == active.id
+                Button {
+                    overlays.peek(peer.id)
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: peer.kind == .editor ? "pencil" : "arrow.triangle.2.circlepath")
+                            .font(.caption2)
+                        Text(tabLabel(peer))
+                            .font(.caption)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .foregroundStyle(isSelected ? Color.primary.opacity(0.85) : Color.secondary.opacity(0.55))
+                    .background(
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(isSelected ? Color.primary.opacity(0.08) : Color.clear)
+                    )
+                }
+                .buttonStyle(.plain)
+                .help(peer.title)
+            }
+        }
+    }
+
+    private func tabLabel(_ session: OverlaySession) -> String {
+        switch session.kind {
+        case .editor:
+            return "editor"
+        case .background:
+            // Keep short — full title in help.
+            let raw = session.title.replacingOccurrences(of: "BG: ", with: "")
+            return raw.count > 14 ? String(raw.prefix(12)) + "…" : raw.lowercased()
+        }
     }
 }

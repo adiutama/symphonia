@@ -2,6 +2,11 @@ import AppKit
 import Combine
 import Foundation
 
+/// UserDefaults key for Status Cue list visibility (C.7). Default quiet (false / unset).
+enum StatusCueDefaults {
+    static let listVisibleKey = "statusCueListVisible"
+}
+
 /// Overlay peek/hide host lifecycle (Phase 6 / ADR 0006–0008).
 ///
 /// - One visible Overlay at a time (`visibleOverlayID`); nil = Main CLI.
@@ -58,6 +63,16 @@ final class OverlayController: ObservableObject {
         focusedSessions.filter { $0.kind == .background }.count
     }
 
+    /// Editor Overlay for the focused session, if any (Status Cue).
+    var focusedEditor: OverlaySession? {
+        focusedSessions.first { $0.kind == .editor }
+    }
+
+    /// Background Overlays for the focused session (newest last).
+    var focusedBackgroundSessions: [OverlaySession] {
+        focusedSessions.filter { $0.kind == .background }
+    }
+
     var isShowingOverlay: Bool {
         visibleOverlayID != nil
     }
@@ -83,6 +98,30 @@ final class OverlayController: ObservableObject {
         if visibleOverlayID == id {
             visibleOverlayID = nil
         }
+    }
+
+    /// Status Cue: resume Editor Overlay or open a new one (C.7).
+    func peekOrOpenEditor() {
+        if let editor = focusedEditor {
+            peek(editor.id)
+            lastInfo = "Peeking Editor Overlay"
+            lastError = nil
+            return
+        }
+        openEditor()
+    }
+
+    /// Status Cue: peek the only Background CLI, or the most recently created (C.7).
+    /// Multiple → latest; Command Center `/pick` still lists all.
+    func peekPrimaryBackground() {
+        let backgrounds = focusedBackgroundSessions
+        guard let target = backgrounds.last else {
+            lastInfo = "No Background CLI running"
+            return
+        }
+        peek(target.id)
+        lastInfo = target.title
+        lastError = nil
     }
 
     // MARK: - Editor (P6.2)
