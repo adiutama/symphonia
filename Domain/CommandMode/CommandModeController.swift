@@ -12,6 +12,9 @@ final class CommandModeController: ObservableObject {
     private let workspaces: WorkspaceController
     private let agents: AgentController
     private let overlays: OverlayController
+    /// Source of root-palette items and matching data (ADR 0021 / CC.2). Root no longer
+    /// owns a private hardcoded item/slash-verb table — see `filteredRootItems()`.
+    private let commandRegistry: CommandRegistry
 
     @Published private(set) var isActive = false
     @Published private(set) var phase: CommandModePhase = .root
@@ -29,12 +32,14 @@ final class CommandModeController: ObservableObject {
         preferences: PreferencesController,
         workspaces: WorkspaceController,
         agents: AgentController,
-        overlays: OverlayController
+        overlays: OverlayController,
+        commandRegistry: CommandRegistry
     ) {
         self.preferences = preferences
         self.workspaces = workspaces
         self.agents = agents
         self.overlays = overlays
+        self.commandRegistry = commandRegistry
 
         Publishers.CombineLatest3(
             workspaces.$workspaces,
@@ -199,88 +204,64 @@ final class CommandModeController: ObservableObject {
     // MARK: - Items
 
     private func rebuildItems(resetSelection: Bool) {
-        if phase == .root, filterQuery.hasPrefix("/") {
-            items = slashItems(matching: filterQuery)
-        } else {
-            let raw: [CommandModeItem]
-            switch phase {
-            case .root:
-                raw = rootItems()
-            case .pickWorkspace:
-                raw = workspacePickerItems()
-            case .pickAgent:
-                raw = agentPickerItems()
-            case .pickBackground:
-                raw = backgroundPickerItems()
-            }
-            items = filter(raw)
+        switch phase {
+        case .root:
+            items = filteredRootItems()
+        case .pickWorkspace:
+            items = filter(workspacePickerItems())
+        case .pickAgent:
+            items = filter(agentPickerItems())
+        case .pickBackground:
+            items = filter(backgroundPickerItems())
         }
         if resetSelection || selectedIndex >= items.count {
             selectedIndex = items.isEmpty ? 0 : min(selectedIndex, max(items.count - 1, 0))
         }
     }
 
-    // MARK: - Slash verbs (Raycast-style, ADR 0009 / P0.C)
+    // MARK: - Root (Command registry, ADR 0021 / CC.2)
 
-    /// One context-aware `/` verb, addressable by any of its aliases (without the leading `/`).
-    private struct SlashCommand {
-        let aliases: [String]
-        let title: String
-        let subtitle: String
-        let action: CommandModeAction
+    /// Root palette rows straight from the `CommandRegistry`, narrowed by `filterQuery`.
+    /// Matching (see `matches(_:query:)`) checks title, subtitle, **and** every default
+    /// alias — free text, `/` optional — so typing `/e`, `e`, or `editor` all surface
+    /// "Open Editor" the same way. An empty filter returns every enabled Command
+    /// unfiltered; `defaultShortcut` still fires from `handleKeyDown` in that case.
+    private func filteredRootItems() -> [CommandModeItem] {
+        let context = CommandContext(agents: agents, overlays: overlays)
+        let commands = commandRegistry.availableCommands(context: context)
+        let query = filterQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let matched = query.isEmpty ? commands : commands.filter { matches($0, query: query) }
+        return matched.map(commandItem)
     }
 
-    private var slashCommands: [SlashCommand] {
-        [
-            SlashCommand(
-                aliases: ["editor", "e"],
-                title: "/editor",
-                subtitle: "Open Editor Overlay · alias /e",
-                action: .openEditor
-            ),
-            SlashCommand(
-                aliases: ["hide", "x", "exit"],
-                title: "/hide",
-                subtitle: overlays.isShowingOverlay
-                    ? "Hide Overlay → Main CLI · aliases /x, /exit"
-                    : "Already on Main CLI · aliases /x, /exit",
-                action: .hideOverlay
-            ),
-            SlashCommand(
-                aliases: ["background", "bg"],
-                title: "/background",
-                subtitle: "Peek / create Background Overlay · alias /bg",
-                action: .showBackgroundPicker
-            ),
-        ]
+    private func matches(_ command: Command, query: String) -> Bool {
+        if command.title.lowercased().contains(query) { return true }
+        if let subtitle = command.subtitle, subtitle.lowercased().contains(query) { return true }
+        return command.defaultAliases.contains { $0.lowercased().contains(query) }
     }
 
-    /// Slash commands as result rows, narrowed by the text typed after `/`.
-    /// An exact alias match (e.g. `/e`, `/x`) wins outright; otherwise falls back to
-    /// prefix matching across all aliases so the palette still reads like a filtered list.
-    private func slashItems(matching query: String) -> [CommandModeItem] {
-        let needle = String(query.dropFirst())
-            .trimmingCharacters(in: .whitespaces)
-            .lowercased()
-        let commands = slashCommands
-        guard !needle.isEmpty else {
-            return commands.map(slashItem)
-        }
-        if let exact = commands.first(where: { $0.aliases.contains(needle) }) {
-            return [slashItem(exact)]
-        }
-        return commands
-            .filter { cmd in cmd.aliases.contains { $0.hasPrefix(needle) } }
-            .map(slashItem)
-    }
-
-    private func slashItem(_ cmd: SlashCommand) -> CommandModeItem {
+    /// Converts a registry `Command` into a palette row. Subtitle is overridden for the
+    /// couple of Overlay Commands whose description depends on live `CommandContext`
+    /// state (ADR 0021 requirement 6) — everything else uses the provider's own subtitle.
+    private func commandItem(_ command: Command) -> CommandModeItem {
         CommandModeItem(
-            id: "slash-\(cmd.aliases[0])",
-            title: cmd.title,
-            subtitle: cmd.subtitle,
-            action: cmd.action
+            id: command.id,
+            title: command.title,
+            subtitle: liveSubtitle(for: command),
+            keybind: command.defaultShortcut,
+            action: command.action
         )
+    }
+
+    private func liveSubtitle(for command: Command) -> String? {
+        switch command.id {
+        case "overlay.openEditor":
+            return preferences.effective.editorCommand
+        case "overlay.hide":
+            return overlays.isShowingOverlay ? overlays.visibleSession?.title : "Already on Main CLI"
+        default:
+            return command.subtitle
+        }
     }
 
     private func filter(_ raw: [CommandModeItem]) -> [CommandModeItem] {
@@ -293,91 +274,6 @@ final class CommandModeController: ObservableObject {
                 .joined(separator: " ")
             return hay.contains(q)
         }
-    }
-
-    private func rootItems() -> [CommandModeItem] {
-        var rows: [CommandModeItem] = []
-
-        rows.append(CommandModeItem(
-            id: "workspaces",
-            title: "Switch Workspace…",
-            subtitle: workspaces.current.map { "current: \($0.slug)" } ?? "none selected",
-            keybind: "w",
-            action: .showWorkspacePicker
-        ))
-        rows.append(CommandModeItem(
-            id: "agents",
-            title: "Focus session…",
-            subtitle: agents.focusedSession.map(\.displayTitle) ?? "none focused",
-            keybind: "a",
-            action: .showAgentPicker
-        ))
-        rows.append(CommandModeItem(
-            id: "main",
-            title: "Focus Main Repo",
-            subtitle: workspaces.current.map { $0.slug } ?? "needs Workspace",
-            keybind: "m",
-            action: .focusMainRepo
-        ))
-        rows.append(CommandModeItem(
-            id: "new-agent",
-            title: "New Agent",
-            subtitle: workspaces.current == nil ? "needs Workspace" : nil,
-            keybind: "n",
-            action: .newAgent
-        ))
-        rows.append(CommandModeItem(
-            id: "remove-agent",
-            title: "Remove Agent…",
-            subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Agent",
-            keybind: "x",
-            action: .removeFocusedAgent
-        ))
-        rows.append(CommandModeItem(
-            id: "editor",
-            title: "Open Editor",
-            subtitle: preferences.effective.editorCommand,
-            keybind: "e",
-            action: .openEditor
-        ))
-        rows.append(CommandModeItem(
-            id: "bg-create",
-            title: "Create Background CLI",
-            subtitle: "peek new Overlay (empty = shell)",
-            keybind: "b",
-            action: .createBackground
-        ))
-        rows.append(CommandModeItem(
-            id: "bg-peek",
-            title: "Peek Overlay…",
-            subtitle: overlays.focusedSessions.isEmpty
-                ? "no live Overlays"
-                : "\(overlays.focusedSessions.count) session(s)",
-            keybind: "p",
-            action: .showBackgroundPicker
-        ))
-        rows.append(CommandModeItem(
-            id: "hide-overlay",
-            title: "Hide Overlay → Main CLI",
-            subtitle: overlays.isShowingOverlay ? overlays.visibleSession?.title : "already on Main CLI",
-            keybind: "h",
-            action: .hideOverlay
-        ))
-        rows.append(CommandModeItem(
-            id: "settings",
-            title: "Open Settings…",
-            subtitle: "Secret Store lives under Workspace",
-            keybind: ",",
-            action: .openSettings
-        ))
-        rows.append(CommandModeItem(
-            id: "dismiss",
-            title: "Dismiss Command Center",
-            subtitle: "Esc",
-            keybind: nil,
-            action: .dismiss
-        ))
-        return rows
     }
 
     private func workspacePickerItems() -> [CommandModeItem] {

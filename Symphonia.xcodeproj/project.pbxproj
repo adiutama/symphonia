@@ -51,6 +51,7 @@
 		A7B405162738495A6B0E0107 /* CommandModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0108 /* CommandModeView.swift */; };
 		92B3541DF27546F091CDA9DC /* Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AE7305E6FD442E9DE81179 /* Command.swift */; };
 		CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */; };
+		5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -99,6 +100,7 @@
 		A7B405162738495A6B0E0108 /* CommandModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeView.swift; sourceTree = "<group>"; };
 		22AE7305E6FD442E9DE81179 /* Command.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Command.swift; sourceTree = "<group>"; };
 		2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayCommandProvider.swift; sourceTree = "<group>"; };
+		3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceCommandProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -199,6 +201,7 @@
 			children = (
 				22AE7305E6FD442E9DE81179 /* Command.swift */,
 				2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */,
+				3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */,
 			);
 			path = CommandCenter;
 			sourceTree = "<group>";
@@ -371,6 +374,7 @@
 				A7B405162738495A6B0E0107 /* CommandModeView.swift in Sources */,
 				92B3541DF27546F091CDA9DC /* Command.swift in Sources */,
 				CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */,
+				5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -3,9 +3,7 @@ import Foundation
 /// Exports Overlay-related Commands (Open Editor / Hide / Background) into the
 /// `CommandRegistry` (ADR 0021 §2).
 ///
-/// Matches today's hardcoded Command Mode root items and `/` slash verbs
-/// (`CommandModeController.rootItems()` / `slashCommands`) — this provider is additive
-/// for CC.1 and is not yet read by the palette; that swap is CC.2.
+/// Read by `CommandModeController.filteredRootItems()` (CC.2) to drive the root palette.
 struct OverlayCommandProvider: CommandProvider {
     var commands: [Command] {
         [

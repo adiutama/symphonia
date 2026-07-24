@@ -8,8 +8,8 @@ struct SymphoniaApp: App {
     @StateObject private var agents: AgentController
     @StateObject private var overlays: OverlayController
     @StateObject private var commandMode: CommandModeController
-    /// Command registry seam (ADR 0021 / CC.1). Not yet read by `CommandModeController`
-    /// — that swap is CC.2. Constructed here so it's app-wide and testable.
+    /// Command registry (ADR 0021). Drives `commandMode`'s root palette (CC.2);
+    /// constructed here so it's app-wide and testable.
     @StateObject private var commandRegistry: CommandRegistry
 
     init() {
@@ -26,17 +26,18 @@ struct SymphoniaApp: App {
             agents: agents,
             secrets: secrets
         )
+        let commandRegistry = CommandRegistry(providers: [
+            WorkspaceCommandProvider(workspaces: workspaces, agents: agents),
+            OverlayCommandProvider(),
+            ChromeCommandProvider(),
+        ])
         let commandMode = CommandModeController(
             preferences: preferences,
             workspaces: workspaces,
             agents: agents,
-            overlays: overlays
+            overlays: overlays,
+            commandRegistry: commandRegistry
         )
-        // TODO(CC.2): drive `commandMode`'s palette from `commandRegistry.availableCommands`
-        // instead of its private hardcoded root items / slash verbs.
-        let commandRegistry = CommandRegistry(providers: [
-            OverlayCommandProvider(),
-        ])
         _preferences = StateObject(wrappedValue: preferences)
         _workspaces = StateObject(wrappedValue: workspaces)
         _secrets = StateObject(wrappedValue: secrets)
