@@ -32,6 +32,9 @@ final class TerminalSurfaceNSView: NSView {
     /// (same pattern as Ghostty's SurfaceView).
     private var keyTextAccumulator: [String]?
 
+    /// Observes window screen changes (Retina ↔ external) so we re-sync scale/size.
+    private var screenChangeObserver: NSObjectProtocol?
+
     override var acceptsFirstResponder: Bool { true }
 
     override init(frame frameRect: NSRect) {
@@ -47,6 +50,7 @@ final class TerminalSurfaceNSView: NSView {
 
     deinit {
         tearDownGhostty()
+        removeScreenObserver()
     }
 
     /// Apply spawn config; restart only when cwd / command / env actually change (not on show/hide).
@@ -100,13 +104,23 @@ final class TerminalSurfaceNSView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        guard window != nil, !didStart else { return }
+        installScreenObserver()
+        if let window {
+            syncLayerContentsScale(for: window)
+            syncDisplayID(for: window)
+        }
+        guard window != nil, !didStart else {
+            // Window changed after start (e.g. moved) — still re-sync geometry.
+            if didStart { syncSurfaceGeometry() }
+            return
+        }
         didStart = true
         startGhostty()
         // Become key once the window is ready so typing works without an extra click.
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window else { return }
             window.makeFirstResponder(self)
+            self.syncSurfaceGeometry()
         }
     }
 
@@ -117,6 +131,11 @@ final class TerminalSurfaceNSView: NSView {
 
     override func viewDidChangeBackingProperties() {
         super.viewDidChangeBackingProperties()
+        // When moving Retina ↔ low-DPI, Core Animation scales the layer unless
+        // contentsScale matches the window — Ghostty SurfaceView_AppKit does this.
+        if let window {
+            syncLayerContentsScale(for: window)
+        }
         syncSurfaceGeometry()
     }
 
@@ -474,6 +493,10 @@ final class TerminalSurfaceNSView: NSView {
         }
         self.surface = surface
         clearStatus()
+        if let window {
+            syncLayerContentsScale(for: window)
+            syncDisplayID(for: window)
+        }
         syncSurfaceGeometry()
         setSurfaceFocus(true)
         ghostty_surface_refresh(surface)
@@ -531,13 +554,62 @@ final class TerminalSurfaceNSView: NSView {
         // SurfaceView_AppKit.sizeDidChange (`convertToBacking`). Passing points on
         // Retina leaves the Metal surface at ~½×½ of the view.
         let pointSize = bounds.size
+        guard pointSize.width > 0, pointSize.height > 0 else { return }
+
+        if let window {
+            syncLayerContentsScale(for: window)
+        }
+
         let backing = convertToBacking(NSRect(origin: .zero, size: pointSize)).size
-        let scaleX = pointSize.width > 0 ? Double(backing.width / pointSize.width) : Double(window?.backingScaleFactor ?? 2)
-        let scaleY = pointSize.height > 0 ? Double(backing.height / pointSize.height) : scaleX
+        let scaleX = Double(backing.width / pointSize.width)
+        let scaleY = Double(backing.height / pointSize.height)
         let width = UInt32(max(1, backing.width.rounded(.down)))
         let height = UInt32(max(1, backing.height.rounded(.down)))
         ghostty_surface_set_content_scale(surface, scaleX, scaleY)
         ghostty_surface_set_size(surface, width, height)
+    }
+
+    /// Keep CA layer scale in lockstep with the window so moving between Retina and
+    /// external monitors does not leave the compositor stretching stale contents.
+    private func syncLayerContentsScale(for window: NSWindow) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer?.contentsScale = window.backingScaleFactor
+        CATransaction.commit()
+    }
+
+    private func syncDisplayID(for window: NSWindow) {
+        guard let surface, let screen = window.screen else { return }
+        let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? UInt32) ?? 0
+        ghostty_surface_set_display_id(surface, displayID)
+    }
+
+    private func installScreenObserver() {
+        removeScreenObserver()
+        guard let window else { return }
+        screenChangeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeScreenNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, let window = self.window else { return }
+            // Match Ghostty: update display id for vsync, then re-run backing sync
+            // asynchronously so scale/size settle after the screen change.
+            self.syncDisplayID(for: window)
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let window = self.window else { return }
+                self.syncLayerContentsScale(for: window)
+                self.syncSurfaceGeometry()
+            }
+        }
+        syncDisplayID(for: window)
+    }
+
+    private func removeScreenObserver() {
+        if let screenChangeObserver {
+            NotificationCenter.default.removeObserver(screenChangeObserver)
+            self.screenChangeObserver = nil
+        }
     }
 
     private func handleSurfaceCloseRequest() {
