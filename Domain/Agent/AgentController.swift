@@ -11,9 +11,13 @@ final class AgentController: ObservableObject {
     private let workspaces: WorkspaceController
     private let secrets: SecretStoreController?
     private var cancellables = Set<AnyCancellable>()
+    /// Watches each Worktree’s git `HEAD` (read-only) so sidebar branch labels update after checkout.
+    private let branchWatcher = WorktreeBranchWatcher()
 
     /// Non-archived Worktrees under the current Workspace (P1.3: archived are hidden by default).
     @Published private(set) var agents: [AgentSummary] = []
+    /// Bumped when any watched HEAD changes so sidebar re-queries Worktrees in non-current Workspaces.
+    @Published private(set) var branchDiskGeneration: UInt64 = 0
     /// Main Repo or Agent — drives which Main CLI surface is visible and Overlay scope.
     @Published private(set) var focusedSession: FocusedSession?
     /// Opened Main CLI surfaces (alive PTYs). Host mounts all; only focused is visible.
@@ -53,6 +57,17 @@ final class AgentController: ObservableObject {
                 self?.onWorkspaceChanged()
             }
             .store(in: &cancellables)
+
+        workspaces.$workspaces
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.syncBranchWatchers()
+            }
+            .store(in: &cancellables)
+
+        branchWatcher.onChange = { [weak self] in
+            self?.onWatchedHEADChanged()
+        }
     }
 
     /// Focused Agent when session is an Agent; nil for Main Repo.
@@ -87,6 +102,7 @@ final class AgentController: ObservableObject {
     func refresh() {
         guard let current = workspaces.current else {
             agents = []
+            branchWatcher.stopAll()
             if focusedSession != nil {
                 focusedSession = nil
                 focusedSpawnEnvironment = []
@@ -102,6 +118,7 @@ final class AgentController: ObservableObject {
             lastError = nil
             reconcileFocusedSession(workspace: current)
             pruneOpenedSessionsToLiveSet()
+            syncBranchWatchers()
         } catch {
             lastError = error.localizedDescription
         }
@@ -109,6 +126,8 @@ final class AgentController: ObservableObject {
 
     /// Non-archived Agents under any Workspace Data Dir (sidebar expansion, Command Center).
     func agents(in workspace: WorkspaceSummary) -> [AgentSummary] {
+        // Establish observation so HEAD-watch refreshes also rebuild non-current Workspace rows.
+        _ = branchDiskGeneration
         if workspace.id == workspaces.current?.id {
             return agents
         }
@@ -341,6 +360,7 @@ final class AgentController: ObservableObject {
         openedMainCLISessions = []
         guard let current = workspaces.current else {
             agents = []
+            branchWatcher.stopAll()
             focusedSession = nil
             focusedSpawnEnvironment = []
             return
@@ -348,5 +368,45 @@ final class AgentController: ObservableObject {
         refresh()
         // Always land on Main Repo when switching Workspace (opens a fresh Main PTY for that workspace).
         focusMain(for: current)
+    }
+
+    /// Re-read branch names after a watched `HEAD` change (no repo writes — read-only).
+    private func onWatchedHEADChanged() {
+        refreshBranchLabels()
+        branchDiskGeneration &+= 1
+        syncBranchWatchers()
+    }
+
+    /// Patch `branchName` on current Agents + focused session without tearing down PTYs.
+    private func refreshBranchLabels() {
+        var changed = false
+        let updated: [AgentSummary] = agents.map { agent in
+            let branch = store.readCurrentBranch(at: agent.worktreeURL)
+            if branch != agent.branchName {
+                changed = true
+                return AgentSummary(
+                    threeWordName: agent.threeWordName,
+                    worktreeURL: agent.worktreeURL,
+                    branchName: branch
+                )
+            }
+            return agent
+        }
+        guard changed else { return }
+        agents = updated
+        if case .agent(let focused)? = focusedSession,
+           let refreshed = updated.first(where: { $0.id == focused.id })
+        {
+            focusedSession = .agent(refreshed)
+        }
+    }
+
+    /// Watch HEAD for every known Worktree (current + others) so expanded sidebar rows stay live.
+    private func syncBranchWatchers() {
+        var checkouts: [URL] = []
+        for workspace in workspaces.workspaces {
+            checkouts.append(contentsOf: allAgents(in: workspace).map(\.worktreeURL))
+        }
+        branchWatcher.watch(checkouts: checkouts)
     }
 }

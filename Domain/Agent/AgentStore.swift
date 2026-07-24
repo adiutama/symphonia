@@ -101,6 +101,12 @@ struct AgentStore: Sendable {
         }
     }
 
+    /// Best-effort current branch for a checkout (`git branch --show-current`).
+    /// Used by the HEAD file watcher to refresh sidebar labels without a full list rebuild.
+    func readCurrentBranch(at worktree: URL) -> String? {
+        try? currentBranch(at: worktree)
+    }
+
     /// Every top-level name (file or directory) already present in the Workspace Data Dir — used
     /// for Three-Word Name collision checks so a fresh/Operator-edited name can never collide with
     /// `main/`, `config.json`, another Worktree, or anything else already there (P1.5 flat siblings).
