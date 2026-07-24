@@ -35,6 +35,8 @@ enum CommandModeAction: Equatable {
     case newAgent
     case removeFocusedAgent
     case removeCurrentWorkspace
+    case renameWorkspace
+    case renameFocusedWorktree
     case openEditor
     case createBackground
     case peekBackground(id: UUID)

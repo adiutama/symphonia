@@ -3,7 +3,7 @@ import Foundation
 /// Exports Workspace / Agent Commands into the `CommandRegistry` (ADR 0021 §2).
 ///
 /// Matches today's hardcoded Command Mode root items for switching Workspaces and
-/// focusing sessions (`CommandModeController.rootItems()`). Subtitles are computed live
+/// focusing Worktrees (`CommandModeController.rootItems()`). Subtitles are computed live
 /// from the injected controllers each time `commands` is read, so they track current
 /// selection the same way the old private root list did.
 struct WorkspaceCommandProvider: CommandProvider {
@@ -11,7 +11,17 @@ struct WorkspaceCommandProvider: CommandProvider {
     let agents: AgentController
 
     var commands: [Command] {
-        [
+        let focusedTargetSubtitle: String = {
+            guard let session = agents.focusedSession else { return "none focused" }
+            switch session {
+            case .mainRepo(_, _, let slug):
+                return "main · \(slug)"
+            case .agent(let agent):
+                return agent.primaryLabel
+            }
+        }()
+
+        return [
             Command(
                 id: "workspace.switch",
                 title: "Switch Workspace…",
@@ -22,9 +32,19 @@ struct WorkspaceCommandProvider: CommandProvider {
                 action: .showWorkspacePicker
             ),
             Command(
+                id: "workspace.rename",
+                title: "Rename Workspace…",
+                subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
+                group: "Workspace",
+                defaultAliases: ["/renameworkspace"],
+                defaultShortcut: nil,
+                action: .renameWorkspace,
+                isEnabled: { _ in workspaces.current != nil }
+            ),
+            Command(
                 id: "agent.focusPicker",
-                title: "Focus session…",
-                subtitle: agents.focusedSession.map(\.displayTitle) ?? "none focused",
+                title: "Focus Worktree…",
+                subtitle: focusedTargetSubtitle,
                 group: "Worktree",
                 defaultAliases: ["/focus"],
                 defaultShortcut: "a",
@@ -32,12 +52,22 @@ struct WorkspaceCommandProvider: CommandProvider {
             ),
             Command(
                 id: "agent.focusMain",
-                title: "Focus Main Repo",
+                title: "Focus Main…",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Worktree",
                 defaultAliases: ["/main"],
                 defaultShortcut: "m",
                 action: .focusMainRepo
+            ),
+            Command(
+                id: "agent.renameFocused",
+                title: "Rename Worktree…",
+                subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
+                group: "Worktree",
+                defaultAliases: ["/renameworktree"],
+                defaultShortcut: "r",
+                action: .renameFocusedWorktree,
+                isEnabled: { _ in agents.focused != nil }
             ),
             Command(
                 id: "agent.new",

@@ -147,7 +147,7 @@ final class CommandModeController: ObservableObject {
                 return
             }
             agents.focusMain(for: current)
-            lastInfo = "Main Repo"
+            lastInfo = "Main"
             dismiss()
 
         case .focusAgent(let id):
@@ -184,6 +184,26 @@ final class CommandModeController: ObservableObject {
             }
             workspaces.requestRemove(current)
             lastInfo = "Confirm Remove Workspace"
+            dismiss()
+
+        case .renameWorkspace:
+            guard let current = workspaces.current else {
+                lastInfo = "No Workspace selected"
+                dismiss()
+                return
+            }
+            workspaces.beginRename(current)
+            lastInfo = "Rename Workspace"
+            dismiss()
+
+        case .renameFocusedWorktree:
+            guard let focused = agents.focused else {
+                lastInfo = "Focus a Worktree first"
+                dismiss()
+                return
+            }
+            agents.beginRename(focused)
+            lastInfo = "Rename Worktree"
             dismiss()
 
         case .openEditor:
@@ -331,7 +351,7 @@ final class CommandModeController: ObservableObject {
             let mainFocused = agents.focusedSession?.isMainRepo == true
             list.append(CommandModeItem(
                 id: "ag-main",
-                title: "Main Repo" + (mainFocused ? " ← focus" : ""),
+                title: "main" + (mainFocused ? " ← focus" : ""),
                 subtitle: SymphoniaPaths.workspaceMainDirectory(in: current.dataDirURL).path,
                 keybind: "m",
                 action: .focusMainRepo

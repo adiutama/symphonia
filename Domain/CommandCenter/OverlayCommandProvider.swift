@@ -10,7 +10,7 @@ struct OverlayCommandProvider: CommandProvider {
             Command(
                 id: "overlay.openEditor",
                 title: "Open Editor",
-                subtitle: "Open the Editor Overlay for the focused session",
+                subtitle: "Open the Editor Overlay for the focused Worktree or Main",
                 group: "Overlay",
                 defaultAliases: ["/editor", "/e"],
                 defaultShortcut: "e",
