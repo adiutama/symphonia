@@ -301,7 +301,7 @@ final class CommandModeController: ObservableObject {
         ))
         rows.append(CommandModeItem(
             id: "dismiss",
-            title: "Dismiss Command Mode",
+            title: "Dismiss Command Center",
             subtitle: "Esc",
             keybind: nil,
             action: .dismiss

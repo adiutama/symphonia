@@ -44,14 +44,14 @@ struct OverlayStatusCueView: View {
                     }
                 }
                 Divider()
-                Button("Command Mode…") {
+                Button("Command Center…") {
                     commandMode.enter()
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
             .menuStyle(.borderlessButton)
-            .help("Overlay actions (prefer Command Mode)")
+            .help("Overlay actions (prefer Command Center)")
         }
     }
 
@@ -75,7 +75,7 @@ struct OverlayStatusCueView: View {
                 }
             }
             .buttonStyle(.plain)
-            .help("\(count) Background CLI(s) running — peek via Command Mode")
+            .help("\(count) Background CLI(s) running — peek via Command Center")
             .accessibilityLabel("\(count) background CLIs running")
         }
     }

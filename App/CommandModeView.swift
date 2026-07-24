@@ -1,37 +1,78 @@
 import SwiftUI
 
-/// Floating Command Mode palette with search/filter and keybind hints.
+/// Floating Command Center palette — a Raycast-like, input-first prompt with results below.
 struct CommandModeView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var preferences: PreferencesController
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            header
-            filterField
+            promptBar
+            statusBar
             Divider()
             itemList
             Divider()
             footer
         }
-        .frame(width: 440)
+        .frame(width: 480)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
+        .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
     }
 
-    private var header: some View {
+    /// The hero: a large, input-first prompt line. Backed by `filterQuery` (not a
+    /// real `TextField`) because keystrokes are intercepted by `CommandModeController`'s
+    /// local key monitor before they'd reach any first responder.
+    private var promptBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 2) {
+                Text(commandMode.filterQuery.isEmpty ? placeholder : commandMode.filterQuery)
+                    .font(.system(size: 19, weight: .regular, design: .rounded))
+                    .foregroundStyle(commandMode.filterQuery.isEmpty ? .tertiary : .primary)
+                    .lineLimit(1)
+                if !commandMode.filterQuery.isEmpty {
+                    Rectangle()
+                        .fill(Color.accentColor)
+                        .frame(width: 2, height: 20)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if !commandMode.filterQuery.isEmpty {
+                Text("⌫")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+    }
+
+    private var placeholder: String {
+        switch commandMode.phase {
+        case .root: return "Type a command…"
+        case .pickWorkspace: return "Search Workspaces…"
+        case .pickAgent: return "Search sessions…"
+        case .pickBackground: return "Search Overlays…"
+        }
+    }
+
+    /// Small, secondary breadcrumb row — demoted so it never competes with `promptBar`.
+    private var statusBar: some View {
         HStack {
             Text(phaseTitle)
-                .font(.headline)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
             Spacer()
             Text(preferences.effective.leaderKey)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
+                .font(.caption2.monospaced())
+                .foregroundStyle(.tertiary)
             Button("Esc") {
                 if !commandMode.filterQuery.isEmpty {
                     commandMode.setFilter("")
@@ -42,34 +83,16 @@ struct CommandModeView: View {
                 }
             }
             .buttonStyle(.borderless)
-            .font(.caption)
-            .help("Dismiss Command Mode")
+            .font(.caption2)
+            .help("Dismiss Command Center")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-    }
-
-    private var filterField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.tertiary)
-            Text(commandMode.filterQuery.isEmpty ? "Type to filter…" : commandMode.filterQuery)
-                .font(.body.monospaced())
-                .foregroundStyle(commandMode.filterQuery.isEmpty ? .tertiary : .primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if !commandMode.filterQuery.isEmpty {
-                Text("⌫")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
 
     private var phaseTitle: String {
         switch commandMode.phase {
-        case .root: return "Command Mode"
+        case .root: return "Command Center"
         case .pickWorkspace: return "Switch Workspace"
         case .pickAgent: return "Focus session"
         case .pickBackground: return "Peek Overlay"
@@ -138,8 +161,8 @@ struct CommandModeView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(selected ? Color.accentColor.opacity(0.22) : Color.clear)
     }
@@ -157,7 +180,7 @@ struct CommandModeView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 7)
     }
 }

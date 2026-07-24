@@ -123,7 +123,7 @@ struct PreferencesSettingsView: View {
     private var leaderFields: some View {
         Section("Leader") {
             TextField("Leader key", text: $preferences.preferences.leaderKey)
-            Text("Opens Command Mode. Example: ctrl+p")
+            Text("Opens Command Center. Example: ctrl+p")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
