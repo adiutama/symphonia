@@ -12,6 +12,7 @@ struct WorkspaceSidebarView: View {
     @State private var createPrefix = ""
     @State private var showCreateAgent = false
     @State private var createAgentBranch = ""
+    @State private var archivedSheetWorkspace: WorkspaceSummary?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,6 +49,9 @@ struct WorkspaceSidebarView: View {
         }
         .sheet(isPresented: $showCreateAgent) {
             createAgentSheet
+        }
+        .sheet(item: $archivedSheetWorkspace) { workspace in
+            archivedWorktreesSheet(workspace)
         }
         .onAppear {
             if let current = workspaces.current {
@@ -230,6 +234,10 @@ struct WorkspaceSidebarView: View {
                 reveal(agent.worktreeURL)
             }
             Divider()
+            Button("Archive Worktree") {
+                selectWorkspace(workspace)
+                agents.archive(agent)
+            }
             Button("Remove Worktree…", role: .destructive) {
                 selectWorkspace(workspace)
                 agents.requestRemove(agent)
@@ -255,11 +263,67 @@ struct WorkspaceSidebarView: View {
             reveal(workspace.dataDirURL)
         }
         Divider()
+        Button("Refresh") {
+            workspaces.refresh()
+            agents.refresh()
+        }
+        Button("Archived Worktrees…") {
+            archivedSheetWorkspace = workspace
+        }
+        Divider()
         Button("Create Workspace…") {
             createSlug = ""
             createPrefix = ""
             showCreateWorkspace = true
         }
+    }
+
+    private func archivedWorktreesSheet(_ workspace: WorkspaceSummary) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Archived Worktrees")
+                .font(.headline)
+            Text(workspace.slug)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            let archived = agents.archivedAgents(in: workspace)
+            if archived.isEmpty {
+                Text("No archived Worktrees. Folder + branch stay on disk when archived — this list is empty until you archive one from its context menu.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                List(archived) { agent in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(agent.primaryLabel)
+                            if let secondary = agent.secondaryLabel {
+                                Text(secondary)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        Spacer()
+                        Button("Reveal") {
+                            reveal(agent.worktreeURL)
+                        }
+                        Button("Unarchive") {
+                            agents.unarchive(threeWordName: agent.threeWordName, in: workspace)
+                        }
+                    }
+                }
+                .frame(minHeight: 80, maxHeight: 220)
+                .listStyle(.bordered)
+            }
+
+            HStack {
+                Spacer()
+                Button("Done") { archivedSheetWorkspace = nil }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 380)
     }
 
     private var createWorkspaceSheet: some View {

@@ -118,6 +118,38 @@ final class WorkspaceController: ObservableObject {
         }
     }
 
+    // MARK: - Archive (P1.3)
+
+    /// Three-Word names archived under `workspace` (soft flag in `config.json`; ADR 0020 spirit).
+    func archivedWorktreeNames(for workspace: WorkspaceSummary) -> Set<String> {
+        let config = workspace.id == current?.id
+            ? currentConfig
+            : try? store.loadConfig(from: workspace.dataDirURL)
+        return Set(config?.archivedThreeWordNames ?? [])
+    }
+
+    /// Flip the archived flag for one Worktree folder name; persists to `config.json` only —
+    /// never touches the Worktree folder or git registration.
+    func setWorktreeArchived(_ threeWordName: String, archived: Bool, in workspace: WorkspaceSummary) {
+        do {
+            var config = try store.loadConfig(from: workspace.dataDirURL)
+            var names = Set(config.archivedThreeWordNames ?? [])
+            if archived {
+                names.insert(threeWordName)
+            } else {
+                names.remove(threeWordName)
+            }
+            config.archivedThreeWordNames = names.sorted()
+            try store.writeConfig(config, to: workspace.dataDirURL)
+            if workspace.id == current?.id {
+                currentConfig = config
+            }
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
     private func restoreLastSelection() {
         guard let slug = store.lastSelectedSlug() else { return }
         if let match = workspaces.first(where: { $0.slug == slug }) {

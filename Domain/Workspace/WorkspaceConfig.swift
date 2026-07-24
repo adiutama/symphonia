@@ -20,8 +20,14 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     /// Workspace override for Base Ref.
     var baseRef: String?
 
+    /// Three-Word folder names of Worktrees soft-archived under this Workspace (P1.3, ADR 0020
+    /// spirit: remove still exists; archive is softer). Archived Worktrees keep their folder and
+    /// git worktree registration on disk — only the flag lives here. `nil`/missing (legacy
+    /// `config.json` written before this field existed) means none archived.
+    var archivedThreeWordNames: [String]?
+
     enum CodingKeys: String, CodingKey {
-        case slug, prefix, mainCLICommand, editorCommand, leaderKey, baseRef
+        case slug, prefix, mainCLICommand, editorCommand, leaderKey, baseRef, archivedThreeWordNames
     }
 
     init(
@@ -30,7 +36,8 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
         mainCLICommand: String? = nil,
         editorCommand: String? = nil,
         leaderKey: String? = nil,
-        baseRef: String? = nil
+        baseRef: String? = nil,
+        archivedThreeWordNames: [String]? = nil
     ) {
         self.slug = slug
         self.prefix = prefix
@@ -38,6 +45,7 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
         self.editorCommand = editorCommand
         self.leaderKey = leaderKey
         self.baseRef = baseRef
+        self.archivedThreeWordNames = archivedThreeWordNames
     }
 
     /// Map to Effective Setting overrides (Prefix → `workspacesRoot`).

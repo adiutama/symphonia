@@ -12,6 +12,7 @@ final class AgentController: ObservableObject {
     private let secrets: SecretStoreController?
     private var cancellables = Set<AnyCancellable>()
 
+    /// Non-archived Worktrees under the current Workspace (P1.3: archived are hidden by default).
     @Published private(set) var agents: [AgentSummary] = []
     /// Main Repo or Agent — drives which Main CLI surface is visible and Overlay scope.
     @Published private(set) var focusedSession: FocusedSession?
@@ -90,7 +91,9 @@ final class AgentController: ObservableObject {
         }
 
         do {
-            agents = try store.list(workspaceDataDir: current.dataDirURL)
+            let all = try store.list(workspaceDataDir: current.dataDirURL)
+            let archived = workspaces.archivedWorktreeNames(for: current)
+            agents = all.filter { !archived.contains($0.threeWordName) }
             lastError = nil
             reconcileFocusedSession(workspace: current)
             pruneOpenedSessionsToLiveSet()
@@ -99,12 +102,25 @@ final class AgentController: ObservableObject {
         }
     }
 
-    /// Agents under any Workspace Data Dir (sidebar expansion).
+    /// Non-archived Agents under any Workspace Data Dir (sidebar expansion, Command Center).
     func agents(in workspace: WorkspaceSummary) -> [AgentSummary] {
         if workspace.id == workspaces.current?.id {
             return agents
         }
-        return (try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? []
+        let archived = workspaces.archivedWorktreeNames(for: workspace)
+        return allAgents(in: workspace).filter { !archived.contains($0.threeWordName) }
+    }
+
+    /// All Worktrees under a Workspace **including archived** — folder still exists on disk.
+    func allAgents(in workspace: WorkspaceSummary) -> [AgentSummary] {
+        (try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? []
+    }
+
+    /// Archived Worktrees for the “Archived Worktrees…” sheet (P1.3).
+    func archivedAgents(in workspace: WorkspaceSummary) -> [AgentSummary] {
+        let archived = workspaces.archivedWorktreeNames(for: workspace)
+        guard !archived.isEmpty else { return [] }
+        return allAgents(in: workspace).filter { archived.contains($0.threeWordName) }
     }
 
     /// Create Agent under the selected Workspace (P4.1–P4.4).
@@ -154,6 +170,25 @@ final class AgentController: ObservableObject {
     func clearFocus() {
         focusedSession = nil
         focusedSpawnEnvironment = []
+    }
+
+    /// Archive Worktree: soft flag only — folder + git worktree stay on disk (P1.3, ADR 0020
+    /// spirit). Hides it from default lists; refocuses Main Repo if it was the focused session.
+    func archive(_ agent: AgentSummary) {
+        guard let current = workspaces.current else { return }
+        if focusedSession?.agent?.id == agent.id {
+            focusMain(for: current)
+        }
+        workspaces.setWorktreeArchived(agent.threeWordName, archived: true, in: current)
+        refresh()
+    }
+
+    /// Unarchive a Worktree by folder name (from the “Archived Worktrees…” sheet).
+    func unarchive(threeWordName: String, in workspace: WorkspaceSummary) {
+        workspaces.setWorktreeArchived(threeWordName, archived: false, in: workspace)
+        if workspace.id == workspaces.current?.id {
+            refresh()
+        }
     }
 
     /// Begin Remove Agent confirm (ADR 0020).
