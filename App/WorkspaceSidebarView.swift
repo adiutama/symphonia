@@ -86,7 +86,7 @@ struct WorkspaceSidebarView: View {
 
     private var header: some View {
         HStack {
-            Text("Workspaces")
+            Text("workspaces")
                 .font(.headline)
             Spacer()
             Button {
@@ -152,7 +152,7 @@ struct WorkspaceSidebarView: View {
             Image(systemName: "folder.fill")
                 .foregroundStyle(.secondary)
                 .font(.caption)
-            Text(workspace.slug)
+            Text(displayLowercased(workspace.slug))
                 .fontWeight(workspaces.current?.id == workspace.id ? .semibold : .regular)
             if workspaces.current?.id == workspace.id {
                 Circle()
@@ -175,17 +175,12 @@ struct WorkspaceSidebarView: View {
             agents.focusMain(for: workspace)
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "shippingbox")
+                Image(systemName: "house.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: 14)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Main")
-                        .fontWeight(isFocused ? .semibold : .regular)
-                    Text(workspace.mainIsGitRepo ? "git repo" : "empty / not git")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
+                Text("main")
+                    .fontWeight(isFocused ? .semibold : .regular)
                 Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
@@ -210,6 +205,11 @@ struct WorkspaceSidebarView: View {
     private func agentRow(_ agent: AgentSummary, workspace: WorkspaceSummary) -> some View {
         let isFocused = agents.focusedSession?.agent?.id == agent.id
             && workspaces.current?.id == workspace.id
+        // Branch is the real worktree label; folder is secondary and only shown when it
+        // actually differs from the branch (case-insensitive — same name, calm single line).
+        let secondary = agent.primaryLabel.caseInsensitiveCompare(agent.threeWordName) == .orderedSame
+            ? nil
+            : agent.threeWordName
         return Button {
             selectWorkspace(workspace)
             agents.focus(agent)
@@ -220,16 +220,11 @@ struct WorkspaceSidebarView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 14)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(agent.primaryLabel)
+                    Text(displayLowercased(agent.primaryLabel))
                         .fontWeight(isFocused ? .semibold : .regular)
                         .lineLimit(1)
-                    if let secondary = agent.secondaryLabel {
-                        Text(secondary)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    } else if agent.branchName == nil || agent.branchName?.isEmpty == true {
-                        Text(agent.threeWordName)
+                    if let secondary {
+                        Text(displayLowercased(secondary))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)

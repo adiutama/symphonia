@@ -80,3 +80,9 @@ extension AgentSummary {
         return threeWordName
     }
 }
+
+/// Lowercases sidebar list chrome only (Workspace slugs, branch/folder labels) — a calm, dense
+/// map of work. Never mutates the underlying git branch / folder names used for operations.
+func displayLowercased(_ value: String) -> String {
+    value.lowercased()
+}

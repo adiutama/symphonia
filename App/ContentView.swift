@@ -110,7 +110,7 @@ struct ContentView: View {
                 ScrollView {
                     VStack(spacing: 6) {
                         railMark(
-                            systemImage: "shippingbox",
+                            systemImage: "house.fill",
                             isFocused: isMainFocused(current),
                             help: "Main · \(current.slug)"
                         ) {
