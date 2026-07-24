@@ -41,13 +41,14 @@ final class CommandModeController: ObservableObject {
         self.overlays = overlays
         self.commandRegistry = commandRegistry
 
-        Publishers.CombineLatest3(
+        Publishers.CombineLatest4(
             workspaces.$workspaces,
             agents.$agents,
-            overlays.$sessions
+            overlays.$sessions,
+            preferences.$preferences
         )
         .receive(on: RunLoop.main)
-        .sink { [weak self] _, _, _ in
+        .sink { [weak self] _, _, _, _ in
             guard let self, self.isActive else { return }
             self.rebuildItems(resetSelection: false)
         }
@@ -222,33 +223,38 @@ final class CommandModeController: ObservableObject {
     // MARK: - Root (Command registry, ADR 0021 / CC.2)
 
     /// Root palette rows straight from the `CommandRegistry`, narrowed by `filterQuery`.
-    /// Matching (see `matches(_:query:)`) checks title, subtitle, **and** every default
+    /// Matching (see `matches(_:query:)`) checks title, subtitle, **and** every effective
     /// alias — free text, `/` optional — so typing `/e`, `e`, or `editor` all surface
     /// "Open Editor" the same way. An empty filter returns every enabled Command
-    /// unfiltered; `defaultShortcut` still fires from `handleKeyDown` in that case.
+    /// unfiltered; the effective shortcut still fires from `handleKeyDown` in that case.
+    /// Effective aliases/shortcuts apply the Operator's Global Setting overrides
+    /// (ADR 0021 CC.3, ``CommandBindingResolver``) on top of each Command's defaults.
     private func filteredRootItems() -> [CommandModeItem] {
         let context = CommandContext(agents: agents, overlays: overlays)
         let commands = commandRegistry.availableCommands(context: context)
+        let overrides = preferences.preferences.commandBindings
         let query = filterQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let matched = query.isEmpty ? commands : commands.filter { matches($0, query: query) }
-        return matched.map(commandItem)
+        let matched = query.isEmpty ? commands : commands.filter { matches($0, query: query, overrides: overrides) }
+        return matched.map { commandItem($0, overrides: overrides) }
     }
 
-    private func matches(_ command: Command, query: String) -> Bool {
+    private func matches(_ command: Command, query: String, overrides: [String: CommandBindingOverride]) -> Bool {
         if command.title.lowercased().contains(query) { return true }
         if let subtitle = command.subtitle, subtitle.lowercased().contains(query) { return true }
-        return command.defaultAliases.contains { $0.lowercased().contains(query) }
+        let aliases = CommandBindingResolver.aliases(for: command, overrides: overrides)
+        return aliases.contains { $0.lowercased().contains(query) }
     }
 
     /// Converts a registry `Command` into a palette row. Subtitle is overridden for the
     /// couple of Overlay Commands whose description depends on live `CommandContext`
     /// state (ADR 0021 requirement 6) — everything else uses the provider's own subtitle.
-    private func commandItem(_ command: Command) -> CommandModeItem {
+    /// `keybind` is the **effective** shortcut (override ?? default, CC.3).
+    private func commandItem(_ command: Command, overrides: [String: CommandBindingOverride]) -> CommandModeItem {
         CommandModeItem(
             id: command.id,
             title: command.title,
             subtitle: liveSubtitle(for: command),
-            keybind: command.defaultShortcut,
+            keybind: CommandBindingResolver.shortcut(for: command, overrides: overrides),
             action: command.action
         )
     }

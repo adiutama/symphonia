@@ -24,17 +24,23 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// Default Base Ref for new Agent branches (ADR 0019).
     var baseRef: String
 
+    /// Operator overrides for Command aliases/shortcuts, keyed by stable Command `id`
+    /// (e.g. `"overlay.openEditor"`, ADR 0021 CC.3). Missing id → Command defaults; see
+    /// ``CommandBindingResolver``. Global only — no Workspace override in this slice.
+    var commandBindings: [String: CommandBindingOverride]
+
     /// Sensible Global Setting defaults when `preferences.json` is missing.
     static let `default` = GlobalPreferences(
         mainCLICommand: "",
         editorCommand: "",
         leaderKey: "ctrl+p",
         workspacesRoot: "~/.symphonia/workspaces",
-        baseRef: "main"
+        baseRef: "main",
+        commandBindings: [:]
     )
 
     enum CodingKeys: String, CodingKey {
-        case mainCLICommand, editorCommand, leaderKey, workspacesRoot, baseRef
+        case mainCLICommand, editorCommand, leaderKey, workspacesRoot, baseRef, commandBindings
     }
 
     init(
@@ -42,13 +48,15 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         editorCommand: String,
         leaderKey: String,
         workspacesRoot: String,
-        baseRef: String
+        baseRef: String,
+        commandBindings: [String: CommandBindingOverride] = [:]
     ) {
         self.mainCLICommand = mainCLICommand
         self.editorCommand = editorCommand
         self.leaderKey = leaderKey
         self.workspacesRoot = workspacesRoot
         self.baseRef = baseRef
+        self.commandBindings = commandBindings
     }
 
     init(from decoder: Decoder) throws {
@@ -59,5 +67,9 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         workspacesRoot = try container.decodeIfPresent(String.self, forKey: .workspacesRoot)
             ?? Self.default.workspacesRoot
         baseRef = try container.decodeIfPresent(String.self, forKey: .baseRef) ?? Self.default.baseRef
+        commandBindings = try container.decodeIfPresent(
+            [String: CommandBindingOverride].self,
+            forKey: .commandBindings
+        ) ?? [:]
     }
 }
