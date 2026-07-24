@@ -6,7 +6,7 @@ import Foundation
 enum FocusedSession: Equatable, Identifiable, Sendable {
     /// Main Repo at `<workspace>/main/` — same Editor / Background / secrets treatment as an Agent.
     case mainRepo(workspaceId: String, mainDirectory: URL, slug: String)
-    /// Agent Worktree under `worktrees/<three-word>/`.
+    /// Agent Worktree — a sibling of `main/` under `<workspace>/<three-word>/` (P1.5).
     case agent(AgentSummary)
 
     var id: String {

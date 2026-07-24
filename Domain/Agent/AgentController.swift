@@ -204,6 +204,8 @@ final class AgentController: ObservableObject {
 
     /// Archive Worktree: soft flag only — folder + git worktree stay on disk (P1.3, ADR 0020
     /// spirit). Hides it from default lists; refocuses Main Repo if it was the focused session.
+    /// Takes an `AgentSummary`, not a Workspace — Main can never be archived through this API
+    /// (P1.5 protects Main structurally, not just via missing UI affordances).
     func archive(_ agent: AgentSummary) {
         guard let current = workspaces.current else { return }
         if focusedSession?.agent?.id == agent.id {
@@ -221,7 +223,8 @@ final class AgentController: ObservableObject {
         }
     }
 
-    /// Begin Remove Agent confirm (ADR 0020).
+    /// Begin Remove Agent confirm (ADR 0020). Takes an `AgentSummary`, not a Workspace — Main
+    /// can never be removed through this API (P1.5 protects Main structurally).
     func requestRemove(_ agent: AgentSummary) {
         pendingRemoveDeleteBranch = false
         pendingRemove = agent

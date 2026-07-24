@@ -33,24 +33,25 @@ final class WorkspaceController: ObservableObject {
         preferences.preferences.workspacesRoot
     }
 
+    /// Re-list Workspaces and, if one is selected, re-`open` it — which also heals `main/`
+    /// (P1.5) when it went missing or stopped being a git repo. Cheap / idempotent when Main is
+    /// already a valid git repo (heal only touches disk in the unhealthy case).
     func refresh() {
         do {
             workspaces = try store.list(workspacesRoot: workspacesRoot)
             lastError = nil
-            if let current,
-               let updated = workspaces.first(where: { $0.id == current.id })
-            {
-                self.current = updated
-            } else if let current,
-                      !workspaces.contains(where: { $0.id == current.id })
-            {
-                // Current path vanished from list — keep selection if dir still valid.
-                if let reopened = try? store.open(at: current.dataDirURL) {
-                    self.current = reopened
-                    if !workspaces.contains(where: { $0.id == reopened.id }) {
-                        workspaces.append(reopened)
+            if let current {
+                do {
+                    let opened = try store.open(at: current.dataDirURL)
+                    self.current = opened
+                    if let idx = workspaces.firstIndex(where: { $0.id == opened.id }) {
+                        workspaces[idx] = opened
+                    } else {
+                        workspaces.append(opened)
                         workspaces.sort { $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending }
                     }
+                } catch {
+                    lastError = error.localizedDescription
                 }
             }
         } catch {
@@ -79,7 +80,8 @@ final class WorkspaceController: ObservableObject {
         }
     }
 
-    /// Switch current Workspace; loads `config.json` into Effective Setting overrides.
+    /// Switch current Workspace; loads `config.json` into Effective Setting overrides. Opening
+    /// also heals `main/` (P1.5) via `WorkspaceStore.open(at:)` when it's missing or not a git repo.
     func select(_ summary: WorkspaceSummary) {
         do {
             let opened = try store.open(at: summary.dataDirURL)

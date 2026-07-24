@@ -2,7 +2,9 @@ import Foundation
 
 /// Persist / load Workspace Secret Store under the Workspace Data Dir (ADR 0001, 0012).
 ///
-/// Canonical file: `<data-dir>/secrets.json` (mode 0600). Never writes under `worktrees/`.
+/// Canonical file: `<data-dir>/secrets.json` (mode 0600). Never written into `main/` or a
+/// Worktree checkout — both are git repos/checkouts that sit as siblings under the Workspace
+/// Data Dir (ADR 0014, P1.5); the Workspace Data Dir itself never is.
 struct SecretStore: Sendable {
     enum StoreError: LocalizedError, Equatable {
         case missingWorkspace
@@ -77,12 +79,12 @@ struct SecretStore: Sendable {
     }
 
     func write(_ document: SecretStoreDocument, to dataDir: URL) throws {
-        // P5.5: only under Workspace Data Dir root — never under worktrees/.
-        let worktrees = SymphoniaPaths.workspaceWorktreesDirectory(in: dataDir).standardizedFileURL.path
-        let target = SymphoniaPaths.workspaceSecretsJSONFile(in: dataDir).standardizedFileURL
+        // P5.5 / P1.5: `dataDir` must be the Workspace Data Dir itself — never `main/` or a
+        // sibling Worktree checkout. Both are git repos; the Workspace Data Dir never is, so
+        // this generalizes to the flat P1.5 layout without hardcoding a `worktrees/` prefix.
         precondition(
-            !target.path.hasPrefix(worktrees + "/"),
-            "Secret Store must not write into worktrees/"
+            !isGitRepository(dataDir),
+            "Secret Store must not write into main/ or a Worktree checkout"
         )
 
         try fileManager.createDirectory(at: dataDir, withIntermediateDirectories: true)
@@ -130,6 +132,10 @@ struct SecretStore: Sendable {
             return .failure(.invalidKey(key))
         }
         return .success(key)
+    }
+
+    private func isGitRepository(_ dir: URL) -> Bool {
+        fileManager.fileExists(atPath: dir.appendingPathComponent(".git").path)
     }
 
     private func applyTightPermissions(at url: URL) throws {

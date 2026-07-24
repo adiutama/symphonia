@@ -4,9 +4,13 @@ import Foundation
 ///
 /// Create runs `git init` in `main/` by default so dogfooding works immediately, or
 /// `git clone <url>` when a Clone URL is supplied (P1.4) — the remote URL is then persisted
-/// on `config.json` (`mainRemoteURL`) for future heal-on-open (P1.5). Clone-later: Operator
-/// may also replace `main/` with a CLI clone into that same path. Opening an externally
-/// prepared `main/` is supported — layout ensure does not touch an existing repo.
+/// on `config.json` (`mainRemoteURL`) so `open(at:)` can heal `main/` (P1.5) if it ever goes
+/// missing or stops being a git repo: re-clone when a remote URL is known, else `git init`.
+/// Clone-later: Operator may also replace `main/` with a CLI clone into that same path.
+/// Opening an externally prepared `main/` is supported — layout ensure does not touch an
+/// existing repo, and healing is a no-op once Main is a valid git repo. Worktree checkouts are
+/// **siblings** of `main/` directly under the Workspace Data Dir (P1.5 flat layout; no
+/// `worktrees/` parent) — created lazily by `AgentStore`, not by this store.
 struct WorkspaceStore: Sendable {
     enum StoreError: LocalizedError, Equatable {
         case invalidSlug(String)
@@ -86,7 +90,8 @@ struct WorkspaceStore: Sendable {
         return try summary(for: dataDir, fallbackSlug: slug, fallbackPrefix: prefix)
     }
 
-    /// Ensure `config.json`, `secrets.json` (0600), `main/`, `worktrees/` exist.
+    /// Ensure `config.json`, `secrets.json` (0600), and `main/` exist (P1.5: no `worktrees/`
+    /// parent — Worktree checkouts are created lazily as siblings of `main/` by `AgentStore`).
     /// When `main/` is not yet a git repo: clone `cloneRemoteURL` if given, else `git init` when
     /// `initializeMainRepo` is true.
     func ensureLayout(at dataDir: URL, initializeMainRepo: Bool, cloneRemoteURL: String? = nil) throws {
@@ -101,9 +106,7 @@ struct WorkspaceStore: Sendable {
         try SecretStore().ensureStoreFile(in: dataDir)
 
         let mainDir = SymphoniaPaths.workspaceMainDirectory(in: dataDir)
-        let worktreesDir = SymphoniaPaths.workspaceWorktreesDirectory(in: dataDir)
         try fileManager.createDirectory(at: mainDir, withIntermediateDirectories: true)
-        try fileManager.createDirectory(at: worktreesDir, withIntermediateDirectories: true)
 
         if !isGitRepository(mainDir) {
             if let cloneRemoteURL {
@@ -114,18 +117,41 @@ struct WorkspaceStore: Sendable {
         }
     }
 
-    /// Open an existing Workspace Data Dir (CLI-prepared `main/` is fine).
+    /// Open an existing Workspace Data Dir (CLI-prepared `main/` is fine). Heals `main/` (P1.5)
+    /// when it went missing or stopped being a git repo — re-clone from the persisted remote URL
+    /// when present, else `git init`; idempotent no-op when Main is already a valid git repo.
     func open(at dataDir: URL) throws -> WorkspaceSummary {
         let configURL = SymphoniaPaths.workspaceConfigFile(in: dataDir)
         guard fileManager.fileExists(atPath: configURL.path) else {
             throw StoreError.missingConfig(configURL)
         }
 
-        // Do not re-init main/ — Operator may have cloned externally.
+        // Do not force-init main/ here — Operator may have cloned externally. ensureLayout only
+        // creates the directory if missing; healMainIfNeeded repairs it if it isn't a git repo.
         try ensureLayout(at: dataDir, initializeMainRepo: false)
         let config = try loadConfig(from: dataDir)
+        try healMainIfNeeded(at: dataDir, config: config)
         try registerInIndex(slug: config.slug, prefix: config.prefix)
         return try summary(for: dataDir, fallbackSlug: config.slug, fallbackPrefix: config.prefix)
+    }
+
+    /// Heal Main (P1.5): if `main/` is missing or not a git repo, re-clone from
+    /// `config.mainRemoteURL` when non-empty, else `git init` (same as an empty local Workspace).
+    /// No-op — and does not touch disk — when `main/` is already a git repo.
+    @discardableResult
+    func healMainIfNeeded(at dataDir: URL, config: WorkspaceConfig) throws -> Bool {
+        let mainDir = SymphoniaPaths.workspaceMainDirectory(in: dataDir)
+        guard !isGitRepository(mainDir) else { return false }
+
+        try fileManager.createDirectory(at: mainDir, withIntermediateDirectories: true)
+
+        let remoteURL = config.mainRemoteURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !remoteURL.isEmpty {
+            try gitClone(remoteURL: remoteURL, into: mainDir)
+        } else {
+            try gitInit(at: mainDir)
+        }
+        return true
     }
 
     // MARK: - Config I/O

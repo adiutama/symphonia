@@ -149,6 +149,8 @@ struct WorkspaceSidebarView: View {
         }
     }
 
+    /// Main row context menu deliberately has no Remove / Archive action — Main is protected
+    /// (P1.5); only Focus / Reveal / New Worktree are offered here.
     private func mainRepoRow(_ workspace: WorkspaceSummary) -> some View {
         let isFocused = isMainFocused(workspace)
         return Button {

@@ -24,7 +24,13 @@ enum WorkspaceSlug {
         let slug = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !slug.isEmpty else { return .failure(.empty) }
 
-        let reserved = ["config.json", "secrets.json", "secrets.env", "main", "worktrees"]
+        // "worktrees" stays reserved for safety even though P1.5 flattened Worktree checkouts to
+        // siblings of `main/` (no `worktrees/` parent anymore). `main` is the single source of
+        // truth in `SymphoniaPaths.reservedWorkspaceChildNames` (ADR 0014) — folded in here so
+        // this validator (reused for both Workspace slugs and, in `AgentController.createAgent()`,
+        // Operator-edited Worktree folder names) refuses it case-insensitively either way.
+        let reserved = Set(["config.json", "secrets.json", "secrets.env", "worktrees"])
+            .union(SymphoniaPaths.reservedWorkspaceChildNames)
         if slug == "." || slug == ".." || reserved.contains(slug.lowercased()) {
             return .failure(.reservedName(slug))
         }

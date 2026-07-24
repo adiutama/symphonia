@@ -48,20 +48,25 @@ enum SymphoniaPaths {
         workspaceSecretsJSONFile(in: dataDir)
     }
 
-    /// Main Repo directory: `<data-dir>/main/` (ADR 0014).
+    /// Main Repo directory: `<data-dir>/main/` — protected; never removable/archivable, and
+    /// healed (re-clone or `git init`) on open if missing or not a git repo (ADR 0014, P1.5).
     static func workspaceMainDirectory(in dataDir: URL) -> URL {
         dataDir.appendingPathComponent("main", isDirectory: true)
     }
 
-    /// Agent Worktrees parent: `<data-dir>/worktrees/` (ADR 0003, 0012).
-    static func workspaceWorktreesDirectory(in dataDir: URL) -> URL {
-        dataDir.appendingPathComponent("worktrees", isDirectory: true)
-    }
+    /// Reserved top-level names directly under a Workspace Data Dir that a Worktree folder can
+    /// never take — case-insensitive (ADR 0014, P1.5). Currently just `main`, the protected Main
+    /// Repo directory. `WorkspaceSlug.validate` folds this set into its own reserved-name check
+    /// (reused by `AgentController.createAgent()` for Operator-edited Worktree folder names), and
+    /// `AgentStore` re-checks it directly so the guard holds even when the domain layer is called
+    /// without going through that validator.
+    static let reservedWorkspaceChildNames: Set<String> = ["main"]
 
-    /// One Agent Worktree: `<data-dir>/worktrees/<three-word-name>/` (ADR 0017, 0018).
-    static func agentWorktreeDirectory(in dataDir: URL, threeWordName: String) -> URL {
-        workspaceWorktreesDirectory(in: dataDir)
-            .appendingPathComponent(threeWordName, isDirectory: true)
+    /// One Worktree checkout — a **sibling of `main/`**: `<data-dir>/<three-word-name>/`. No
+    /// `worktrees/` parent (ADR 0014 flattened in P1.5; folder-naming rules from ADR 0017, 0018
+    /// still apply).
+    static func workspaceWorktreeDirectory(in dataDir: URL, threeWordName: String) -> URL {
+        dataDir.appendingPathComponent(threeWordName, isDirectory: true)
     }
 
     /// Expand `~` / `$HOME` prefixes to an absolute file URL.
