@@ -176,6 +176,16 @@ final class CommandModeController: ObservableObject {
             lastInfo = "Confirm Remove Worktree"
             dismiss()
 
+        case .removeCurrentWorkspace:
+            guard let current = workspaces.current else {
+                lastInfo = "No Workspace selected"
+                dismiss()
+                return
+            }
+            workspaces.requestRemove(current)
+            lastInfo = "Confirm Remove Workspace"
+            dismiss()
+
         case .openEditor:
             overlays.openEditor()
             lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Editor"

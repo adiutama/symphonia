@@ -18,6 +18,9 @@ final class WorkspaceController: ObservableObject {
     /// Optional clone source for Main (P1.4). Empty → `git init` as before.
     @Published var draftCloneURL: String = ""
 
+    /// Pending Workspace remove for confirm UI (deletes Data Dir + index entry).
+    @Published var pendingRemoveWorkspace: WorkspaceSummary?
+
     init(
         preferences: PreferencesController,
         store: WorkspaceStore = WorkspaceStore()
@@ -122,6 +125,37 @@ final class WorkspaceController: ObservableObject {
             lastError = nil
         } catch {
             lastError = error.localizedDescription
+        }
+    }
+
+    // MARK: - Remove Workspace
+
+    /// Ask chrome to confirm permanent removal of this Workspace (disk + index).
+    func requestRemove(_ summary: WorkspaceSummary) {
+        pendingRemoveWorkspace = summary
+    }
+
+    func cancelRemove() {
+        pendingRemoveWorkspace = nil
+    }
+
+    /// Delete the Workspace Data Dir and unregister it. Clears selection if it was current
+    /// so Main CLI / Overlay / Secret Store release that Workspace first.
+    func confirmRemove() {
+        guard let target = pendingRemoveWorkspace else { return }
+        let wasCurrent = current?.id == target.id
+        if wasCurrent {
+            clearSelection()
+        }
+        do {
+            try store.remove(target, workspacesRoot: workspacesRoot)
+            pendingRemoveWorkspace = nil
+            refresh()
+            lastError = nil
+        } catch {
+            pendingRemoveWorkspace = nil
+            lastError = error.localizedDescription
+            refresh()
         }
     }
 

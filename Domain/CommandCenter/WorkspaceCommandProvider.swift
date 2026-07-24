@@ -57,6 +57,16 @@ struct WorkspaceCommandProvider: CommandProvider {
                 defaultShortcut: "x",
                 action: .removeFocusedAgent
             ),
+            Command(
+                id: "workspace.remove",
+                title: "Remove Workspace…",
+                subtitle: workspaces.current.map { "delete “\($0.slug)” from disk" } ?? "needs Workspace",
+                group: "Workspace",
+                defaultAliases: ["/rmworkspace", "/rw"],
+                defaultShortcut: nil,
+                action: .removeCurrentWorkspace,
+                isEnabled: { _ in workspaces.current != nil }
+            ),
         ]
     }
 }

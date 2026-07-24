@@ -19,6 +19,7 @@ struct WorkspaceStore: Sendable {
         case notAWorkspace(URL)
         case gitInitFailed(String)
         case gitCloneFailed(String)
+        case removeFailed(String)
 
         var errorDescription: String? {
             switch self {
@@ -34,6 +35,8 @@ struct WorkspaceStore: Sendable {
                 return "git init failed: \(detail)"
             case .gitCloneFailed(let detail):
                 return "git clone failed: \(detail)"
+            case .removeFailed(let detail):
+                return "Could not remove Workspace: \(detail)"
             }
         }
     }
@@ -219,6 +222,22 @@ struct WorkspaceStore: Sendable {
         return byPath.values.sorted { $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending }
     }
 
+    // MARK: - Remove
+
+    /// Permanently delete the Workspace Data Dir from disk and drop it from the session index.
+    /// Secrets, Main, Worktrees, and config all live under that directory — nothing is left behind.
+    func remove(_ summary: WorkspaceSummary, workspacesRoot: String) throws {
+        let dataDir = summary.dataDirURL.standardizedFileURL
+        if fileManager.fileExists(atPath: dataDir.path) {
+            do {
+                try fileManager.removeItem(at: dataDir)
+            } catch {
+                throw StoreError.removeFailed(error.localizedDescription)
+            }
+        }
+        try unregisterFromIndex(matching: summary, workspacesRoot: workspacesRoot)
+    }
+
     // MARK: - Session index
 
     func lastSelectedSlug() -> String? {
@@ -389,6 +408,26 @@ struct WorkspaceStore: Sendable {
             index.entries[sameSlug] = .init(slug: slug, prefix: prefix)
         } else {
             index.entries.append(.init(slug: slug, prefix: prefix))
+        }
+        try writeIndex(index)
+    }
+
+    private func unregisterFromIndex(matching summary: WorkspaceSummary, workspacesRoot: String) throws {
+        var index = loadIndex()
+        let targetPath = summary.dataDirURL.standardizedFileURL.path
+        index.entries.removeAll { entry in
+            if entry.slug == summary.slug, entry.prefix == summary.prefix {
+                return true
+            }
+            let entryDir = dataDirURL(
+                slug: entry.slug,
+                prefix: entry.prefix,
+                workspacesRoot: workspacesRoot
+            )
+            return entryDir.standardizedFileURL.path == targetPath
+        }
+        if index.lastSelectedSlug == summary.slug {
+            index.lastSelectedSlug = nil
         }
         try writeIndex(index)
     }

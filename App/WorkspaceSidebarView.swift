@@ -46,6 +46,23 @@ struct WorkspaceSidebarView: View {
         } message: {
             Text("Default keeps the git branch. Folder + worktree registration are removed.")
         }
+        .confirmationDialog(
+            removeWorkspaceDialogTitle,
+            isPresented: Binding(
+                get: { workspaces.pendingRemoveWorkspace != nil },
+                set: { if !$0 { workspaces.cancelRemove() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Workspace permanently", role: .destructive) {
+                workspaces.confirmRemove()
+            }
+            Button("Cancel", role: .cancel) {
+                workspaces.cancelRemove()
+            }
+        } message: {
+            Text("Deletes the Workspace folder on disk (Main, Worktrees, secrets, config) and removes it from Symphonia’s index. This cannot be undone.")
+        }
         .sheet(isPresented: $showCreateWorkspace) {
             createWorkspaceSheet
         }
@@ -269,6 +286,10 @@ struct WorkspaceSidebarView: View {
             archivedSheetWorkspace = workspace
         }
         Divider()
+        Button("Remove Workspace…", role: .destructive) {
+            workspaces.requestRemove(workspace)
+        }
+        Divider()
         Button("Create Workspace…") {
             beginCreateWorkspace()
         }
@@ -458,5 +479,12 @@ struct WorkspaceSidebarView: View {
             return "Remove Worktree “\(name)”?"
         }
         return "Remove Worktree?"
+    }
+
+    private var removeWorkspaceDialogTitle: String {
+        if let slug = workspaces.pendingRemoveWorkspace?.slug {
+            return "Remove Workspace “\(slug)”?"
+        }
+        return "Remove Workspace?"
     }
 }
