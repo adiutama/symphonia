@@ -101,7 +101,7 @@ struct ContentView: View {
             }
             .buttonStyle(.borderless)
             .help("Expand sidebar")
-            .padding(.top, 10)
+            .padding(.top, 28)
 
             Divider()
                 .padding(.horizontal, 10)
@@ -184,6 +184,8 @@ struct ContentView: View {
             OverlayStatusCueView()
 
             Spacer(minLength: 8)
+                .windowDragRegion()
+                .help("Drag to move window")
 
             if let session = agents.focusedSession,
                let slug = statusBarWorkspaceSlug(for: session) {
@@ -205,6 +207,8 @@ struct ContentView: View {
         .foregroundStyle(.secondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        // Main column sits right of sidebar — light top pad under transparent titlebar.
+        .padding(.top, 2)
         .background(ghosttyTheme.bar)
     }
 

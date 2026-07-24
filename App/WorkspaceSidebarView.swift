@@ -101,7 +101,8 @@ struct WorkspaceSidebarView: View {
         HStack {
             Text("workspaces")
                 .font(.headline)
-            Spacer()
+            Spacer(minLength: 8)
+                .windowDragRegion()
             Button {
                 beginCreateWorkspace()
             } label: {
@@ -113,6 +114,8 @@ struct WorkspaceSidebarView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+        // Clear traffic lights under fullSizeContentView (leading titlebar).
+        .padding(.top, 18)
         .contextMenu {
             Button("New Workspace…") {
                 beginCreateWorkspace()
