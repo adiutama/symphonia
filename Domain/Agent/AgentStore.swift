@@ -183,6 +183,91 @@ struct AgentStore: Sendable {
         )
     }
 
+    // MARK: - Rename
+
+    /// Rename branch and/or folder for one Agent Worktree (ADR 0018).
+    ///
+    /// Pass the Operator-edited branch and folder names; unchanged values are no-ops.
+    /// Branch: `git branch -m` in the checkout. Folder: `git worktree move`.
+    func rename(
+        workspaceDataDir: URL,
+        agent: AgentSummary,
+        newBranchName: String,
+        newFolderName: String
+    ) throws -> AgentSummary {
+        let mainDir = SymphoniaPaths.workspaceMainDirectory(in: workspaceDataDir)
+        guard isGitRepository(mainDir) else {
+            throw StoreError.mainNotGitRepo(mainDir)
+        }
+
+        guard !SymphoniaPaths.reservedWorkspaceChildNames.contains(agent.threeWordName.lowercased()) else {
+            throw StoreError.reservedName(agent.threeWordName)
+        }
+
+        let trimmedBranch = newBranchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedFolder = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let existingBranch = agent.branchName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let branchChanged = !trimmedBranch.isEmpty && trimmedBranch != existingBranch
+        let folderChanged = !trimmedFolder.isEmpty && trimmedFolder != agent.threeWordName
+
+        guard branchChanged || folderChanged else {
+            return agent
+        }
+
+        if branchChanged {
+            guard isValidGitRefName(trimmedBranch) else {
+                throw StoreError.invalidBranchName(trimmedBranch)
+            }
+        }
+
+        var validatedFolder = agent.threeWordName
+        if folderChanged {
+            switch WorkspaceSlug.validate(trimmedFolder) {
+            case .success(let slug):
+                validatedFolder = slug
+            case .failure(let error):
+                throw StoreError.invalidBranchName(error.localizedDescription)
+            }
+
+            let existing = try existingFolderNames(workspaceDataDir: workspaceDataDir)
+            if existing.contains(validatedFolder) {
+                throw StoreError.alreadyExists(
+                    SymphoniaPaths.workspaceWorktreeDirectory(
+                        in: workspaceDataDir,
+                        threeWordName: validatedFolder
+                    )
+                )
+            }
+        }
+
+        guard fileManager.fileExists(atPath: agent.worktreeURL.path) else {
+            throw StoreError.missingWorktree(agent.worktreeURL)
+        }
+
+        var worktreeURL = agent.worktreeURL
+
+        if branchChanged {
+            try runGit(["branch", "-m", trimmedBranch], in: worktreeURL)
+        }
+
+        if folderChanged {
+            let newURL = SymphoniaPaths.workspaceWorktreeDirectory(
+                in: workspaceDataDir,
+                threeWordName: validatedFolder
+            )
+            try runGit(["worktree", "move", worktreeURL.path, newURL.path], in: mainDir)
+            worktreeURL = newURL.standardizedFileURL
+        }
+
+        let resolvedBranch = (try? currentBranch(at: worktreeURL)) ?? (branchChanged ? trimmedBranch : agent.branchName)
+        return AgentSummary(
+            threeWordName: folderChanged ? validatedFolder : agent.threeWordName,
+            worktreeURL: worktreeURL,
+            branchName: resolvedBranch
+        )
+    }
+
     // MARK: - Remove
 
     /// Remove Agent Worktree folder + git registration; **keeps** the branch by default (ADR 0020).

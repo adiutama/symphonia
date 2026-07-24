@@ -20,6 +20,7 @@ struct WorkspaceStore: Sendable {
         case gitInitFailed(String)
         case gitCloneFailed(String)
         case removeFailed(String)
+        case renameFailed(String)
 
         var errorDescription: String? {
             switch self {
@@ -37,6 +38,8 @@ struct WorkspaceStore: Sendable {
                 return "git clone failed: \(detail)"
             case .removeFailed(let detail):
                 return "Could not remove Workspace: \(detail)"
+            case .renameFailed(let detail):
+                return "Could not rename Workspace: \(detail)"
             }
         }
     }
@@ -220,6 +223,49 @@ struct WorkspaceStore: Sendable {
         }
 
         return byPath.values.sorted { $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending }
+    }
+
+    // MARK: - Rename
+
+    /// Rename Workspace slug and move the Workspace Data Dir on disk (ADR 0013, 0015).
+    /// Updates `config.json`, the session index, and `lastSelectedSlug` when it matched the old slug.
+    func rename(
+        summary: WorkspaceSummary,
+        newSlug rawNewSlug: String,
+        workspacesRoot: String
+    ) throws -> WorkspaceSummary {
+        let newSlug = try validatedSlug(rawNewSlug)
+        guard newSlug != summary.slug else {
+            return summary
+        }
+
+        let prefix = summary.prefix
+        let oldDataDir = summary.dataDirURL.standardizedFileURL
+        let newDataDir = dataDirURL(slug: newSlug, prefix: prefix, workspacesRoot: workspacesRoot)
+            .standardizedFileURL
+
+        if fileManager.fileExists(atPath: newDataDir.path) {
+            throw StoreError.alreadyExists(newDataDir)
+        }
+
+        do {
+            try fileManager.moveItem(at: oldDataDir, to: newDataDir)
+        } catch {
+            throw StoreError.renameFailed(error.localizedDescription)
+        }
+
+        var config = try loadConfig(from: newDataDir)
+        config.slug = newSlug
+        try writeConfig(config, to: newDataDir)
+
+        try updateIndexAfterRename(
+            from: summary,
+            newSlug: newSlug,
+            prefix: prefix,
+            workspacesRoot: workspacesRoot
+        )
+
+        return try self.summary(for: newDataDir, fallbackSlug: newSlug, fallbackPrefix: prefix)
     }
 
     // MARK: - Remove
@@ -409,6 +455,36 @@ struct WorkspaceStore: Sendable {
         } else {
             index.entries.append(.init(slug: slug, prefix: prefix))
         }
+        try writeIndex(index)
+    }
+
+    private func updateIndexAfterRename(
+        from summary: WorkspaceSummary,
+        newSlug: String,
+        prefix: String?,
+        workspacesRoot: String
+    ) throws {
+        var index = loadIndex()
+        let oldPath = summary.dataDirURL.standardizedFileURL.path
+
+        index.entries.removeAll { entry in
+            if entry.slug == summary.slug, entry.prefix == summary.prefix {
+                return true
+            }
+            let entryDir = dataDirURL(
+                slug: entry.slug,
+                prefix: entry.prefix,
+                workspacesRoot: workspacesRoot
+            )
+            return entryDir.standardizedFileURL.path == oldPath
+        }
+
+        index.entries.append(.init(slug: newSlug, prefix: prefix))
+
+        if index.lastSelectedSlug == summary.slug {
+            index.lastSelectedSlug = newSlug
+        }
+
         try writeIndex(index)
     }
 

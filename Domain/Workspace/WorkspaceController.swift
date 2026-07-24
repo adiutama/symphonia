@@ -21,6 +21,10 @@ final class WorkspaceController: ObservableObject {
     /// Pending Workspace remove for confirm UI (deletes Data Dir + index entry).
     @Published var pendingRemoveWorkspace: WorkspaceSummary?
 
+    /// Pending Workspace rename sheet target + draft slug.
+    @Published var pendingRenameWorkspace: WorkspaceSummary?
+    @Published var draftRenameSlug: String = ""
+
     init(
         preferences: PreferencesController,
         store: WorkspaceStore = WorkspaceStore()
@@ -128,6 +132,41 @@ final class WorkspaceController: ObservableObject {
         }
     }
 
+    // MARK: - Rename Workspace
+
+    func beginRename(_ summary: WorkspaceSummary) {
+        pendingRenameWorkspace = summary
+        draftRenameSlug = summary.slug
+        lastError = nil
+    }
+
+    func cancelRename() {
+        pendingRenameWorkspace = nil
+        draftRenameSlug = ""
+    }
+
+    /// Rename slug + move Workspace Data Dir; re-select when this was the current Workspace.
+    func renameWorkspace() {
+        guard let target = pendingRenameWorkspace else { return }
+        let wasCurrent = current?.id == target.id
+        do {
+            let updated = try store.rename(
+                summary: target,
+                newSlug: draftRenameSlug,
+                workspacesRoot: workspacesRoot
+            )
+            pendingRenameWorkspace = nil
+            draftRenameSlug = ""
+            refresh()
+            if wasCurrent {
+                select(updated)
+            }
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
     // MARK: - Remove Workspace
 
     /// Ask chrome to confirm permanent removal of this Workspace (disk + index).
@@ -180,6 +219,30 @@ final class WorkspaceController: ObservableObject {
             } else {
                 names.remove(threeWordName)
             }
+            config.archivedThreeWordNames = names.sorted()
+            try store.writeConfig(config, to: workspace.dataDirURL)
+            if workspace.id == current?.id {
+                currentConfig = config
+            }
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    /// When a Worktree folder is renamed, migrate its archived flag entry (if any).
+    func renameArchivedWorktreeName(
+        from oldName: String,
+        to newName: String,
+        in workspace: WorkspaceSummary
+    ) {
+        guard oldName != newName else { return }
+        do {
+            var config = try store.loadConfig(from: workspace.dataDirURL)
+            guard var names = config.archivedThreeWordNames,
+                  let index = names.firstIndex(of: oldName)
+            else { return }
+            names[index] = newName
             config.archivedThreeWordNames = names.sorted()
             try store.writeConfig(config, to: workspace.dataDirURL)
             if workspace.id == current?.id {

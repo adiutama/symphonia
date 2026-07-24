@@ -40,6 +40,11 @@ final class AgentController: ObservableObject {
     /// When confirming remove, optionally also delete the branch (default keep).
     @Published var pendingRemoveDeleteBranch: Bool = false
 
+    /// Pending rename target + draft fields (branch primary, folder secondary — ADR 0018).
+    @Published var pendingRename: AgentSummary?
+    @Published var draftRenameBranchName: String = ""
+    @Published var draftRenameFolderName: String = ""
+
     init(
         preferences: PreferencesController,
         workspaces: WorkspaceController,
@@ -254,6 +259,62 @@ final class AgentController: ObservableObject {
         pendingRemoveDeleteBranch = false
     }
 
+    // MARK: - Rename Worktree
+
+    func beginRename(_ agent: AgentSummary) {
+        pendingRename = agent
+        draftRenameBranchName = agent.branchName ?? agent.threeWordName
+        draftRenameFolderName = agent.threeWordName
+        lastError = nil
+    }
+
+    func cancelRename() {
+        pendingRename = nil
+        draftRenameBranchName = ""
+        draftRenameFolderName = ""
+    }
+
+    /// Rename branch and/or folder; refresh list and re-focus when this Worktree was focused.
+    func renameAgent() {
+        guard let current = workspaces.current,
+              let agent = pendingRename
+        else { return }
+
+        let wasFocused = focusedSession?.agent?.id == agent.id
+
+        do {
+            let updated = try store.rename(
+                workspaceDataDir: current.dataDirURL,
+                agent: agent,
+                newBranchName: draftRenameBranchName,
+                newFolderName: draftRenameFolderName
+            )
+
+            if updated.threeWordName != agent.threeWordName {
+                workspaces.renameArchivedWorktreeName(
+                    from: agent.threeWordName,
+                    to: updated.threeWordName,
+                    in: current
+                )
+            }
+
+            if updated.worktreeURL != agent.worktreeURL {
+                migrateOpenedSession(from: agent, to: updated)
+            }
+
+            pendingRename = nil
+            draftRenameBranchName = ""
+            draftRenameFolderName = ""
+            refresh()
+            if wasFocused {
+                focus(updated)
+            }
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
     /// Confirm Remove Agent: unregister worktree + delete folder; keep branch unless opted in.
     func confirmRemove() {
         guard let current = workspaces.current,
@@ -343,17 +404,42 @@ final class AgentController: ObservableObject {
                 }
             }
         case .agent(let agent)?:
-            if let updated = agents.first(where: { $0.id == agent.id }) {
+            if let updated = agents.first(where: { $0.worktreeURL == agent.worktreeURL })
+                ?? agents.first(where: { $0.threeWordName == agent.threeWordName })
+            {
                 focusedSession = .agent(updated)
+                if updated.worktreeURL != agent.worktreeURL {
+                    migrateOpenedSession(from: agent, to: updated)
+                }
             } else {
                 focusMain(for: workspace)
             }
         }
     }
 
+    private func migrateOpenedSession(from old: AgentSummary, to updated: AgentSummary) {
+        let oldID = FocusedSession.agent(old).id
+        let newID = FocusedSession.agent(updated).id
+        guard oldID != newID,
+              let index = openedMainCLISessions.firstIndex(where: { $0.id == oldID })
+        else { return }
+
+        let slot = openedMainCLISessions[index]
+        openedMainCLISessions[index] = MainCLISurfaceSlot(
+            id: newID,
+            workingDirectory: updated.worktreeURL.path,
+            command: slot.command,
+            spawnEnvironment: slot.spawnEnvironment,
+            generation: slot.generation
+        )
+    }
+
     private func onWorkspaceChanged() {
         pendingRemove = nil
         pendingRemoveDeleteBranch = false
+        pendingRename = nil
+        draftRenameBranchName = ""
+        draftRenameFolderName = ""
         draftBranchName = ""
         draftThreeWordName = ""
         // Drop Main CLI PTYs from the previous Workspace (cmux-style: sessions are per workspace).

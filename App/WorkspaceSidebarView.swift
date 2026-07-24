@@ -16,6 +16,9 @@ struct WorkspaceSidebarView: View {
     @State private var createAgentBranch = ""
     @State private var createAgentThreeWordName = ""
     @State private var archivedSheetWorkspace: WorkspaceSummary?
+    @State private var renameWorkspaceSlug = ""
+    @State private var renameAgentBranch = ""
+    @State private var renameAgentFolder = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -72,6 +75,12 @@ struct WorkspaceSidebarView: View {
         }
         .sheet(item: $archivedSheetWorkspace) { workspace in
             archivedWorktreesSheet(workspace)
+        }
+        .sheet(item: $workspaces.pendingRenameWorkspace) { workspace in
+            renameWorkspaceSheet(workspace)
+        }
+        .sheet(item: $agents.pendingRename) { agent in
+            renameAgentSheet(agent)
         }
         .onAppear {
             if let current = workspaces.current {
@@ -237,6 +246,10 @@ struct WorkspaceSidebarView: View {
         .buttonStyle(.plain)
         .listRowBackground(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
         .contextMenu {
+            Button("Rename Worktree…") {
+                selectWorkspace(workspace)
+                beginRenameAgent(agent)
+            }
             Button("Reveal in Finder") {
                 reveal(agent.worktreeURL)
             }
@@ -263,6 +276,9 @@ struct WorkspaceSidebarView: View {
         Button("New Worktree…") {
             selectWorkspace(workspace)
             beginCreateAgent()
+        }
+        Button("Rename Workspace…") {
+            beginRenameWorkspace(workspace)
         }
         Button("Reveal in Finder") {
             reveal(workspace.dataDirURL)
@@ -373,6 +389,110 @@ struct WorkspaceSidebarView: View {
         .frame(width: 380)
     }
 
+    private func renameWorkspaceSheet(_ workspace: WorkspaceSummary) -> some View {
+        let trimmedSlug = renameWorkspaceSlug.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previewDir = WorkspaceStore().dataDirURL(
+            slug: trimmedSlug.isEmpty ? workspace.slug : trimmedSlug,
+            prefix: workspace.prefix,
+            workspacesRoot: workspaces.workspacesRoot
+        )
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Rename Workspace")
+                .font(.headline)
+            TextField("slug", text: $renameWorkspaceSlug)
+                .textFieldStyle(.roundedBorder)
+            Text("Folder will move to:")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(previewDir.path)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .textSelection(.enabled)
+                .lineLimit(2)
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    workspaces.cancelRename()
+                }
+                Button("Rename") {
+                    let oldExpandedID = workspace.id
+                    workspaces.draftRenameSlug = renameWorkspaceSlug
+                    workspaces.renameWorkspace()
+                    if workspaces.lastError == nil {
+                        expandedWorkspaceIDs.remove(oldExpandedID)
+                        if let current = workspaces.current {
+                            expandedWorkspaceIDs.insert(current.id)
+                        }
+                    }
+                }
+                .disabled(trimmedSlug.isEmpty || trimmedSlug == workspace.slug)
+                .keyboardShortcut(.defaultAction)
+            }
+            if let error = workspaces.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
+        .onAppear {
+            renameWorkspaceSlug = workspace.slug
+            workspaces.lastError = nil
+        }
+    }
+
+    private func renameAgentSheet(_ agent: AgentSummary) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rename Worktree")
+                .font(.headline)
+            VStack(alignment: .leading, spacing: 4) {
+                TextField("branch name", text: $renameAgentBranch)
+                    .textFieldStyle(.roundedBorder)
+                Text("Git branch — the primary label in the sidebar.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                TextField("folder name", text: $renameAgentFolder)
+                    .textFieldStyle(.roundedBorder)
+                Text("On-disk folder (Three-Word Name). Edit only when you want to move the checkout.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    agents.cancelRename()
+                }
+                Button("Rename") {
+                    agents.draftRenameBranchName = renameAgentBranch
+                    agents.draftRenameFolderName = renameAgentFolder
+                    agents.renameAgent()
+                }
+                .disabled(
+                    renameAgentBranch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || renameAgentFolder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
+                .keyboardShortcut(.defaultAction)
+            }
+            if let error = agents.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(20)
+        .frame(width: 380)
+        .onAppear {
+            renameAgentBranch = agent.branchName ?? agent.threeWordName
+            renameAgentFolder = agent.threeWordName
+            agents.lastError = nil
+        }
+    }
+
     private var createAgentSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("New Worktree")
@@ -438,6 +558,17 @@ struct WorkspaceSidebarView: View {
         createAgentThreeWordName = agents.generateThreeWordName()
         agents.lastError = nil
         showCreateAgent = true
+    }
+
+    private func beginRenameWorkspace(_ workspace: WorkspaceSummary) {
+        renameWorkspaceSlug = workspace.slug
+        workspaces.beginRename(workspace)
+    }
+
+    private func beginRenameAgent(_ agent: AgentSummary) {
+        renameAgentBranch = agent.branchName ?? agent.threeWordName
+        renameAgentFolder = agent.threeWordName
+        agents.beginRename(agent)
     }
 
     private func selectWorkspace(_ workspace: WorkspaceSummary) {
