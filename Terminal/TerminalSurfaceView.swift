@@ -6,12 +6,16 @@ import SwiftUI
 ///
 /// P1.1: render surface. P1.3: AppKit first-responder + key/mouse → `ghostty_surface_*`
 /// (mirrors Ghostty's `SurfaceView_AppKit` / `NSEvent+Extension` patterns).
+/// C.5: Ghostty ↔ NSPasteboard (select-to-copy, ⌘C/⌘V, right-click Copy/Paste).
 /// Symphonia-owned PTY / session lifecycle remains P1.2.
-final class TerminalSurfaceNSView: NSView {
+final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     private var ghosttyApp: ghostty_app_t?
     private var ghosttyConfig: ghostty_config_t?
     private var surface: ghostty_surface_t?
     private var statusLabel: NSTextField?
+    /// Ephemeral “Copied” / “Pasted” HUD (auto-dismiss).
+    private var clipboardToastLabel: NSTextField?
+    private var clipboardToastHideWorkItem: DispatchWorkItem?
     private var didStart = false
     private var surfaceFocused = false
 
@@ -290,6 +294,25 @@ final class TerminalSurfaceNSView: NSView {
         // when `insertText` did not accumulate.
     }
 
+    /// Route Ghostty keybindings (incl. ⌘C / ⌘V) through `keyDown` before the
+    /// Edit menu consumes them — same seam as Ghostty `SurfaceView_AppKit`.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.type == .keyDown else { return false }
+        guard surfaceFocused, let surface else { return false }
+
+        var ghosttyEvent = event.ghosttyKeyEvent(GHOSTTY_ACTION_PRESS)
+        var flags = ghostty_binding_flags_e(0)
+        let isBinding = (event.characters ?? "").withCString { ptr in
+            ghosttyEvent.text = ptr
+            return ghostty_surface_key_is_binding(surface, ghosttyEvent, &flags)
+        }
+        if isBinding {
+            keyDown(with: event)
+            return true
+        }
+        return false
+    }
+
     @discardableResult
     private func sendKey(
         _ action: ghostty_input_action_e,
@@ -331,15 +354,29 @@ final class TerminalSurfaceNSView: NSView {
 
     override func rightMouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
-        guard let surface else { return }
+        guard let surface else {
+            super.rightMouseDown(with: event)
+            return
+        }
         let mods = GhosttyInput.mods(event.modifierFlags)
-        _ = ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_RIGHT, mods)
+        // Ghostty: if not consumed (e.g. context-menu action), let AppKit
+        // call `menu(for:)` via super — otherwise the menu never appears.
+        if ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_RIGHT, mods) {
+            return
+        }
+        super.rightMouseDown(with: event)
     }
 
     override func rightMouseUp(with event: NSEvent) {
-        guard let surface else { return }
+        guard let surface else {
+            super.rightMouseUp(with: event)
+            return
+        }
         let mods = GhosttyInput.mods(event.modifierFlags)
-        _ = ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_RIGHT, mods)
+        if ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_RIGHT, mods) {
+            return
+        }
+        super.rightMouseUp(with: event)
     }
 
     override func otherMouseDown(with event: NSEvent) {
@@ -407,6 +444,133 @@ final class TerminalSurfaceNSView: NSView {
         )
     }
 
+    // MARK: - Clipboard / context menu (C.5)
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        switch event.type {
+        case .rightMouseDown:
+            break
+        case .leftMouseDown:
+            // Ctrl+left → context menu when mouse is not captured (Ghostty pattern).
+            guard event.modifierFlags.contains(.control) else { return nil }
+            guard let surface, !ghostty_surface_mouse_captured(surface) else { return nil }
+            let mods = GhosttyInput.mods(event.modifierFlags)
+            _ = ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_RIGHT, mods)
+        default:
+            return nil
+        }
+
+        let menu = NSMenu()
+        if let surface, ghostty_surface_has_selection(surface) {
+            menu.addItem(withTitle: "Copy", action: #selector(copy(_:)), keyEquivalent: "")
+        }
+        menu.addItem(withTitle: "Paste", action: #selector(paste(_:)), keyEquivalent: "")
+        return menu
+    }
+
+    @objc func copy(_ sender: Any?) {
+        guard let surface else { return }
+        let action = "copy_to_clipboard"
+        _ = ghostty_surface_binding_action(surface, action, UInt(action.utf8.count))
+    }
+
+    @objc func paste(_ sender: Any?) {
+        guard let surface else { return }
+        let action = "paste_from_clipboard"
+        _ = ghostty_surface_binding_action(surface, action, UInt(action.utf8.count))
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(copy(_:)):
+            guard let surface else { return false }
+            return ghostty_surface_has_selection(surface)
+        case #selector(paste(_:)):
+            return true
+        default:
+            return true
+        }
+    }
+
+    private static func view(from userdata: UnsafeMutableRawPointer?) -> TerminalSurfaceNSView? {
+        guard let userdata else { return nil }
+        return Unmanaged<TerminalSurfaceNSView>.fromOpaque(userdata).takeUnretainedValue()
+    }
+
+    /// Ghostty → NSPasteboard (select-to-copy, ⌘C, OSC-52 write). Auto-confirm writes.
+    private static func writeClipboard(
+        _ userdata: UnsafeMutableRawPointer?,
+        location: ghostty_clipboard_e,
+        content: UnsafePointer<ghostty_clipboard_content_s>?,
+        len: Int,
+        confirm: Bool
+    ) {
+        _ = confirm // C.5: no confirm sheet — always write.
+        guard let pasteboard = NSPasteboard.ghostty(location) else { return }
+        guard let content, len > 0 else { return }
+
+        var items: [(mime: String, data: String)] = []
+        items.reserveCapacity(len)
+        for i in 0..<len {
+            let entry = content[i]
+            guard let mimePtr = entry.mime, let dataPtr = entry.data else { continue }
+            items.append((String(cString: mimePtr), String(cString: dataPtr)))
+        }
+        guard !items.isEmpty else { return }
+
+        let types = items.compactMap { NSPasteboard.PasteboardType(mimeType: $0.mime) }
+        pasteboard.declareTypes(types, owner: nil)
+        for item in items {
+            guard let type = NSPasteboard.PasteboardType(mimeType: item.mime) else { continue }
+            pasteboard.setString(item.data, forType: type)
+        }
+
+        // Select-to-copy / ⌘C / menu Copy — brief surface HUD.
+        if let view = view(from: userdata) {
+            DispatchQueue.main.async { view.showClipboardToast("Copied") }
+        }
+    }
+
+    /// NSPasteboard → Ghostty paste / OSC-52 read. Returns false when empty so
+    /// performable paste bindings can pass through to the terminal.
+    private static func readClipboard(
+        _ userdata: UnsafeMutableRawPointer?,
+        location: ghostty_clipboard_e,
+        state: UnsafeMutableRawPointer?
+    ) -> Bool {
+        guard let view = view(from: userdata), let surface = view.surface else { return false }
+        guard let pasteboard = NSPasteboard.ghostty(location) else { return false }
+        guard let str = pasteboard.getOpinionatedStringContents() else { return false }
+        completeClipboardRequest(surface, data: str, state: state, confirmed: false)
+        // Confirm (if any) runs sync inside complete; toast once after it returns.
+        DispatchQueue.main.async { view.showClipboardToast("Pasted") }
+        return true
+    }
+
+    /// C.5: auto-confirm paste / OSC-52 read (no sheet).
+    private static func confirmReadClipboard(
+        _ userdata: UnsafeMutableRawPointer?,
+        string: UnsafePointer<CChar>?,
+        state: UnsafeMutableRawPointer?,
+        request: ghostty_clipboard_request_e
+    ) {
+        _ = request
+        guard let view = view(from: userdata), let surface = view.surface else { return }
+        let str = string.map { String(cString: $0) } ?? ""
+        completeClipboardRequest(surface, data: str, state: state, confirmed: true)
+    }
+
+    private static func completeClipboardRequest(
+        _ surface: ghostty_surface_t,
+        data: String,
+        state: UnsafeMutableRawPointer?,
+        confirmed: Bool
+    ) {
+        data.withCString { ptr in
+            ghostty_surface_complete_clipboard_request(surface, ptr, state, confirmed)
+        }
+    }
+
     // MARK: - Ghostty lifecycle
 
     private func startGhostty() {
@@ -420,9 +584,12 @@ final class TerminalSurfaceNSView: NSView {
         ghostty_config_finalize(config)
         ghosttyConfig = config
 
+        // false → default `copy-on-select = true` writes the *system* clipboard
+        // (macOS has no X11-style selection clipboard; Ghostty's private pasteboard
+        // made select-to-copy look broken for ⌘V / other apps).
         var runtime = ghostty_runtime_config_s(
             userdata: Unmanaged.passUnretained(self).toOpaque(),
-            supports_selection_clipboard: true,
+            supports_selection_clipboard: false,
             wakeup_cb: { userdata in
                 guard let userdata else { return }
                 let view = Unmanaged<TerminalSurfaceNSView>.fromOpaque(userdata).takeUnretainedValue()
@@ -431,9 +598,26 @@ final class TerminalSurfaceNSView: NSView {
                 }
             },
             action_cb: { _, _, _ in false },
-            read_clipboard_cb: { _, _, _ in false },
-            confirm_read_clipboard_cb: { _, _, _, _ in },
-            write_clipboard_cb: { _, _, _, _, _ in },
+            read_clipboard_cb: { userdata, location, state in
+                TerminalSurfaceNSView.readClipboard(userdata, location: location, state: state)
+            },
+            confirm_read_clipboard_cb: { userdata, string, state, request in
+                TerminalSurfaceNSView.confirmReadClipboard(
+                    userdata,
+                    string: string,
+                    state: state,
+                    request: request
+                )
+            },
+            write_clipboard_cb: { userdata, location, content, len, confirm in
+                TerminalSurfaceNSView.writeClipboard(
+                    userdata,
+                    location: location,
+                    content: content,
+                    len: Int(len),
+                    confirm: confirm
+                )
+            },
             close_surface_cb: { userdata, _ in
                 guard let userdata else { return }
                 let view = Unmanaged<TerminalSurfaceNSView>.fromOpaque(userdata).takeUnretainedValue()
@@ -640,6 +824,51 @@ final class TerminalSurfaceNSView: NSView {
         statusLabel?.removeFromSuperview()
         statusLabel = nil
     }
+
+    /// Small auto-dismiss HUD for clipboard success (surface-local, not Status Cue).
+    private func showClipboardToast(_ message: String) {
+        clipboardToastHideWorkItem?.cancel()
+        clipboardToastHideWorkItem = nil
+
+        let label: NSTextField
+        if let clipboardToastLabel {
+            label = clipboardToastLabel
+            label.stringValue = "  \(message)  "
+        } else {
+            label = NSTextField(labelWithString: "  \(message)  ")
+            label.font = .systemFont(ofSize: 11, weight: .medium)
+            label.textColor = .white
+            label.alignment = .center
+            label.drawsBackground = false
+            label.wantsLayer = true
+            label.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.72).cgColor
+            label.layer?.cornerRadius = 6
+            label.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(label)
+            NSLayoutConstraint.activate([
+                label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+                label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+            ])
+            label.setContentHuggingPriority(.required, for: .horizontal)
+            clipboardToastLabel = label
+        }
+
+        label.alphaValue = 1
+
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, let toast = self.clipboardToastLabel else { return }
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.2
+                toast.animator().alphaValue = 0
+            }, completionHandler: { [weak self] in
+                self?.clipboardToastLabel?.removeFromSuperview()
+                self?.clipboardToastLabel = nil
+                self?.clipboardToastHideWorkItem = nil
+            })
+        }
+        clipboardToastHideWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
+    }
 }
 
 // MARK: - Input helpers (from Ghostty NSEvent+Extension / Ghostty.Input)
@@ -729,6 +958,63 @@ private extension NSEvent {
             }
         }
         return characters
+    }
+}
+
+// MARK: - Pasteboard helpers (Ghostty NSPasteboard+Extension, slimmed for C.5)
+
+private extension NSPasteboard.PasteboardType {
+    init?(mimeType: String) {
+        switch mimeType {
+        case "text/plain":
+            self = .string
+        default:
+            self.init(mimeType)
+        }
+    }
+}
+
+private extension NSPasteboard {
+    /// Ghostty selection pasteboard (copy-on-select default destination on macOS).
+    static var ghosttySelection: NSPasteboard = {
+        NSPasteboard(name: .init("com.mitchellh.ghostty.selection"))
+    }()
+
+    static func ghostty(_ clipboard: ghostty_clipboard_e) -> NSPasteboard? {
+        switch clipboard {
+        case GHOSTTY_CLIPBOARD_STANDARD:
+            return .general
+        case GHOSTTY_CLIPBOARD_SELECTION:
+            return .ghosttySelection
+        default:
+            return nil
+        }
+    }
+
+    /// Prefer file-URL paths (shell-escaped) then plain strings — Ghostty paste semantics.
+    func getOpinionatedStringContents() -> String? {
+        let strings = (pasteboardItems ?? []).compactMap { item -> String? in
+            if let plist = item.propertyList(forType: .fileURL),
+               let fileURL = NSURL(pasteboardPropertyList: plist, ofType: .fileURL) as URL?,
+               fileURL.isFileURL {
+                return TerminalShell.escape(fileURL.path)
+            }
+            return item.string(forType: .string)
+        }
+        guard !strings.isEmpty else { return nil }
+        return strings.joined(separator: " ")
+    }
+}
+
+private enum TerminalShell {
+    private static let escapeCharacters = "\\ ()[]{}<>\"'`!#$&;|*?\t"
+
+    static func escape(_ str: String) -> String {
+        var result = str
+        for char in escapeCharacters {
+            result = result.replacingOccurrences(of: String(char), with: "\\\(char)")
+        }
+        return result
     }
 }
 
