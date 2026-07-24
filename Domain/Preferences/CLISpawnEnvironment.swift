@@ -7,7 +7,10 @@ import Foundation
 enum CLISpawnEnvironment {
     static let defaultLocale = "en_US.UTF-8"
 
-    /// Locale defaults first; `secrets` overwrite on key collision.
+    /// Locale + login-shell `PATH` first; `secrets` overwrite on key collision.
+    ///
+    /// Ghostty runs Overlay/Main commands under a non-login bash without the Operator's
+    /// Homebrew PATH, so we inject the login-shell PATH (ADR-aligned spawn env ownership).
     static func mergingSecrets(
         _ secrets: [(key: String, value: String)]
     ) -> [(key: String, value: String)] {
@@ -16,6 +19,9 @@ enum CLISpawnEnvironment {
             "LC_ALL": defaultLocale,
             "LC_MESSAGES": defaultLocale,
         ]
+        if let path = LoginShellEnvironment.path, !path.isEmpty {
+            map["PATH"] = path
+        }
         for pair in secrets {
             map[pair.key] = pair.value
         }

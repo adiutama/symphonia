@@ -16,21 +16,37 @@ enum EditorPresentation: String, Equatable, Sendable {
 enum EditorCommandResolver {
     /// Resolve configured value: empty → login shell `VISUAL`, else `EDITOR`, else `vi`.
     ///
-    /// Symphonia's own process environment (`ProcessInfo.processInfo.environment`) is a
-    /// GUI-launch environment and rarely has `VISUAL`/`EDITOR` set even when an
-    /// Operator's Terminal does — see `LoginShellEnvironment`.
+    /// Bare executables (e.g. `nvim`) are expanded to an absolute path via the login
+    /// shell so Ghostty's `bash --noprofile --norc` spawn can still find Homebrew tools.
+    /// See `LoginShellEnvironment`.
     static func resolveCommand(configured: String) -> String {
         let trimmed = configured.trimmingCharacters(in: .whitespacesAndNewlines)
+        let raw: String
         if !trimmed.isEmpty {
-            return trimmed
+            raw = trimmed
+        } else if let visual = LoginShellEnvironment.visual {
+            raw = visual
+        } else if let editor = LoginShellEnvironment.editor {
+            raw = editor
+        } else {
+            raw = "vi"
         }
-        if let visual = LoginShellEnvironment.visual {
-            return visual
+        return absolutizeExecutable(in: raw)
+    }
+
+    /// Replace the first path token with `command -v` when it is a bare name.
+    private static func absolutizeExecutable(in command: String) -> String {
+        let parts = command.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        guard let exe = parts.first, !exe.isEmpty else { return command }
+        if exe.hasPrefix("/") || exe.hasPrefix("~") {
+            return command
         }
-        if let editor = LoginShellEnvironment.editor {
-            return editor
+        guard let resolved = LoginShellEnvironment.resolveOnPath(exe) else {
+            return command
         }
-        return "vi"
+        var out = parts
+        out[0] = resolved
+        return out.joined(separator: " ")
     }
 
     /// Heuristic: known GUI / external launchers vs TUI Overlay editors.
