@@ -5,6 +5,7 @@ import SwiftUI
 struct WorkspaceSidebarView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var agents: AgentController
+    @EnvironmentObject private var preferences: PreferencesController
 
     @State private var expandedWorkspaceIDs: Set<String> = []
     @State private var showCreateWorkspace = false
@@ -101,12 +102,15 @@ struct WorkspaceSidebarView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .contextMenu {
-            Button("Create Workspace…") {
+            Button("New Workspace…") {
                 beginCreateWorkspace()
             }
             Button("Refresh") {
                 workspaces.refresh()
                 agents.refresh()
+            }
+            Button("Reveal Workspaces Root") {
+                reveal(preferences.effective.workspacesRootURL)
             }
         }
     }
@@ -167,7 +171,7 @@ struct WorkspaceSidebarView: View {
     }
 
     /// Main row context menu deliberately has no Remove / Archive action — Main is protected
-    /// (P1.5); only Focus / Reveal / New Worktree are offered here.
+    /// (P1.5); only New Worktree / Reveal are offered here (Focus is a click, not a menu item).
     private func mainRepoRow(_ workspace: WorkspaceSummary) -> some View {
         let isFocused = isMainFocused(workspace)
         return Button {
@@ -188,16 +192,12 @@ struct WorkspaceSidebarView: View {
         .buttonStyle(.plain)
         .listRowBackground(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
         .contextMenu {
-            Button("Focus Main Repo") {
-                selectWorkspace(workspace)
-                agents.focusMain(for: workspace)
-            }
-            Button("Reveal in Finder") {
-                reveal(SymphoniaPaths.workspaceMainDirectory(in: workspace.dataDirURL))
-            }
             Button("New Worktree…") {
                 selectWorkspace(workspace)
                 beginCreateAgent()
+            }
+            Button("Reveal in Finder") {
+                reveal(SymphoniaPaths.workspaceMainDirectory(in: workspace.dataDirURL))
             }
         }
     }
@@ -237,12 +237,14 @@ struct WorkspaceSidebarView: View {
         .buttonStyle(.plain)
         .listRowBackground(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
         .contextMenu {
-            Button("Focus Worktree") {
-                selectWorkspace(workspace)
-                agents.focus(agent)
-            }
             Button("Reveal in Finder") {
                 reveal(agent.worktreeURL)
+            }
+            Button("Copy Path") {
+                copyToPasteboard(agent.worktreeURL.path)
+            }
+            Button("Copy Branch Name") {
+                copyToPasteboard(agent.branchName ?? agent.threeWordName)
             }
             Divider()
             Button("Archive Worktree") {
@@ -258,13 +260,6 @@ struct WorkspaceSidebarView: View {
 
     @ViewBuilder
     private func workspaceContextMenu(_ workspace: WorkspaceSummary) -> some View {
-        Button("Select Workspace") {
-            selectWorkspace(workspace)
-        }
-        Button("Focus Main Repo") {
-            selectWorkspace(workspace)
-            agents.focusMain(for: workspace)
-        }
         Button("New Worktree…") {
             selectWorkspace(workspace)
             beginCreateAgent()
@@ -272,21 +267,16 @@ struct WorkspaceSidebarView: View {
         Button("Reveal in Finder") {
             reveal(workspace.dataDirURL)
         }
-        Divider()
-        Button("Refresh") {
-            workspaces.refresh()
-            agents.refresh()
+        Button("Reveal Main in Finder") {
+            reveal(SymphoniaPaths.workspaceMainDirectory(in: workspace.dataDirURL))
         }
+        Divider()
         Button("Archived Worktrees…") {
             archivedSheetWorkspace = workspace
         }
         Divider()
         Button("Remove Workspace…", role: .destructive) {
             workspaces.requestRemove(workspace)
-        }
-        Divider()
-        Button("Create Workspace…") {
-            beginCreateWorkspace()
         }
     }
 
@@ -467,6 +457,12 @@ struct WorkspaceSidebarView: View {
 
     private func reveal(_ url: URL) {
         NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func copyToPasteboard(_ string: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(string, forType: .string)
     }
 
     private var removeDialogTitle: String {
