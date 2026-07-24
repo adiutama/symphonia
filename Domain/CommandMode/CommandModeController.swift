@@ -186,8 +186,12 @@ final class CommandModeController: ObservableObject {
             dismiss()
 
         case .hideOverlay:
-            overlays.hide()
-            lastInfo = "Main CLI"
+            if overlays.isShowingOverlay {
+                overlays.hide()
+                lastInfo = "Main CLI"
+            } else {
+                lastInfo = "Already on Main CLI"
+            }
             dismiss()
         }
     }
@@ -195,21 +199,88 @@ final class CommandModeController: ObservableObject {
     // MARK: - Items
 
     private func rebuildItems(resetSelection: Bool) {
-        let raw: [CommandModeItem]
-        switch phase {
-        case .root:
-            raw = rootItems()
-        case .pickWorkspace:
-            raw = workspacePickerItems()
-        case .pickAgent:
-            raw = agentPickerItems()
-        case .pickBackground:
-            raw = backgroundPickerItems()
+        if phase == .root, filterQuery.hasPrefix("/") {
+            items = slashItems(matching: filterQuery)
+        } else {
+            let raw: [CommandModeItem]
+            switch phase {
+            case .root:
+                raw = rootItems()
+            case .pickWorkspace:
+                raw = workspacePickerItems()
+            case .pickAgent:
+                raw = agentPickerItems()
+            case .pickBackground:
+                raw = backgroundPickerItems()
+            }
+            items = filter(raw)
         }
-        items = filter(raw)
         if resetSelection || selectedIndex >= items.count {
             selectedIndex = items.isEmpty ? 0 : min(selectedIndex, max(items.count - 1, 0))
         }
+    }
+
+    // MARK: - Slash verbs (Raycast-style, ADR 0009 / P0.C)
+
+    /// One context-aware `/` verb, addressable by any of its aliases (without the leading `/`).
+    private struct SlashCommand {
+        let aliases: [String]
+        let title: String
+        let subtitle: String
+        let action: CommandModeAction
+    }
+
+    private var slashCommands: [SlashCommand] {
+        [
+            SlashCommand(
+                aliases: ["editor", "e"],
+                title: "/editor",
+                subtitle: "Open Editor Overlay · alias /e",
+                action: .openEditor
+            ),
+            SlashCommand(
+                aliases: ["hide", "x", "exit"],
+                title: "/hide",
+                subtitle: overlays.isShowingOverlay
+                    ? "Hide Overlay → Main CLI · aliases /x, /exit"
+                    : "Already on Main CLI · aliases /x, /exit",
+                action: .hideOverlay
+            ),
+            SlashCommand(
+                aliases: ["background", "bg"],
+                title: "/background",
+                subtitle: "Peek / create Background Overlay · alias /bg",
+                action: .showBackgroundPicker
+            ),
+        ]
+    }
+
+    /// Slash commands as result rows, narrowed by the text typed after `/`.
+    /// An exact alias match (e.g. `/e`, `/x`) wins outright; otherwise falls back to
+    /// prefix matching across all aliases so the palette still reads like a filtered list.
+    private func slashItems(matching query: String) -> [CommandModeItem] {
+        let needle = String(query.dropFirst())
+            .trimmingCharacters(in: .whitespaces)
+            .lowercased()
+        let commands = slashCommands
+        guard !needle.isEmpty else {
+            return commands.map(slashItem)
+        }
+        if let exact = commands.first(where: { $0.aliases.contains(needle) }) {
+            return [slashItem(exact)]
+        }
+        return commands
+            .filter { cmd in cmd.aliases.contains { $0.hasPrefix(needle) } }
+            .map(slashItem)
+    }
+
+    private func slashItem(_ cmd: SlashCommand) -> CommandModeItem {
+        CommandModeItem(
+            id: "slash-\(cmd.aliases[0])",
+            title: cmd.title,
+            subtitle: cmd.subtitle,
+            action: cmd.action
+        )
     }
 
     private func filter(_ raw: [CommandModeItem]) -> [CommandModeItem] {
@@ -474,7 +545,7 @@ final class CommandModeController: ObservableObject {
            let chars = event.charactersIgnoringModifiers,
            chars.count == 1,
            let ch = chars.first,
-           (ch.isLetter || ch.isNumber || ch == "," || ch == "." || ch == "-" || ch == "_" || ch == " ")
+           (ch.isLetter || ch.isNumber || ch == "," || ch == "." || ch == "-" || ch == "_" || ch == " " || ch == "/")
         {
             filterQuery.append(ch)
             rebuildItems(resetSelection: true)

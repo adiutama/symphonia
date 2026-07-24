@@ -56,7 +56,7 @@ struct CommandModeView: View {
 
     private var placeholder: String {
         switch commandMode.phase {
-        case .root: return "Type a command…"
+        case .root: return "Type a command or /verb…"
         case .pickWorkspace: return "Search Workspaces…"
         case .pickAgent: return "Search sessions…"
         case .pickBackground: return "Search Overlays…"
@@ -169,7 +169,7 @@ struct CommandModeView: View {
 
     private var footer: some View {
         HStack {
-            Text("↑↓ · ↩ · type to filter · keybinds when empty")
+            Text("↑↓ · ↩ · type to filter · / for verbs · keybinds when empty")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
             Spacer()
