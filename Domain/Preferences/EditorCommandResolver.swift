@@ -14,17 +14,21 @@ enum EditorPresentation: String, Equatable, Sendable {
 
 /// Resolves the Editor command string and a best-effort presentation hint.
 enum EditorCommandResolver {
-    /// Resolve configured value: empty → `$EDITOR`, still empty → `vi`.
+    /// Resolve configured value: empty → login shell `VISUAL`, else `EDITOR`, else `vi`.
+    ///
+    /// Symphonia's own process environment (`ProcessInfo.processInfo.environment`) is a
+    /// GUI-launch environment and rarely has `VISUAL`/`EDITOR` set even when an
+    /// Operator's Terminal does — see `LoginShellEnvironment`.
     static func resolveCommand(configured: String) -> String {
         let trimmed = configured.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
             return trimmed
         }
-        if let env = ProcessInfo.processInfo.environment["EDITOR"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !env.isEmpty
-        {
-            return env
+        if let visual = LoginShellEnvironment.visual {
+            return visual
+        }
+        if let editor = LoginShellEnvironment.editor {
+            return editor
         }
         return "vi"
     }
