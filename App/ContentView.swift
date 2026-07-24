@@ -8,11 +8,9 @@ enum SidebarMode: String {
 }
 
 struct ContentView: View {
-    @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var agents: AgentController
     @EnvironmentObject private var secrets: SecretStoreController
-    @EnvironmentObject private var overlays: OverlayController
     @EnvironmentObject private var commandMode: CommandModeController
 
     @AppStorage("sidebarMode") private var sidebarModeRaw: String = SidebarMode.expanded.rawValue
@@ -181,33 +179,17 @@ struct ContentView: View {
             .help(sidebarMode == .expanded ? "Collapse sidebar" : "Expand sidebar")
             .keyboardShortcut("s", modifiers: [.command, .control])
 
-            Text("Symphonia")
-                .font(.headline)
-
             OverlayStatusCueView()
 
             Spacer(minLength: 8)
 
-            if let session = agents.focusedSession {
-                Label(session.displayTitle, systemImage: session.isMainRepo ? "shippingbox" : "arrow.triangle.branch")
+            if let session = agents.focusedSession,
+               let slug = statusBarWorkspaceSlug(for: session) {
+                Label(session.statusBarContext(workspaceSlug: slug), systemImage: session.statusBarIcon)
                     .lineLimit(1)
             } else if let current = workspaces.current {
-                Label(current.slug, systemImage: "folder")
-            }
-
-            Label(
-                preferences.effective.mainCLICommand.isEmpty
-                    ? "bare shell"
-                    : preferences.effective.mainCLICommand,
-                systemImage: "terminal"
-            )
-            .lineLimit(1)
-
-            if overlays.isShowingOverlay {
-                Button("Hide Overlay") {
-                    overlays.hide()
-                }
-                .help("Return to Main CLI without quitting Overlay")
+                Text(displayLowercased(current.slug))
+                    .lineLimit(1)
             }
 
             if let info = commandMode.lastInfo, !commandMode.isActive {
@@ -222,5 +204,12 @@ struct ContentView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(.bar)
+    }
+
+    private func statusBarWorkspaceSlug(for session: FocusedSession) -> String? {
+        if case .mainRepo(_, _, let slug) = session {
+            return slug
+        }
+        return workspaces.current?.slug
     }
 }
