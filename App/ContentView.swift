@@ -58,7 +58,7 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
-        .background(ghosttyTheme.background)
+        .background(ghosttyTheme.background.ignoresSafeArea())
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
         .animation(.easeInOut(duration: 0.15), value: sidebarModeRaw)
     }

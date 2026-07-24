@@ -26,9 +26,12 @@ final class GhosttyChromeTheme: ObservableObject {
         let resolved = Self.loadFromGhosttyConfig()
         background = Color(nsColor: resolved.background)
         foreground = Color(nsColor: resolved.foreground)
-        sidebar = Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.06))
-        bar = Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.10))
-        panel = Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.08))
+        // Keep sidebar/bar on the exact Ghostty background so chrome blends with the
+        // terminal (Ghostty-style). Hierarchy comes from list density / focus wash, not a second paint.
+        sidebar = Color(nsColor: resolved.background)
+        bar = Color(nsColor: resolved.background)
+        // Command Center / Overlay chrome: tiny lift so panels read as peeks, not a different theme.
+        panel = Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.04))
         colorScheme = resolved.isDark ? .dark : .light
         nsBackground = resolved.background
     }

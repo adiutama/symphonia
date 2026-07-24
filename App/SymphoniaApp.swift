@@ -62,6 +62,7 @@ struct SymphoniaApp: App {
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
+                .ghosttyWindowChrome(ghosttyTheme)
         }
         .defaultSize(width: 1100, height: 720)
         .commands {
@@ -78,6 +79,7 @@ struct SymphoniaApp: App {
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
+                .ghosttyWindowChrome(ghosttyTheme)
         }
     }
 }
