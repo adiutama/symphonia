@@ -49,6 +49,8 @@
 		A7B405162738495A6B0E0103 /* CommandModeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0104 /* CommandModeModels.swift */; };
 		A7B405162738495A6B0E0105 /* CommandModeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0106 /* CommandModeController.swift */; };
 		A7B405162738495A6B0E0107 /* CommandModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0108 /* CommandModeView.swift */; };
+		92B3541DF27546F091CDA9DC /* Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AE7305E6FD442E9DE81179 /* Command.swift */; };
+		CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +97,8 @@
 		A7B405162738495A6B0E0104 /* CommandModeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeModels.swift; sourceTree = "<group>"; };
 		A7B405162738495A6B0E0106 /* CommandModeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeController.swift; sourceTree = "<group>"; };
 		A7B405162738495A6B0E0108 /* CommandModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeView.swift; sourceTree = "<group>"; };
+		22AE7305E6FD442E9DE81179 /* Command.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Command.swift; sourceTree = "<group>"; };
+		2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayCommandProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,6 +179,7 @@
 				E5F405162738495A6B0C0100 /* Secrets */,
 				F6A405162738495A6B0D0100 /* Overlay */,
 				A7B405162738495A6B0E0100 /* CommandMode */,
+				265AAA08BB3045BCAFAB1721 /* CommandCenter */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -187,6 +192,15 @@
 				A7B405162738495A6B0E0106 /* CommandModeController.swift */,
 			);
 			path = CommandMode;
+			sourceTree = "<group>";
+		};
+		265AAA08BB3045BCAFAB1721 /* CommandCenter */ = {
+			isa = PBXGroup;
+			children = (
+				22AE7305E6FD442E9DE81179 /* Command.swift */,
+				2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */,
+			);
+			path = CommandCenter;
 			sourceTree = "<group>";
 		};
 		F6A405162738495A6B0D0100 /* Overlay */ = {
@@ -355,6 +369,8 @@
 				A7B405162738495A6B0E0103 /* CommandModeModels.swift in Sources */,
 				A7B405162738495A6B0E0105 /* CommandModeController.swift in Sources */,
 				A7B405162738495A6B0E0107 /* CommandModeView.swift in Sources */,
+				92B3541DF27546F091CDA9DC /* Command.swift in Sources */,
+				CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
