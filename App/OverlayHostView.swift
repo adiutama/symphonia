@@ -62,7 +62,7 @@ struct OverlayHostView: View {
     private func overlayPane(session: OverlaySession, isVisible: Bool) -> some View {
         VStack(spacing: 0) {
             sheetHeader(session)
-            Divider()
+            Divider().opacity(0.25)
             TerminalSurfaceView(
                 workingDirectory: session.workingDirectory,
                 command: session.command,
@@ -72,41 +72,50 @@ struct OverlayHostView: View {
             .id(session.id)
         }
         .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.18), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.35), radius: 24, y: 10)
     }
 
     private func sheetHeader(_ session: OverlaySession) -> some View {
-        HStack(spacing: 8) {
-            Text(session.kind == .editor ? "Editor" : "Background")
-                .font(.headline)
+        HStack(spacing: 6) {
+            Image(systemName: session.kind == .editor ? "pencil" : "arrow.triangle.2.circlepath")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .accessibilityLabel(session.kind == .editor ? "Editor" : "Background")
+
             Text(session.title)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Spacer()
+
+            Spacer(minLength: 8)
+
             if session.kind == .background {
-                Button("Close", role: .destructive) {
+                Button("close") {
                     overlays.close(session.id)
                 }
+                .font(.caption2)
+                .buttonStyle(.plain)
+                .foregroundStyle(.tertiary)
                 .help("Quit this Overlay PTY (unlike Hide)")
             }
+
             // Demoted: primary hide path is Command Center `/hide` `/x` (or backdrop tap).
             Button {
                 overlays.hide()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.caption)
+                    .font(.caption2)
+                    .fontWeight(.medium)
             }
             .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.tertiary)
             .help("Hide Overlay (also: /hide in Command Center); process stays alive")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
     }
 }
