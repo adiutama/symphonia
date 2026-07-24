@@ -18,21 +18,41 @@ enum LoginShellEnvironment {
     static var path: String? { probed.path }
 
     /// Resolve a bare executable via login-shell `command -v` (absolute path or nil).
+    /// Results are cached for the process lifetime — Command Center / Effective Settings
+    /// read this on every keystroke and must not re-spawn a shell.
     static func resolveOnPath(_ executable: String) -> String? {
         let trimmed = executable.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !trimmed.contains("/"), !trimmed.contains("\n") else {
             return nil
         }
-        // Quote-safe: executable names don't include quotes in normal use.
-        let escaped = trimmed.replacingOccurrences(of: "'", with: "'\\''")
-        guard let output = runLoginShell(script: "command -v '\(escaped)'"),
-              !output.isEmpty,
-              output.hasPrefix("/")
-        else {
-            return nil
+
+        pathCacheLock.lock()
+        if let cached = pathCache[trimmed] {
+            pathCacheLock.unlock()
+            return cached
         }
-        return output
+        pathCacheLock.unlock()
+
+        let escaped = trimmed.replacingOccurrences(of: "'", with: "'\\''")
+        let resolved: String?
+        if let output = runLoginShell(script: "command -v '\(escaped)'"),
+           !output.isEmpty,
+           output.hasPrefix("/")
+        {
+            resolved = output
+        } else {
+            resolved = nil
+        }
+
+        pathCacheLock.lock()
+        pathCache[trimmed] = resolved
+        pathCacheLock.unlock()
+        return resolved
     }
+
+    private static let pathCacheLock = NSLock()
+    /// `nil` values are stored so failed lookups are not retried.
+    private static var pathCache: [String: String?] = [:]
 
     private struct Probed {
         var visual: String?

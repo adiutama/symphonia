@@ -14,12 +14,23 @@ enum EditorPresentation: String, Equatable, Sendable {
 
 /// Resolves the Editor command string and a best-effort presentation hint.
 enum EditorCommandResolver {
+    private static let resolveLock = NSLock()
+    private static var resolveCache: [String: String] = [:]
+
     /// Resolve configured value: empty → login shell `VISUAL`, else `EDITOR`, else `vi`.
     ///
     /// Bare executables (e.g. `nvim`) are expanded to an absolute path via the login
     /// shell so Ghostty's `bash --noprofile --norc` spawn can still find Homebrew tools.
-    /// See `LoginShellEnvironment`.
+    /// Results are cached by configured string — Effective Setting is read often.
     static func resolveCommand(configured: String) -> String {
+        let cacheKey = configured
+        resolveLock.lock()
+        if let hit = resolveCache[cacheKey] {
+            resolveLock.unlock()
+            return hit
+        }
+        resolveLock.unlock()
+
         let trimmed = configured.trimmingCharacters(in: .whitespacesAndNewlines)
         let raw: String
         if !trimmed.isEmpty {
@@ -31,7 +42,12 @@ enum EditorCommandResolver {
         } else {
             raw = "vi"
         }
-        return absolutizeExecutable(in: raw)
+        let resolved = absolutizeExecutable(in: raw)
+
+        resolveLock.lock()
+        resolveCache[cacheKey] = resolved
+        resolveLock.unlock()
+        return resolved
     }
 
     /// Replace the first path token with `command -v` when it is a bare name.

@@ -7,29 +7,39 @@ final class PreferencesController: ObservableObject {
     private let store: PreferencesStore
 
     /// Current Global Setting (editable in Settings UI).
-    @Published var preferences: GlobalPreferences
+    @Published var preferences: GlobalPreferences {
+        didSet { refreshEffective() }
+    }
 
     /// Last load/save error message for chrome, if any.
     @Published var lastError: String?
 
     /// Optional Workspace Setting overrides for Effective Setting.
     /// Loaded from the selected Workspace’s `config.json` (Phase 3).
-    @Published var workspaceOverrides: WorkspaceSettingOverrides = .none
+    @Published var workspaceOverrides: WorkspaceSettingOverrides = .none {
+        didSet { refreshEffective() }
+    }
+
+    /// Cached Effective Setting. Recomputed only when Global/Workspace inputs change —
+    /// never on every keystroke (login-shell editor resolve is expensive).
+    private(set) var effective: EffectiveSettings
 
     init(store: PreferencesStore = PreferencesStore()) {
         self.store = store
+        let loaded: GlobalPreferences
         do {
-            self.preferences = try store.load()
+            loaded = try store.load()
             self.lastError = nil
         } catch {
-            self.preferences = .default
+            loaded = .default
             self.lastError = error.localizedDescription
         }
+        self.preferences = loaded
+        self.effective = EffectiveSettings.resolve(global: loaded, workspace: .none)
     }
 
-    /// Effective Setting for the current Global Setting + optional Workspace overrides.
-    var effective: EffectiveSettings {
-        EffectiveSettings.resolve(global: preferences, workspace: workspaceOverrides)
+    private func refreshEffective() {
+        effective = EffectiveSettings.resolve(global: preferences, workspace: workspaceOverrides)
     }
 
     func reload() {
