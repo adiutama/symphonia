@@ -158,12 +158,13 @@ final class CommandModeController: ObservableObject {
             dismiss()
 
         case .newAgent:
-            agents.createAgent()
-            if let focused = agents.focused {
-                lastInfo = "Created Worktree: \(focused.primaryLabel)"
-            } else if let err = agents.lastError {
-                lastInfo = err
+            guard workspaces.current != nil else {
+                lastInfo = "Select a Workspace first"
+                dismiss()
+                return
             }
+            agents.beginCreateWorktree()
+            lastInfo = "New Worktree"
             dismiss()
 
         case .removeFocusedAgent:

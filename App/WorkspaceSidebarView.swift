@@ -12,9 +12,6 @@ struct WorkspaceSidebarView: View {
     @State private var createSlug = ""
     @State private var createPrefix = ""
     @State private var createCloneURL = ""
-    @State private var showCreateAgent = false
-    @State private var createAgentBranch = ""
-    @State private var createAgentThreeWordName = ""
     @State private var archivedSheetWorkspace: WorkspaceSummary?
     @State private var renameWorkspaceSlug = ""
     @State private var renameAgentBranch = ""
@@ -70,7 +67,12 @@ struct WorkspaceSidebarView: View {
         .sheet(isPresented: $showCreateWorkspace) {
             createWorkspaceSheet
         }
-        .sheet(isPresented: $showCreateAgent) {
+        .sheet(isPresented: Binding(
+            get: { agents.pendingCreateWorktree },
+            set: { presented in
+                if !presented { agents.cancelCreateWorktree() }
+            }
+        )) {
             createAgentSheet
         }
         .sheet(item: $archivedSheetWorkspace) { workspace in
@@ -555,40 +557,41 @@ struct WorkspaceSidebarView: View {
             Text("New Worktree")
                 .font(.headline)
             VStack(alignment: .leading, spacing: 4) {
+                TextField("branch name", text: $agents.draftBranchName)
+                    .textFieldStyle(.roundedBorder)
+                Text("Git branch — the primary label in the sidebar. Empty → folder name below.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    TextField("folder name", text: $createAgentThreeWordName)
+                    TextField("folder name", text: $agents.draftThreeWordName)
                         .textFieldStyle(.roundedBorder)
                     Button {
-                        createAgentThreeWordName = agents.generateThreeWordName()
+                        let name = agents.generateThreeWordName()
+                        agents.draftThreeWordName = name
+                        agents.draftBranchName = name
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
                     .help("Regenerate Three-Word Name")
                 }
-                Text("Three-Word folder name — edit or regenerate before creating.")
+                Text("On-disk folder (Three-Word Name).")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-            TextField("branch (optional)", text: $createAgentBranch)
-                .textFieldStyle(.roundedBorder)
-            Text("Optional branch name (empty → folder name above).")
-                .font(.caption)
-                .foregroundStyle(.secondary)
             HStack {
                 Spacer()
-                Button("Cancel") { showCreateAgent = false }
+                Button("Cancel") {
+                    agents.cancelCreateWorktree()
+                }
                 Button("Create") {
-                    agents.draftThreeWordName = createAgentThreeWordName
-                    agents.draftBranchName = createAgentBranch
                     agents.createAgent()
-                    if agents.lastError == nil {
-                        showCreateAgent = false
-                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(
                     workspaces.current == nil
-                        || createAgentThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || agents.draftThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
             }
             if let error = agents.lastError {
@@ -599,7 +602,7 @@ struct WorkspaceSidebarView: View {
             }
         }
         .padding(20)
-        .frame(width: 360)
+        .frame(width: 380)
     }
 
     private func beginCreateWorkspace() {
@@ -611,10 +614,7 @@ struct WorkspaceSidebarView: View {
     }
 
     private func beginCreateAgent() {
-        createAgentBranch = ""
-        createAgentThreeWordName = agents.generateThreeWordName()
-        agents.lastError = nil
-        showCreateAgent = true
+        agents.beginCreateWorktree()
     }
 
     private func beginRenameWorkspace(_ workspace: WorkspaceSummary) {

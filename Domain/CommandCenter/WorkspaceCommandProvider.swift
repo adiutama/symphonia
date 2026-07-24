@@ -82,7 +82,7 @@ struct WorkspaceCommandProvider: CommandProvider {
             Command(
                 id: "agent.new",
                 title: "New Worktree",
-                subtitle: workspaces.current == nil ? "needs Workspace" : nil,
+                subtitle: workspaces.current == nil ? "needs Workspace" : "opens create sheet",
                 group: "Worktree",
                 defaultAliases: ["/new"],
                 defaultShortcut: "n",

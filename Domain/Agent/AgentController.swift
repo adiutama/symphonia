@@ -45,6 +45,9 @@ final class AgentController: ObservableObject {
     @Published var draftRenameBranchName: String = ""
     @Published var draftRenameFolderName: String = ""
 
+    /// New Worktree sheet (sidebar + Command Center parity).
+    @Published var pendingCreateWorktree = false
+
     init(
         preferences: PreferencesController,
         workspaces: WorkspaceController,
@@ -198,12 +201,31 @@ final class AgentController: ObservableObject {
             )
             draftBranchName = ""
             draftThreeWordName = ""
+            pendingCreateWorktree = false
             refresh()
             focus(summary)
             lastError = nil
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    // MARK: - Create Worktree
+
+    /// Open the New Worktree sheet with branch-first drafts (P1.4 / C.4).
+    func beginCreateWorktree() {
+        let name = generateThreeWordName()
+        draftThreeWordName = name
+        draftBranchName = name
+        lastError = nil
+        pendingCreateWorktree = true
+    }
+
+    func cancelCreateWorktree() {
+        pendingCreateWorktree = false
+        draftBranchName = ""
+        draftThreeWordName = ""
+        lastError = nil
     }
 
     /// Focus Main Repo for the given Workspace (cwd = `<workspace>/main/`).
@@ -481,6 +503,7 @@ final class AgentController: ObservableObject {
         pendingRename = nil
         draftRenameBranchName = ""
         draftRenameFolderName = ""
+        pendingCreateWorktree = false
         draftBranchName = ""
         draftThreeWordName = ""
         // Drop Main CLI PTYs from the previous Workspace (cmux-style: sessions are per workspace).
