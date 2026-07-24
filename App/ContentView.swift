@@ -1,4 +1,11 @@
+import AppKit
 import SwiftUI
+
+/// Sidebar display mode: fully expanded, or a narrow rail that keeps focus/switch affordances.
+enum SidebarMode: String {
+    case expanded
+    case rail
+}
 
 struct ContentView: View {
     @EnvironmentObject private var preferences: PreferencesController
@@ -8,14 +15,27 @@ struct ContentView: View {
     @EnvironmentObject private var overlays: OverlayController
     @EnvironmentObject private var commandMode: CommandModeController
 
-    @State private var sidebarVisible = true
+    @AppStorage("sidebarMode") private var sidebarModeRaw: String = SidebarMode.expanded.rawValue
+    @AppStorage("sidebarWidth") private var sidebarWidth: Double = 240
+    @State private var dragStartWidth: Double?
+
+    private let sidebarMinWidth: Double = 180
+    private let sidebarMaxWidth: Double = 400
+    private let sidebarRailWidth: CGFloat = 52
+
+    private var sidebarMode: SidebarMode {
+        SidebarMode(rawValue: sidebarModeRaw) ?? .expanded
+    }
 
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                if sidebarVisible {
+                if sidebarMode == .expanded {
                     WorkspaceSidebarView()
-                        .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
+                        .frame(width: sidebarWidth)
+                    resizeDivider
+                } else {
+                    sidebarRail
                     Divider()
                 }
 
@@ -40,20 +60,125 @@ struct ContentView: View {
             }
         }
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
-        .animation(.easeInOut(duration: 0.15), value: sidebarVisible)
+        .animation(.easeInOut(duration: 0.15), value: sidebarModeRaw)
+    }
+
+    /// Draggable divider between the expanded sidebar and the workspace content; persists width.
+    private var resizeDivider: some View {
+        Divider()
+            .contentShape(Rectangle().inset(by: -4))
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.resizeLeftRight.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                    .onChanged { value in
+                        let base = dragStartWidth ?? sidebarWidth
+                        if dragStartWidth == nil {
+                            dragStartWidth = base
+                        }
+                        let proposed = base + value.translation.width
+                        sidebarWidth = min(max(proposed, sidebarMinWidth), sidebarMaxWidth)
+                    }
+                    .onEnded { _ in
+                        dragStartWidth = nil
+                    }
+            )
+    }
+
+    /// Narrow rail shown when the sidebar is collapsed: keeps expand control + current
+    /// Workspace’s Main/Worktree affordances so Operator can still see focus / switch sessions.
+    private var sidebarRail: some View {
+        VStack(spacing: 6) {
+            Button {
+                sidebarModeRaw = SidebarMode.expanded.rawValue
+            } label: {
+                Image(systemName: "sidebar.leading")
+            }
+            .buttonStyle(.borderless)
+            .help("Expand sidebar")
+            .padding(.top, 10)
+
+            Divider()
+                .padding(.horizontal, 10)
+
+            if let current = workspaces.current {
+                ScrollView {
+                    VStack(spacing: 6) {
+                        railMark(
+                            systemImage: "shippingbox",
+                            isFocused: isMainFocused(current),
+                            help: "Main · \(current.slug)"
+                        ) {
+                            workspaces.select(current)
+                            agents.focusMain(for: current)
+                        }
+
+                        ForEach(agents.agents(in: current)) { agent in
+                            railMark(
+                                systemImage: "arrow.triangle.branch",
+                                isFocused: agents.focusedSession?.agent?.id == agent.id,
+                                help: agent.primaryLabel
+                            ) {
+                                workspaces.select(current)
+                                agents.focus(agent)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(width: sidebarRailWidth)
+        .frame(maxHeight: .infinity)
+        .background(Color(nsColor: .controlBackgroundColor))
+    }
+
+    private func railMark(
+        systemImage: String,
+        isFocused: Bool,
+        help: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13))
+                .foregroundStyle(isFocused ? Color.accentColor : .secondary)
+                .frame(width: 32, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
+    private func isMainFocused(_ workspace: WorkspaceSummary) -> Bool {
+        guard workspaces.current?.id == workspace.id,
+              let session = agents.focusedSession,
+              case .mainRepo = session
+        else { return false }
+        return true
     }
 
     private var statusBar: some View {
         HStack(spacing: 10) {
             Button {
-                sidebarVisible.toggle()
+                sidebarModeRaw = (sidebarMode == .expanded ? SidebarMode.rail : SidebarMode.expanded).rawValue
             } label: {
-                Image(systemName: sidebarVisible
+                Image(systemName: sidebarMode == .expanded
                     ? "sidebar.left"
                     : "sidebar.leading")
             }
             .buttonStyle(.borderless)
-            .help(sidebarVisible ? "Hide sidebar" : "Show sidebar")
+            .help(sidebarMode == .expanded ? "Collapse sidebar" : "Expand sidebar")
             .keyboardShortcut("s", modifiers: [.command, .control])
 
             Text("Symphonia")
