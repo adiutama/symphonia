@@ -42,13 +42,17 @@ struct OverlayHostView: View {
 
             ForEach(overlays.focusedSessions) { session in
                 let isVisible = overlays.visibleOverlayID == session.id
-                overlayPane(session: session, isVisible: isVisible)
-                    .padding(28)
-                    .frame(maxWidth: 920, maxHeight: 640)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .opacity(isVisible ? 1 : 0)
-                    .allowsHitTesting(isVisible)
-                    .zIndex(isVisible ? 2 : 1)
+                // Tracks the parent window: sized as a fraction of the host, not fixed
+                // points, so the peek stays roomy on large windows and shrinks with them.
+                GeometryReader { proxy in
+                    overlayPane(session: session, isVisible: isVisible)
+                        .padding(24)
+                        .frame(width: proxy.size.width * 0.92, height: proxy.size.height * 0.88)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .opacity(isVisible ? 1 : 0)
+                .allowsHitTesting(isVisible)
+                .zIndex(isVisible ? 2 : 1)
             }
         }
         .animation(.easeOut(duration: 0.15), value: overlays.visibleOverlayID)
@@ -91,10 +95,16 @@ struct OverlayHostView: View {
                 }
                 .help("Quit this Overlay PTY (unlike Hide)")
             }
-            Button("Hide") {
+            // Demoted: primary hide path is Command Center `/hide` `/x` (or backdrop tap).
+            Button {
                 overlays.hide()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption)
             }
-            .help("Hide Overlay; process stays alive")
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help("Hide Overlay (also: /hide in Command Center); process stays alive")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
