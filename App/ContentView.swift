@@ -12,6 +12,7 @@ struct ContentView: View {
     @EnvironmentObject private var agents: AgentController
     @EnvironmentObject private var secrets: SecretStoreController
     @EnvironmentObject private var commandMode: CommandModeController
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     @AppStorage("sidebarMode") private var sidebarModeRaw: String = SidebarMode.expanded.rawValue
     @AppStorage("sidebarWidth") private var sidebarWidth: Double = 240
@@ -57,6 +58,7 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
+        .background(ghosttyTheme.background)
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
         .animation(.easeInOut(duration: 0.15), value: sidebarModeRaw)
     }
@@ -135,7 +137,7 @@ struct ContentView: View {
         }
         .frame(width: sidebarRailWidth)
         .frame(maxHeight: .infinity)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(ghosttyTheme.sidebar)
     }
 
     private func railMark(
@@ -203,7 +205,7 @@ struct ContentView: View {
         .foregroundStyle(.secondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.bar)
+        .background(ghosttyTheme.bar)
     }
 
     private func statusBarWorkspaceSlug(for session: FocusedSession) -> String? {

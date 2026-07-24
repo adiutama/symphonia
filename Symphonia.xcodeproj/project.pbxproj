@@ -13,6 +13,7 @@
 		6A59CCFBAA5045A5B1E97F7D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A6590DB81C34F668323C7B0 /* Assets.xcassets */; };
 		4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115412EC1D89435FBC63B315 /* TerminalModule.swift */; };
 		B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */; };
+		E7A41C2A9F7D4E6B8C1A0D24 /* GhosttyChromeTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7A41C2A9F7D4E6B8C1A0D25 /* GhosttyChromeTheme.swift */; };
 		1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37F70031D6C42AEBC6226D2 /* DomainModule.swift */; };
 		B0C1D2E3F405162738495A6B /* SymphoniaPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A6C /* SymphoniaPaths.swift */; };
 		B0C1D2E3F405162738495A6D /* GlobalPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A6E /* GlobalPreferences.swift */; };
@@ -65,6 +66,7 @@
 		1A6590DB81C34F668323C7B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		115412EC1D89435FBC63B315 /* TerminalModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalModule.swift; sourceTree = "<group>"; };
 		C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurfaceView.swift; sourceTree = "<group>"; };
+		E7A41C2A9F7D4E6B8C1A0D25 /* GhosttyChromeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyChromeTheme.swift; sourceTree = "<group>"; };
 		E37F70031D6C42AEBC6226D2 /* DomainModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModule.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A6C /* SymphoniaPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymphoniaPaths.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A6E /* GlobalPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalPreferences.swift; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 			isa = PBXGroup;
 			children = (
 				115412EC1D89435FBC63B315 /* TerminalModule.swift */,
+				E7A41C2A9F7D4E6B8C1A0D25 /* GhosttyChromeTheme.swift */,
 				C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */,
 				E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */,
 			);
@@ -346,6 +349,7 @@
 				2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* PreferencesSettingsView.swift in Sources */,
 				4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */,
+				E7A41C2A9F7D4E6B8C1A0D24 /* GhosttyChromeTheme.swift in Sources */,
 				B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */,
 				1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */,
 				B0C1D2E3F405162738495A6B /* SymphoniaPaths.swift in Sources */,

@@ -4,6 +4,7 @@ import SwiftUI
 struct CommandModeView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var preferences: PreferencesController
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -15,7 +16,7 @@ struct CommandModeView: View {
             footer
         }
         .frame(width: 480)
-        .background(.regularMaterial)
+        .background(ghosttyTheme.panel)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)

@@ -7,6 +7,7 @@ import SwiftUI
 struct OverlayHostView: View {
     @EnvironmentObject private var agents: AgentController
     @EnvironmentObject private var overlays: OverlayController
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     var body: some View {
         ZStack {
@@ -25,7 +26,7 @@ struct OverlayHostView: View {
             }
 
             if agents.openedMainCLISessions.isEmpty {
-                Color.black
+                ghosttyTheme.background
                     .overlay {
                         Text("Select Main Repo or a Worktree")
                             .foregroundStyle(.secondary)
@@ -55,6 +56,7 @@ struct OverlayHostView: View {
                 .zIndex(isVisible ? 2 : 1)
             }
         }
+        .background(ghosttyTheme.background)
         .animation(.easeOut(duration: 0.15), value: overlays.visibleOverlayID)
         .animation(.easeOut(duration: 0.12), value: agents.focusedSession?.id)
     }
@@ -71,7 +73,7 @@ struct OverlayHostView: View {
             )
             .id(session.id)
         }
-        .background(.ultraThinMaterial)
+        .background(ghosttyTheme.panel)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)

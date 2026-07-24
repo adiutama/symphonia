@@ -11,6 +11,8 @@ struct SymphoniaApp: App {
     /// Command registry (ADR 0021). Drives `commandMode`'s root palette (CC.2);
     /// constructed here so it's app-wide and testable.
     @StateObject private var commandRegistry: CommandRegistry
+    /// Ghostty config colors for chrome (bg/fg/scheme). Load once at launch.
+    @StateObject private var ghosttyTheme: GhosttyChromeTheme
 
     init() {
         let preferences = PreferencesController()
@@ -45,6 +47,7 @@ struct SymphoniaApp: App {
         _overlays = StateObject(wrappedValue: overlays)
         _commandMode = StateObject(wrappedValue: commandMode)
         _commandRegistry = StateObject(wrappedValue: commandRegistry)
+        _ghosttyTheme = StateObject(wrappedValue: GhosttyChromeTheme.shared)
     }
 
     var body: some Scene {
@@ -57,6 +60,8 @@ struct SymphoniaApp: App {
                 .environmentObject(overlays)
                 .environmentObject(commandMode)
                 .environmentObject(commandRegistry)
+                .environmentObject(ghosttyTheme)
+                .preferredColorScheme(ghosttyTheme.colorScheme)
         }
         .defaultSize(width: 1100, height: 720)
         .commands {
@@ -71,6 +76,8 @@ struct SymphoniaApp: App {
                 .environmentObject(workspaces)
                 .environmentObject(secrets)
                 .environmentObject(commandRegistry)
+                .environmentObject(ghosttyTheme)
+                .preferredColorScheme(ghosttyTheme.colorScheme)
         }
     }
 }

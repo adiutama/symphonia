@@ -6,6 +6,7 @@ struct WorkspaceSidebarView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var agents: AgentController
     @EnvironmentObject private var preferences: PreferencesController
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     @State private var expandedWorkspaceIDs: Set<String> = []
     @State private var showCreateWorkspace = false
@@ -24,7 +25,7 @@ struct WorkspaceSidebarView: View {
             workspaceList
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(ghosttyTheme.sidebar)
         .confirmationDialog(
             removeDialogTitle,
             isPresented: Binding(

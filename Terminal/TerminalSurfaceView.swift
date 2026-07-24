@@ -37,7 +37,7 @@ final class TerminalSurfaceNSView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.backgroundColor = NSColor.black.cgColor
+        layer?.backgroundColor = GhosttyChromeTheme.shared.nsBackground.cgColor
     }
 
     @available(*, unavailable)
@@ -651,20 +651,6 @@ private extension NSEvent {
             }
         }
         return characters
-    }
-}
-
-/// One-time `ghostty_init` for the process.
-private enum GhosttyBootstrap {
-    private static var didInit = false
-
-    static func ensureInitialized() {
-        guard !didInit else { return }
-        didInit = true
-        let result = ghostty_init(UInt(CommandLine.argc), CommandLine.unsafeArgv)
-        if result != GHOSTTY_SUCCESS {
-            NSLog("ghostty_init failed with code \(result)")
-        }
     }
 }
 
