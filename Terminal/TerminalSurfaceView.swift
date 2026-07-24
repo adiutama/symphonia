@@ -527,10 +527,16 @@ final class TerminalSurfaceNSView: NSView {
 
     private func syncSurfaceGeometry() {
         guard let surface else { return }
-        let scale = Double(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2)
-        let width = UInt32(max(1, bounds.width.rounded(.down)))
-        let height = UInt32(max(1, bounds.height.rounded(.down)))
-        ghostty_surface_set_content_scale(surface, scale, scale)
+        // Ghostty expects framebuffer pixels (backing), not points — same as
+        // SurfaceView_AppKit.sizeDidChange (`convertToBacking`). Passing points on
+        // Retina leaves the Metal surface at ~½×½ of the view.
+        let pointSize = bounds.size
+        let backing = convertToBacking(NSRect(origin: .zero, size: pointSize)).size
+        let scaleX = pointSize.width > 0 ? Double(backing.width / pointSize.width) : Double(window?.backingScaleFactor ?? 2)
+        let scaleY = pointSize.height > 0 ? Double(backing.height / pointSize.height) : scaleX
+        let width = UInt32(max(1, backing.width.rounded(.down)))
+        let height = UInt32(max(1, backing.height.rounded(.down)))
+        ghostty_surface_set_content_scale(surface, scaleX, scaleY)
         ghostty_surface_set_size(surface, width, height)
     }
 

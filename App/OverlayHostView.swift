@@ -11,6 +11,9 @@ struct OverlayHostView: View {
 
     var body: some View {
         ZStack {
+            // Expand the ZStack to the proposed host size so Main CLI surfaces fill it.
+            ghosttyTheme.background
+
             ForEach(agents.openedMainCLISessions) { slot in
                 let isVisible = agents.focusedSession?.id == slot.id && !overlays.isShowingOverlay
                 TerminalSurfaceView(
@@ -20,18 +23,17 @@ struct OverlayHostView: View {
                     isActive: isVisible
                 )
                 .id(slot.viewIdentity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(agents.focusedSession?.id == slot.id ? 1 : 0)
                 .allowsHitTesting(isVisible)
                 .zIndex(agents.focusedSession?.id == slot.id ? 0 : -1)
             }
 
             if agents.openedMainCLISessions.isEmpty {
-                ghosttyTheme.background
-                    .overlay {
-                        Text("Select Main Repo or a Worktree")
-                            .foregroundStyle(.secondary)
-                    }
-                    .zIndex(-2)
+                Text("Select Main Repo or a Worktree")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .zIndex(-1)
             }
 
             if overlays.isShowingOverlay {
@@ -56,7 +58,7 @@ struct OverlayHostView: View {
                 .zIndex(isVisible ? 2 : 1)
             }
         }
-        .background(ghosttyTheme.background)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeOut(duration: 0.15), value: overlays.visibleOverlayID)
         .animation(.easeOut(duration: 0.12), value: agents.focusedSession?.id)
     }
