@@ -141,9 +141,9 @@ struct WorkspaceSidebarView: View {
                         }
                     } label: {
                         workspaceLabel(workspace)
-                    }
-                    .contextMenu {
-                        workspaceContextMenu(workspace)
+                            .contextMenu {
+                                workspaceContextMenu(workspace)
+                            }
                     }
                 }
             }
