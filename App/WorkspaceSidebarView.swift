@@ -161,16 +161,31 @@ struct WorkspaceSidebarView: View {
     }
 
     private func workspaceLabel(_ workspace: WorkspaceSummary) -> some View {
-        HStack(spacing: 6) {
+        let isCurrent = workspaces.current?.id == workspace.id
+        return HStack(spacing: 6) {
             Image(systemName: "folder.fill")
                 .foregroundStyle(.secondary)
                 .font(.caption)
             Text(displayLowercased(workspace.slug))
-                .fontWeight(workspaces.current?.id == workspace.id ? .semibold : .regular)
-            if workspaces.current?.id == workspace.id {
+                .fontWeight(isCurrent ? .semibold : .regular)
+            if isCurrent {
                 Circle()
                     .fill(Color.accentColor)
                     .frame(width: 6, height: 6)
+            }
+            Spacer(minLength: 0)
+            if isCurrent {
+                Button {
+                    selectWorkspace(workspace)
+                    beginCreateAgent()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("New Worktree")
+                .accessibilityLabel("New Worktree")
             }
         }
         .contentShape(Rectangle())
@@ -205,8 +220,23 @@ struct WorkspaceSidebarView: View {
                 selectWorkspace(workspace)
                 beginCreateAgent()
             }
+            Divider()
             Button("Reveal in Finder") {
                 reveal(SymphoniaPaths.workspaceMainDirectory(in: workspace.dataDirURL))
+            }
+            Button("Reload Main CLI") {
+                reloadMainCLI(for: workspace)
+            }
+            if hasMainRemoteURL(workspace) {
+                if workspace.mainIsGitRepo {
+                    Button("Re-clone Main…") {}
+                        .disabled(true)
+                        .help("Coming in Main CLI pass — heal on open already covers a missing main/")
+                } else {
+                    Button("Re-clone Main…") {
+                        recloneMain(for: workspace)
+                    }
+                }
             }
         }
     }
@@ -250,6 +280,7 @@ struct WorkspaceSidebarView: View {
                 selectWorkspace(workspace)
                 beginRenameAgent(agent)
             }
+            Divider()
             Button("Reveal in Finder") {
                 reveal(agent.worktreeURL)
             }
@@ -258,6 +289,10 @@ struct WorkspaceSidebarView: View {
             }
             Button("Copy Branch Name") {
                 copyToPasteboard(agent.branchName ?? agent.threeWordName)
+            }
+            Divider()
+            Button("Reload CLI") {
+                reloadCLI(for: agent, in: workspace)
             }
             Divider()
             Button("Archive Worktree") {
@@ -280,11 +315,33 @@ struct WorkspaceSidebarView: View {
         Button("Rename Workspace…") {
             beginRenameWorkspace(workspace)
         }
+        Divider()
+        Button("Secrets…") {
+            openSettings()
+        }
+        Button("Workspace Settings…") {
+            openSettings()
+        }
+        Divider()
         Button("Reveal in Finder") {
             reveal(workspace.dataDirURL)
         }
         Button("Reveal Main in Finder") {
             reveal(SymphoniaPaths.workspaceMainDirectory(in: workspace.dataDirURL))
+        }
+        Button("Reload Main CLI") {
+            reloadMainCLI(for: workspace)
+        }
+        if hasMainRemoteURL(workspace) {
+            if workspace.mainIsGitRepo {
+                Button("Re-clone Main…") {}
+                    .disabled(true)
+                    .help("Coming in Main CLI pass — heal on open already covers a missing main/")
+            } else {
+                Button("Re-clone Main…") {
+                    recloneMain(for: workspace)
+                }
+            }
         }
         Divider()
         Button("Archived Worktrees…") {
@@ -588,6 +645,50 @@ struct WorkspaceSidebarView: View {
 
     private func reveal(_ url: URL) {
         NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func openSettings() {
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+    }
+
+    private func workspaceConfig(for workspace: WorkspaceSummary) -> WorkspaceConfig? {
+        if workspace.id == workspaces.current?.id {
+            return workspaces.currentConfig
+        }
+        return try? WorkspaceStore().loadConfig(from: workspace.dataDirURL)
+    }
+
+    private func hasMainRemoteURL(_ workspace: WorkspaceSummary) -> Bool {
+        let remote = workspaceConfig(for: workspace)?.mainRemoteURL?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !remote.isEmpty
+    }
+
+    private func reloadMainCLI(for workspace: WorkspaceSummary) {
+        selectWorkspace(workspace)
+        agents.focusMain(for: workspace)
+        agents.respawnWithCurrentSecrets()
+    }
+
+    private func reloadCLI(for agent: AgentSummary, in workspace: WorkspaceSummary) {
+        selectWorkspace(workspace)
+        agents.focus(agent)
+        agents.respawnWithCurrentSecrets()
+    }
+
+    /// Re-clone Main from persisted remote when `main/` is missing or not a git repo (P1.5 heal).
+    private func recloneMain(for workspace: WorkspaceSummary) {
+        selectWorkspace(workspace)
+        agents.focusMain(for: workspace)
+        do {
+            let store = WorkspaceStore()
+            let config = try store.loadConfig(from: workspace.dataDirURL)
+            _ = try store.healMainIfNeeded(at: workspace.dataDirURL, config: config)
+            workspaces.refresh()
+            agents.refresh()
+        } catch {
+            workspaces.lastError = error.localizedDescription
+        }
     }
 
     private func copyToPasteboard(_ string: String) {
