@@ -26,8 +26,13 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     /// `config.json` written before this field existed) means none archived.
     var archivedThreeWordNames: [String]?
 
+    /// Remote URL `main/` was cloned from at Workspace create time (P1.4). Persisted so a future
+    /// heal-on-open (P1.5) can re-clone `main/` if it goes missing or stops being a git repo.
+    /// `nil` means Main was created with `git init` (no known remote).
+    var mainRemoteURL: String?
+
     enum CodingKeys: String, CodingKey {
-        case slug, prefix, mainCLICommand, editorCommand, leaderKey, baseRef, archivedThreeWordNames
+        case slug, prefix, mainCLICommand, editorCommand, leaderKey, baseRef, archivedThreeWordNames, mainRemoteURL
     }
 
     init(
@@ -37,7 +42,8 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
         editorCommand: String? = nil,
         leaderKey: String? = nil,
         baseRef: String? = nil,
-        archivedThreeWordNames: [String]? = nil
+        archivedThreeWordNames: [String]? = nil,
+        mainRemoteURL: String? = nil
     ) {
         self.slug = slug
         self.prefix = prefix
@@ -46,6 +52,7 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
         self.leaderKey = leaderKey
         self.baseRef = baseRef
         self.archivedThreeWordNames = archivedThreeWordNames
+        self.mainRemoteURL = mainRemoteURL
     }
 
     /// Map to Effective Setting overrides (Prefix → `workspacesRoot`).

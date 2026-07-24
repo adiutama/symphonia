@@ -25,6 +25,11 @@ final class AgentController: ObservableObject {
     /// Optional manual branch name on create; empty → Three-Word folder name (ADR 0018).
     @Published var draftBranchName: String = ""
 
+    /// Editable folder/Three-Word Name on create (P1.4); empty → auto-generate at create time.
+    /// The New Worktree sheet prefills this via `generateThreeWordName()` so Operator can accept
+    /// or edit before creating.
+    @Published var draftThreeWordName: String = ""
+
     /// Pending remove target for confirm UI (ADR 0020).
     @Published var pendingRemove: AgentSummary?
 
@@ -123,7 +128,17 @@ final class AgentController: ObservableObject {
         return allAgents(in: workspace).filter { archived.contains($0.threeWordName) }
     }
 
+    /// Generate a fresh unique Three-Word folder name for the current Workspace (P1.4 prefill /
+    /// regenerate). Falls back to an unscoped unique name when no Workspace is selected yet.
+    func generateThreeWordName() -> String {
+        let existing = workspaces.current.flatMap { try? store.existingFolderNames(workspaceDataDir: $0.dataDirURL) } ?? []
+        return (try? ThreeWordName.generateUnique(existing: existing)) ?? ""
+    }
+
     /// Create Agent under the selected Workspace (P4.1–P4.4).
+    ///
+    /// Folder name comes from `draftThreeWordName` when non-empty (Operator-edited prefill from
+    /// the New Worktree sheet, P1.4); otherwise a fresh unique Three-Word Name is generated.
     func createAgent() {
         guard let current = workspaces.current else {
             lastError = AgentStore.StoreError.noWorkspace.localizedDescription
@@ -131,10 +146,24 @@ final class AgentController: ObservableObject {
         }
 
         do {
-            let existing = try store.existingFolderNames(workspaceDataDir: current.dataDirURL)
-            let threeWord = try ThreeWordName.generateUnique(existing: existing)
-            let manual = draftBranchName.trimmingCharacters(in: .whitespacesAndNewlines)
-            let branch = manual.isEmpty ? threeWord : manual
+            let manualName = draftThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let threeWord: String
+            if manualName.isEmpty {
+                let existing = try store.existingFolderNames(workspaceDataDir: current.dataDirURL)
+                threeWord = try ThreeWordName.generateUnique(existing: existing)
+            } else {
+                // Reuse Workspace Slug validation: folder name must be a single safe path
+                // component (no traversal / separators) even when Operator-edited.
+                switch WorkspaceSlug.validate(manualName) {
+                case .success(let validated):
+                    threeWord = validated
+                case .failure(let error):
+                    lastError = error.localizedDescription
+                    return
+                }
+            }
+            let manualBranch = draftBranchName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let branch = manualBranch.isEmpty ? threeWord : manualBranch
             let baseRef = preferences.effective.baseRef
 
             let summary = try store.create(
@@ -144,6 +173,7 @@ final class AgentController: ObservableObject {
                 baseRef: baseRef
             )
             draftBranchName = ""
+            draftThreeWordName = ""
             refresh()
             focus(summary)
             lastError = nil
@@ -303,6 +333,7 @@ final class AgentController: ObservableObject {
         pendingRemove = nil
         pendingRemoveDeleteBranch = false
         draftBranchName = ""
+        draftThreeWordName = ""
         // Drop Main CLI PTYs from the previous Workspace (cmux-style: sessions are per workspace).
         openedMainCLISessions = []
         guard let current = workspaces.current else {

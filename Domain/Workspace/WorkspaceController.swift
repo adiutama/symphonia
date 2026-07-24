@@ -15,6 +15,8 @@ final class WorkspaceController: ObservableObject {
     /// Scaffold create fields.
     @Published var draftSlug: String = ""
     @Published var draftPrefix: String = ""
+    /// Optional clone source for Main (P1.4). Empty → `git init` as before.
+    @Published var draftCloneURL: String = ""
 
     init(
         preferences: PreferencesController,
@@ -57,15 +59,18 @@ final class WorkspaceController: ObservableObject {
     }
 
     /// Create Workspace under optional Prefix (empty → Workspaces Root), then select it.
+    /// When `draftCloneURL` is non-empty, Main is cloned from that URL instead of `git init`.
     func createWorkspace() {
         do {
             let summary = try store.create(
                 slug: draftSlug,
                 prefix: draftPrefix.isEmpty ? nil : draftPrefix,
-                workspacesRoot: workspacesRoot
+                workspacesRoot: workspacesRoot,
+                cloneURL: draftCloneURL.isEmpty ? nil : draftCloneURL
             )
             draftSlug = ""
             draftPrefix = ""
+            draftCloneURL = ""
             refresh()
             select(summary)
             lastError = nil

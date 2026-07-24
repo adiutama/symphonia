@@ -10,8 +10,10 @@ struct WorkspaceSidebarView: View {
     @State private var showCreateWorkspace = false
     @State private var createSlug = ""
     @State private var createPrefix = ""
+    @State private var createCloneURL = ""
     @State private var showCreateAgent = false
     @State private var createAgentBranch = ""
+    @State private var createAgentThreeWordName = ""
     @State private var archivedSheetWorkspace: WorkspaceSummary?
 
     var body: some View {
@@ -71,9 +73,7 @@ struct WorkspaceSidebarView: View {
                 .font(.headline)
             Spacer()
             Button {
-                createSlug = ""
-                createPrefix = ""
-                showCreateWorkspace = true
+                beginCreateWorkspace()
             } label: {
                 Image(systemName: "plus")
             }
@@ -85,9 +85,7 @@ struct WorkspaceSidebarView: View {
         .padding(.vertical, 10)
         .contextMenu {
             Button("Create Workspace…") {
-                createSlug = ""
-                createPrefix = ""
-                showCreateWorkspace = true
+                beginCreateWorkspace()
             }
             Button("Refresh") {
                 workspaces.refresh()
@@ -185,8 +183,7 @@ struct WorkspaceSidebarView: View {
             }
             Button("New Worktree…") {
                 selectWorkspace(workspace)
-                createAgentBranch = ""
-                showCreateAgent = true
+                beginCreateAgent()
             }
         }
     }
@@ -256,8 +253,7 @@ struct WorkspaceSidebarView: View {
         }
         Button("New Worktree…") {
             selectWorkspace(workspace)
-            createAgentBranch = ""
-            showCreateAgent = true
+            beginCreateAgent()
         }
         Button("Reveal in Finder") {
             reveal(workspace.dataDirURL)
@@ -272,9 +268,7 @@ struct WorkspaceSidebarView: View {
         }
         Divider()
         Button("Create Workspace…") {
-            createSlug = ""
-            createPrefix = ""
-            showCreateWorkspace = true
+            beginCreateWorkspace()
         }
     }
 
@@ -334,50 +328,108 @@ struct WorkspaceSidebarView: View {
                 .textFieldStyle(.roundedBorder)
             TextField("prefix (optional)", text: $createPrefix)
                 .textFieldStyle(.roundedBorder)
+            VStack(alignment: .leading, spacing: 4) {
+                TextField("clone URL (optional)", text: $createCloneURL)
+                    .textFieldStyle(.roundedBorder)
+                Text("Leave empty to start an empty repo (`git init`). Set a URL to clone Main from it.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             HStack {
                 Spacer()
                 Button("Cancel") { showCreateWorkspace = false }
                 Button("Create") {
                     workspaces.draftSlug = createSlug
                     workspaces.draftPrefix = createPrefix
+                    workspaces.draftCloneURL = createCloneURL
                     workspaces.createWorkspace()
-                    showCreateWorkspace = false
-                    if let current = workspaces.current {
-                        expandedWorkspaceIDs.insert(current.id)
-                        agents.focusMain(for: current)
+                    if workspaces.lastError == nil {
+                        showCreateWorkspace = false
+                        if let current = workspaces.current {
+                            expandedWorkspaceIDs.insert(current.id)
+                            agents.focusMain(for: current)
+                        }
                     }
                 }
                 .disabled(createSlug.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .keyboardShortcut(.defaultAction)
             }
+            if let error = workspaces.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(20)
-        .frame(width: 360)
+        .frame(width: 380)
     }
 
     private var createAgentSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("New Worktree")
                 .font(.headline)
-            Text("Optional branch name (empty → Three-Word folder name).")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    TextField("folder name", text: $createAgentThreeWordName)
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        createAgentThreeWordName = agents.generateThreeWordName()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .help("Regenerate Three-Word Name")
+                }
+                Text("Three-Word folder name — edit or regenerate before creating.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             TextField("branch (optional)", text: $createAgentBranch)
                 .textFieldStyle(.roundedBorder)
+            Text("Optional branch name (empty → folder name above).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             HStack {
                 Spacer()
                 Button("Cancel") { showCreateAgent = false }
                 Button("Create") {
+                    agents.draftThreeWordName = createAgentThreeWordName
                     agents.draftBranchName = createAgentBranch
                     agents.createAgent()
-                    showCreateAgent = false
+                    if agents.lastError == nil {
+                        showCreateAgent = false
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(workspaces.current == nil)
+                .disabled(
+                    workspaces.current == nil
+                        || createAgentThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
+            }
+            if let error = agents.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(20)
         .frame(width: 360)
+    }
+
+    private func beginCreateWorkspace() {
+        createSlug = ""
+        createPrefix = ""
+        createCloneURL = ""
+        workspaces.lastError = nil
+        showCreateWorkspace = true
+    }
+
+    private func beginCreateAgent() {
+        createAgentBranch = ""
+        createAgentThreeWordName = agents.generateThreeWordName()
+        agents.lastError = nil
+        showCreateAgent = true
     }
 
     private func selectWorkspace(_ workspace: WorkspaceSummary) {

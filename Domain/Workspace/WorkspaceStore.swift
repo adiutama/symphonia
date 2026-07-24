@@ -2,9 +2,10 @@ import Foundation
 
 /// On-disk Workspace Data Dir create / layout / list (ADR 0012, 0014, 0015).
 ///
-/// Create runs `git init` in `main/` so dogfooding works immediately. Clone-later:
-/// Operator may replace `main/` with a CLI clone into that same path (remove the
-/// empty init first, or add a remote to the init’d repo). Opening an externally
+/// Create runs `git init` in `main/` by default so dogfooding works immediately, or
+/// `git clone <url>` when a Clone URL is supplied (P1.4) — the remote URL is then persisted
+/// on `config.json` (`mainRemoteURL`) for future heal-on-open (P1.5). Clone-later: Operator
+/// may also replace `main/` with a CLI clone into that same path. Opening an externally
 /// prepared `main/` is supported — layout ensure does not touch an existing repo.
 struct WorkspaceStore: Sendable {
     enum StoreError: LocalizedError, Equatable {
@@ -13,6 +14,7 @@ struct WorkspaceStore: Sendable {
         case missingConfig(URL)
         case notAWorkspace(URL)
         case gitInitFailed(String)
+        case gitCloneFailed(String)
 
         var errorDescription: String? {
             switch self {
@@ -26,6 +28,8 @@ struct WorkspaceStore: Sendable {
                 return "Not a Workspace Data Dir: \(url.path)"
             case .gitInitFailed(let detail):
                 return "git init failed: \(detail)"
+            case .gitCloneFailed(let detail):
+                return "git clone failed: \(detail)"
             }
         }
     }
@@ -51,15 +55,21 @@ struct WorkspaceStore: Sendable {
 
     // MARK: - Create / layout
 
-    /// Create a Workspace container: layout files/dirs, optional Prefix in config, `git init` in `main/`.
+    /// Create a Workspace container: layout files/dirs, optional Prefix in config.
+    ///
+    /// When `cloneURL` is non-empty, `main/` is populated with `git clone <cloneURL>` and the
+    /// remote URL is persisted on `config.json` (`mainRemoteURL`) for future heal-on-open
+    /// (P1.5). Otherwise `main/` is `git init`’d as before.
     @discardableResult
     func create(
         slug rawSlug: String,
         prefix rawPrefix: String?,
-        workspacesRoot: String
+        workspacesRoot: String,
+        cloneURL rawCloneURL: String? = nil
     ) throws -> WorkspaceSummary {
         let slug = try validatedSlug(rawSlug)
         let prefix = normalizedOptionalPath(rawPrefix)
+        let cloneURL = normalizedOptionalPath(rawCloneURL)
         let dataDir = dataDirURL(slug: slug, prefix: prefix, workspacesRoot: workspacesRoot)
 
         if fileManager.fileExists(atPath: dataDir.path) {
@@ -68,17 +78,18 @@ struct WorkspaceStore: Sendable {
 
         try fileManager.createDirectory(at: dataDir, withIntermediateDirectories: true)
 
-        var config = WorkspaceConfig(slug: slug, prefix: prefix)
+        let config = WorkspaceConfig(slug: slug, prefix: prefix, mainRemoteURL: cloneURL)
         try writeConfig(config, to: dataDir)
-        try ensureLayout(at: dataDir, initializeMainRepo: true)
+        try ensureLayout(at: dataDir, initializeMainRepo: cloneURL == nil, cloneRemoteURL: cloneURL)
 
         try registerInIndex(slug: slug, prefix: prefix)
         return try summary(for: dataDir, fallbackSlug: slug, fallbackPrefix: prefix)
     }
 
     /// Ensure `config.json`, `secrets.json` (0600), `main/`, `worktrees/` exist.
-    /// When `initializeMainRepo` is true and `main/` is not yet a git repo, run `git init`.
-    func ensureLayout(at dataDir: URL, initializeMainRepo: Bool) throws {
+    /// When `main/` is not yet a git repo: clone `cloneRemoteURL` if given, else `git init` when
+    /// `initializeMainRepo` is true.
+    func ensureLayout(at dataDir: URL, initializeMainRepo: Bool, cloneRemoteURL: String? = nil) throws {
         try fileManager.createDirectory(at: dataDir, withIntermediateDirectories: true)
 
         let configURL = SymphoniaPaths.workspaceConfigFile(in: dataDir)
@@ -94,8 +105,12 @@ struct WorkspaceStore: Sendable {
         try fileManager.createDirectory(at: mainDir, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: worktreesDir, withIntermediateDirectories: true)
 
-        if initializeMainRepo, !isGitRepository(mainDir) {
-            try gitInit(at: mainDir)
+        if !isGitRepository(mainDir) {
+            if let cloneRemoteURL {
+                try gitClone(remoteURL: cloneRemoteURL, into: mainDir)
+            } else if initializeMainRepo {
+                try gitInit(at: mainDir)
+            }
         }
     }
 
@@ -232,6 +247,29 @@ struct WorkspaceStore: Sendable {
             let errData = stderr.fileHandleForReading.readDataToEndOfFile()
             let detail = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
             throw StoreError.gitInitFailed(detail?.isEmpty == false ? detail! : "exit \(process.terminationStatus)")
+        }
+    }
+
+    /// `git clone <remoteURL> <mainDir>` — `mainDir` already exists (empty) from layout ensure.
+    private func gitClone(remoteURL: String, into mainDir: URL) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = ["clone", remoteURL, mainDir.path]
+        let stderr = Pipe()
+        process.standardOutput = Pipe()
+        process.standardError = stderr
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            throw StoreError.gitCloneFailed(error.localizedDescription)
+        }
+
+        guard process.terminationStatus == 0 else {
+            let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+            let detail = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw StoreError.gitCloneFailed(detail?.isEmpty == false ? detail! : "exit \(process.terminationStatus)")
         }
     }
 
