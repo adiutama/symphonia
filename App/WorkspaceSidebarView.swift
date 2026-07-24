@@ -666,29 +666,24 @@ struct WorkspaceSidebarView: View {
 
     private func reloadMainCLI(for workspace: WorkspaceSummary) {
         selectWorkspace(workspace)
-        agents.focusMain(for: workspace)
-        agents.respawnWithCurrentSecrets()
+        let target = workspaces.workspaces.first(where: { $0.id == workspace.id }) ?? workspace
+        agents.reloadMainCLI(for: target)
     }
 
     private func reloadCLI(for agent: AgentSummary, in workspace: WorkspaceSummary) {
         selectWorkspace(workspace)
-        agents.focus(agent)
-        agents.respawnWithCurrentSecrets()
+        let target = agents.agents(in: workspace).first(where: { $0.id == agent.id }) ?? agent
+        agents.reloadCLI(for: target)
     }
 
     /// Re-clone Main from persisted remote when `main/` is missing or not a git repo (P1.5 heal).
     private func recloneMain(for workspace: WorkspaceSummary) {
         selectWorkspace(workspace)
-        agents.focusMain(for: workspace)
-        do {
-            let store = WorkspaceStore()
-            let config = try store.loadConfig(from: workspace.dataDirURL)
-            _ = try store.healMainIfNeeded(at: workspace.dataDirURL, config: config)
-            workspaces.refresh()
-            agents.refresh()
-        } catch {
-            workspaces.lastError = error.localizedDescription
-        }
+        workspaces.healMain(for: workspace)
+        guard workspaces.lastError == nil else { return }
+        agents.refresh()
+        let target = workspaces.workspaces.first(where: { $0.id == workspace.id }) ?? workspace
+        agents.reloadMainCLI(for: target)
     }
 
     private func copyToPasteboard(_ string: String) {

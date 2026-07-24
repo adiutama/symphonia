@@ -230,6 +230,25 @@ final class WorkspaceController: ObservableObject {
         }
     }
 
+    // MARK: - Heal Main (P1.5 / C.3)
+
+    /// Repair `main/` when it is missing or not a git repo — re-clone from persisted remote or
+    /// `git init`. No-op when Main is already healthy. Refreshes the Workspace list so
+    /// `mainIsGitRepo` reflects disk. Returns whether disk was changed.
+    @discardableResult
+    func healMain(for summary: WorkspaceSummary) -> Bool {
+        do {
+            let config = try store.loadConfig(from: summary.dataDirURL)
+            let healed = try store.healMainIfNeeded(at: summary.dataDirURL, config: config)
+            refresh()
+            lastError = nil
+            return healed
+        } catch {
+            lastError = error.localizedDescription
+            return false
+        }
+    }
+
     /// When a Worktree folder is renamed, migrate its archived flag entry (if any).
     func renameArchivedWorktreeName(
         from oldName: String,

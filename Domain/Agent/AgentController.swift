@@ -215,9 +215,22 @@ final class AgentController: ObservableObject {
         applyFocus(.agent(agent), forceRespawn: false)
     }
 
+    /// Focus Main Repo and respawn its CLI with current secrets, locale, and cwd.
+    func reloadMainCLI(for workspace: WorkspaceSummary) {
+        applyFocus(.mainRepo(for: workspace), forceRespawn: true)
+    }
+
+    /// Focus a Worktree and respawn its CLI with current secrets, locale, and cwd.
+    func reloadCLI(for agent: AgentSummary) {
+        applyFocus(.agent(agent), forceRespawn: true)
+    }
+
     /// Re-apply current Enabled Secret Store + locale by restarting the focused session CLI only.
     func respawnWithCurrentSecrets() {
-        guard let focusedSession else { return }
+        guard let focusedSession else {
+            lastError = "No focused session to reload"
+            return
+        }
         applyFocus(focusedSession, forceRespawn: true)
     }
 
@@ -359,15 +372,23 @@ final class AgentController: ObservableObject {
     }
 
     private func applyFocus(_ session: FocusedSession, forceRespawn: Bool) {
+        let session = refreshedSession(for: session)
         focusedSession = session
         let env = currentSpawnEnvironment()
         focusedSpawnEnvironment = env
+        let command = spawnCommandValue()
         lastError = nil
 
         if let idx = openedMainCLISessions.firstIndex(where: { $0.id == session.id }) {
             if forceRespawn {
-                openedMainCLISessions[idx].spawnEnvironment = env
-                openedMainCLISessions[idx].generation += 1
+                let generation = openedMainCLISessions[idx].generation + 1
+                openedMainCLISessions[idx] = MainCLISurfaceSlot(
+                    id: session.id,
+                    workingDirectory: session.workingDirectory,
+                    command: command,
+                    spawnEnvironment: env,
+                    generation: generation
+                )
             }
             return
         }
@@ -376,11 +397,31 @@ final class AgentController: ObservableObject {
             MainCLISurfaceSlot(
                 id: session.id,
                 workingDirectory: session.workingDirectory,
-                command: spawnCommandValue(),
+                command: command,
                 spawnEnvironment: env,
                 generation: 0
             )
         )
+    }
+
+    /// Resolve latest cwd / slug from live Workspace + Worktree state (rename, heal, refresh).
+    private func refreshedSession(for session: FocusedSession) -> FocusedSession {
+        switch session {
+        case .mainRepo(let workspaceId, _, _):
+            if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId })
+                ?? (workspaces.current?.id == workspaceId ? workspaces.current : nil)
+            {
+                return .mainRepo(for: workspace)
+            }
+            return session
+        case .agent(let agent):
+            if let updated = agents.first(where: { $0.id == agent.id })
+                ?? agents.first(where: { $0.threeWordName == agent.threeWordName })
+            {
+                return .agent(updated)
+            }
+            return session
+        }
     }
 
     private func pruneOpenedSessionsToLiveSet() {

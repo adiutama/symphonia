@@ -206,6 +206,15 @@ final class CommandModeController: ObservableObject {
             lastInfo = "Rename Worktree"
             dismiss()
 
+        case .reloadFocusedCLI:
+            agents.respawnWithCurrentSecrets()
+            if let err = agents.lastError {
+                lastInfo = err
+            } else {
+                lastInfo = "Reloaded CLI"
+            }
+            dismiss()
+
         case .openEditor:
             overlays.openEditor()
             lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Editor"

@@ -70,6 +70,16 @@ struct WorkspaceCommandProvider: CommandProvider {
                 isEnabled: { _ in agents.focused != nil }
             ),
             Command(
+                id: "agent.reloadCLI",
+                title: "Reload CLI",
+                subtitle: focusedTargetSubtitle,
+                group: "Worktree",
+                defaultAliases: ["/reload"],
+                defaultShortcut: "l",
+                action: .reloadFocusedCLI,
+                isEnabled: { $0.hasFocusedSession }
+            ),
+            Command(
                 id: "agent.new",
                 title: "New Worktree",
                 subtitle: workspaces.current == nil ? "needs Workspace" : nil,
