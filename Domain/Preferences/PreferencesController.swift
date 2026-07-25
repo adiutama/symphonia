@@ -35,10 +35,11 @@ final class PreferencesController: ObservableObject {
             loaded = .default
             self.lastError = error.localizedDescription
         }
-        let didMigrate = Self.migrateBareCommandShortcuts(in: &loaded)
+        let didMigrateShortcuts = Self.migrateBareCommandShortcuts(in: &loaded)
+        let didMigrateIds = Self.migrateCommandIds(in: &loaded)
         self.preferences = loaded
         self.effective = EffectiveSettings.resolve(global: loaded, workspace: .none)
-        if didMigrate {
+        if didMigrateShortcuts || didMigrateIds {
             do {
                 try store.save(loaded)
                 lastError = nil
@@ -59,6 +60,29 @@ final class PreferencesController: ObservableObject {
             var next = override
             next.shortcut = normalized
             preferences.commandBindings[id] = next
+            changed = true
+        }
+        return changed
+    }
+
+    /// Move `agent.*` Command binding keys to `worktree.*` (L1). Keep new key if both exist.
+    @discardableResult
+    private static func migrateCommandIds(in preferences: inout GlobalPreferences) -> Bool {
+        let renames: [(String, String)] = [
+            ("agent.focusPicker", "worktree.focusPicker"),
+            ("agent.focusMain", "worktree.focusMain"),
+            ("agent.renameFocused", "worktree.renameFocused"),
+            ("agent.reloadCLI", "worktree.reloadCLI"),
+            ("agent.new", "worktree.new"),
+            ("agent.removeFocused", "worktree.removeFocused"),
+        ]
+        var changed = false
+        for (oldId, newId) in renames {
+            guard let override = preferences.commandBindings[oldId] else { continue }
+            if preferences.commandBindings[newId] == nil {
+                preferences.commandBindings[newId] = override
+            }
+            preferences.commandBindings.removeValue(forKey: oldId)
             changed = true
         }
         return changed

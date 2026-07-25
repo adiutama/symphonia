@@ -42,7 +42,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 isEnabled: { _ in workspaces.current != nil }
             ),
             Command(
-                id: "agent.focusPicker",
+                id: "worktree.focusPicker",
                 title: "Focus Worktree…",
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
@@ -51,7 +51,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 action: .showAgentPicker
             ),
             Command(
-                id: "agent.focusMain",
+                id: "worktree.focusMain",
                 title: "Focus Main…",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Worktree",
@@ -60,7 +60,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 action: .focusMainRepo
             ),
             Command(
-                id: "agent.renameFocused",
+                id: "worktree.renameFocused",
                 title: "Rename Worktree…",
                 subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
@@ -70,7 +70,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 isEnabled: { _ in agents.focused != nil }
             ),
             Command(
-                id: "agent.reloadCLI",
+                id: "worktree.reloadCLI",
                 title: "Reload CLI",
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
@@ -80,7 +80,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 isEnabled: { $0.hasFocusedSession }
             ),
             Command(
-                id: "agent.new",
+                id: "worktree.new",
                 title: "New Worktree",
                 subtitle: workspaces.current == nil ? "needs Workspace" : "opens create sheet",
                 group: "Worktree",
@@ -89,7 +89,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 action: .newAgent
             ),
             Command(
-                id: "agent.removeFocused",
+                id: "worktree.removeFocused",
                 title: "Remove Worktree…",
                 subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
