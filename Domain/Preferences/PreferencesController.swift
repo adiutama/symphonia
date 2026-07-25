@@ -76,6 +76,7 @@ final class PreferencesController: ObservableObject {
             ("agent.reloadCLI", "worktree.reloadCLI"),
             ("agent.new", "worktree.new"),
             ("agent.removeFocused", "worktree.removeFocused"),
+            ("overlay.hide", "overlay.toggle"),
         ]
         var changed = false
         for (oldId, newId) in renames {

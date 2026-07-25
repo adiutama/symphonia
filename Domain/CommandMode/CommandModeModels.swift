@@ -150,14 +150,16 @@ struct CommandModeItem: Identifiable, Equatable {
     var keybind: String? { sequence }
 }
 
-/// Actions runnable from Command Mode (ADR 0009).
+/// Actions runnable from Command Mode (ADR 0009 / 0022).
 enum CommandModeAction: Equatable {
     case dismiss
     case back
     case openSettings
+    case openKeymap
     case switchWorkspace(id: String)
     case focusMainRepo
     case focusWorktree(id: String)
+    case newWorkspace
     case newWorktree
     case removeFocusedWorktree
     case removeCurrentWorkspace
@@ -168,10 +170,15 @@ enum CommandModeAction: Equatable {
     case createBackground
     case peekBackground(id: UUID)
     case hideOverlay
-    /// Kill a Background Overlay PTY (Peek nest only).
+    case toggleOverlay
+    /// Kill a Background Overlay PTY (Overlay Switcher nest only).
     case closeOverlay(id: UUID)
     /// Toggle Status Cue list visibility (C.7).
     case toggleStatusCue
+    case cycleNextWorkspace
+    case cyclePrevWorkspace
+    case cycleNextWorktree
+    case cyclePrevWorktree
 
     /// Drill into a picker list (Workspace / Worktree / Overlay).
     case showWorkspacePicker
@@ -190,8 +197,8 @@ enum CommandModePhase: Equatable {
         switch self {
         case .root: return nil
         case .pickWorkspace: return "Switch Workspace"
-        case .pickWorktree: return "Focus Worktree"
-        case .pickBackground: return "Peek Overlay"
+        case .pickWorktree: return "Switch Worktree"
+        case .pickBackground: return "Overlay Switcher"
         }
     }
 }

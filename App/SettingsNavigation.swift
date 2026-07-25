@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-/// Deep-link target for the Settings window (T.5).
+/// Deep-link target for the Settings window (T.5) and Keymap cheatsheet (ADR 0022).
 ///
 /// Sidebar / Command Center set a destination, then present the custom Settings
 /// `Window` (not SwiftUI’s `Settings` scene — that scene forces a system titlebar
@@ -20,17 +20,21 @@ final class SettingsNavigation: ObservableObject {
     }
 
     @Published var pending: Destination?
+    /// Whether the Keymap window is currently open (for ⌘⇧/ toggle).
+    @Published private(set) var isKeymapOpen = false
 
     /// Installed from a view that has `@Environment(\.openWindow)`.
-    private var presentWindow: (() -> Void)?
+    private var presentSettingsWindow: (() -> Void)?
+    private var presentKeymapWindow: (() -> Void)?
 
-    func installPresenter(_ present: @escaping () -> Void) {
-        presentWindow = present
+    func installPresenter(settings: @escaping () -> Void, keymap: @escaping () -> Void) {
+        presentSettingsWindow = settings
+        presentKeymapWindow = keymap
     }
 
     func open(_ destination: Destination) {
         pending = destination
-        presentWindow?()
+        presentSettingsWindow?()
     }
 
     /// Opens Settings on Global → General.
@@ -38,9 +42,37 @@ final class SettingsNavigation: ObservableObject {
         open(.globalGeneral)
     }
 
+    /// Toggle the Keymap cheatsheet window (⌘⇧/).
+    func toggleKeymap() {
+        if isKeymapOpen {
+            closeKeymap()
+        } else {
+            presentKeymapWindow?()
+        }
+    }
+
+    func closeKeymap() {
+        for window in NSApp.windows where window.title == "Keymap" || isKeymapWindow(window) {
+            window.close()
+        }
+        isKeymapOpen = false
+    }
+
+    func keymapDidAppear() {
+        isKeymapOpen = true
+    }
+
+    func keymapDidDisappear() {
+        isKeymapOpen = false
+    }
+
     func consume() -> Destination? {
         let value = pending
         pending = nil
         return value
+    }
+
+    private func isKeymapWindow(_ window: NSWindow) -> Bool {
+        window.identifier?.rawValue.contains(SymphoniaSceneID.keymap) == true
     }
 }

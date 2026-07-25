@@ -11,7 +11,8 @@ struct CommandBindingsSettingsView: View {
             Text(
                 "Aliases are comma-separated filter keywords (Input mode). " +
                 "Sequences are Normal-mode chords (min 2 letters; j/k reserved). " +
-                "Empty Sequence uses the title-derived default. Clear or Reset falls back to defaults."
+                "Empty Sequence clears the chord; Reset restores the shipped keymap default " +
+                "(see docs/keymap.md). Clear Aliases to use none (defaults are empty)."
             )
             .font(.caption)
             .foregroundStyle(.secondary)

@@ -1,8 +1,6 @@
 import Foundation
 
-/// Exports Workspace / Worktree Commands into the `CommandRegistry` (ADR 0021 §2 / Path B).
-///
-/// Titles are the keymap — distinct verbs/nouns so default sequences do not collide.
+/// Exports Workspace / Worktree Commands into the `CommandRegistry` (ADR 0021 §2 / ADR 0022).
 struct WorkspaceCommandProvider: CommandProvider {
     let workspaces: WorkspaceController
     let worktrees: WorktreeController
@@ -24,40 +22,94 @@ struct WorkspaceCommandProvider: CommandProvider {
                 title: "Switch Workspace",
                 subtitle: workspaces.current.map { "current: \($0.slug)" } ?? "none selected",
                 group: "Workspace",
-                defaultAliases: ["/workspace", "/w"],
+                defaultSequence: "ww",
                 action: .showWorkspacePicker
+            ),
+            Command(
+                id: "workspace.new",
+                title: "New Workspace",
+                subtitle: "opens create sheet",
+                group: "Workspace",
+                defaultSequence: "wn",
+                action: .newWorkspace
+            ),
+            Command(
+                id: "workspace.cycleNext",
+                title: "Next Workspace",
+                subtitle: workspaces.current.map(\.slug) ?? "none selected",
+                group: "Workspace",
+                defaultSequence: "",
+                action: .cycleNextWorkspace,
+                isEnabled: { _ in !workspaces.workspaces.isEmpty }
+            ),
+            Command(
+                id: "workspace.cyclePrev",
+                title: "Previous Workspace",
+                subtitle: workspaces.current.map(\.slug) ?? "none selected",
+                group: "Workspace",
+                defaultSequence: "",
+                action: .cyclePrevWorkspace,
+                isEnabled: { _ in !workspaces.workspaces.isEmpty }
             ),
             Command(
                 id: "workspace.rename",
                 title: "Rename Slug",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Workspace",
-                defaultAliases: ["/renameworkspace", "Rename Workspace"],
+                defaultSequence: "wr",
                 action: .renameWorkspace,
                 isEnabled: { _ in workspaces.current != nil }
             ),
             Command(
+                id: "workspace.remove",
+                title: "Discard Workspace",
+                subtitle: workspaces.current.map { "delete \u{201C}\($0.slug)\u{201D} from disk" } ?? "needs Workspace",
+                group: "Workspace",
+                defaultSequence: "wd",
+                action: .removeCurrentWorkspace,
+                isEnabled: { _ in workspaces.current != nil }
+            ),
+            Command(
                 id: "worktree.focusPicker",
-                title: "Focus Worktree",
+                title: "Switch Worktree",
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
-                defaultAliases: ["/focus"],
+                defaultSequence: "tt",
                 action: .showWorktreePicker
+            ),
+            Command(
+                id: "worktree.cycleNext",
+                title: "Next Worktree",
+                subtitle: focusedTargetSubtitle,
+                group: "Worktree",
+                defaultSequence: "",
+                action: .cycleNextWorktree,
+                isEnabled: { _ in workspaces.current != nil }
+            ),
+            Command(
+                id: "worktree.cyclePrev",
+                title: "Previous Worktree",
+                subtitle: focusedTargetSubtitle,
+                group: "Worktree",
+                defaultSequence: "",
+                action: .cyclePrevWorktree,
+                isEnabled: { _ in workspaces.current != nil }
             ),
             Command(
                 id: "worktree.focusMain",
                 title: "Focus Main",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Worktree",
-                defaultAliases: ["/main"],
-                action: .focusMainRepo
+                defaultSequence: "mm",
+                action: .focusMainRepo,
+                isEnabled: { _ in workspaces.current != nil }
             ),
             Command(
                 id: "worktree.renameFocused",
                 title: "Rename Tree",
                 subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
-                defaultAliases: ["/renameworktree", "Rename Worktree"],
+                defaultSequence: "tr",
                 action: .renameFocusedWorktree,
                 isEnabled: { _ in worktrees.focused != nil }
             ),
@@ -66,7 +118,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 title: "Reload CLI",
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
-                defaultAliases: ["/reload"],
+                defaultSequence: "rr",
                 action: .reloadFocusedCLI,
                 isEnabled: { $0.hasFocusedSession }
             ),
@@ -75,7 +127,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 title: "New Worktree",
                 subtitle: workspaces.current == nil ? "needs Workspace" : "opens create sheet",
                 group: "Worktree",
-                defaultAliases: ["/new"],
+                defaultSequence: "tn",
                 action: .newWorktree
             ),
             Command(
@@ -83,23 +135,14 @@ struct WorkspaceCommandProvider: CommandProvider {
                 title: "Discard Tree",
                 subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
-                defaultAliases: ["/remove", "Remove Worktree"],
+                defaultSequence: "td",
                 action: .removeFocusedWorktree
-            ),
-            Command(
-                id: "workspace.remove",
-                title: "Discard Workspace",
-                subtitle: workspaces.current.map { "delete \u{201C}\($0.slug)\u{201D} from disk" } ?? "needs Workspace",
-                group: "Workspace",
-                defaultAliases: ["/rmworkspace", "/rw", "Remove Workspace"],
-                action: .removeCurrentWorkspace,
-                isEnabled: { _ in workspaces.current != nil }
             ),
         ]
     }
 }
 
-/// Exports chrome-level Commands that don't belong to a specific app area (ADR 0021 §2).
+/// Exports chrome-level Commands that don't belong to a specific app area (ADR 0021 §2 / ADR 0022).
 struct ChromeCommandProvider: CommandProvider {
     var commands: [Command] {
         [
@@ -108,15 +151,23 @@ struct ChromeCommandProvider: CommandProvider {
                 title: "Settings",
                 subtitle: "Opens the Settings window",
                 group: "App",
-                defaultAliases: ["/settings", "Open Settings"],
+                defaultSequence: "so",
                 action: .openSettings
+            ),
+            Command(
+                id: "chrome.openKeymap",
+                title: "Keymap",
+                subtitle: "Show keyboard shortcuts (⌘⇧/)",
+                group: "App",
+                defaultSequence: "kh",
+                action: .openKeymap
             ),
             Command(
                 id: "chrome.toggleStatusCue",
                 title: "Status Cue",
                 subtitle: "Show or hide the calm Overlay info list",
                 group: "View",
-                defaultAliases: ["/cue", "/status", "Toggle Status Cue"],
+                defaultSequence: "ct",
                 action: .toggleStatusCue
             ),
             Command(
@@ -124,7 +175,7 @@ struct ChromeCommandProvider: CommandProvider {
                 title: "Dismiss",
                 subtitle: "Esc",
                 group: "App",
-                defaultAliases: ["Dismiss Command Center"],
+                defaultSequence: "",
                 action: .dismiss
             ),
         ]

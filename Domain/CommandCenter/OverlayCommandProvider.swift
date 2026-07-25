@@ -1,44 +1,42 @@
 import Foundation
 
-/// Exports Overlay-related Commands into the `CommandRegistry` (ADR 0021 §2 / Path B).
-///
-/// Titles are the keymap: keep them tight and collision-free so default sequences stay unique.
+/// Exports Overlay-related Commands into the `CommandRegistry` (ADR 0021 §2 / ADR 0022).
 struct OverlayCommandProvider: CommandProvider {
     var commands: [Command] {
         [
             Command(
                 id: "overlay.openEditor",
-                title: "Edit",
+                title: "Open Editor",
                 subtitle: "Open the Editor Overlay for the focused Worktree or Main",
                 group: "Overlay",
-                defaultAliases: ["/editor", "/e", "Open Editor"],
+                defaultSequence: "ee",
                 action: .openEditor,
                 isEnabled: { $0.hasFocusedSession }
             ),
             Command(
-                id: "overlay.hide",
-                title: "Hide",
-                subtitle: "Return to Main CLI without quitting the Overlay process",
+                id: "overlay.toggle",
+                title: "Toggle Overlay",
+                subtitle: "Show or hide the last Overlay without quitting its process",
                 group: "Overlay",
-                defaultAliases: ["/hide", "/x", "/exit", "Hide Overlay"],
-                action: .hideOverlay,
-                isEnabled: { $0.hasFocusedSession && $0.overlayVisible }
+                defaultSequence: "oo",
+                action: .toggleOverlay,
+                isEnabled: { $0.hasFocusedSession }
             ),
             Command(
                 id: "overlay.createBackground",
-                title: "Background",
+                title: "Overlay Terminal",
                 subtitle: "Peek a new Background Overlay (empty command = shell)",
                 group: "Overlay",
-                defaultAliases: ["/background", "/bg", "Create Background CLI"],
+                defaultSequence: "ot",
                 action: .createBackground,
                 isEnabled: { $0.hasFocusedSession }
             ),
             Command(
                 id: "overlay.pickBackground",
-                title: "Peek Overlay…",
+                title: "Overlay Switcher",
                 subtitle: "Pick from live Editor / Background Overlays",
                 group: "Overlay",
-                defaultAliases: ["/pick", "/p"],
+                defaultSequence: "os",
                 action: .showBackgroundPicker,
                 isEnabled: { $0.hasFocusedSession }
             ),

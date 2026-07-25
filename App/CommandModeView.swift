@@ -58,7 +58,7 @@ struct CommandModeView: View {
         return mode
     }
 
-    // MARK: - E · Nest bar (Peek Overlay)
+    // MARK: - E · Nest bar (Overlay Switcher)
 
     private var nestBar: some View {
         HStack(spacing: 8) {
@@ -72,7 +72,7 @@ struct CommandModeView: View {
             .buttonStyle(.plain)
             .help("Back to main list (Esc)")
 
-            Text("Peek Overlay")
+            Text("Overlay Switcher")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.primary.opacity(0.85))
 
@@ -211,7 +211,7 @@ struct CommandModeView: View {
     }
 
     private var footerHints: String {
-        let move = commandMode.mode == .normal ? "j/k" : "↑↓"
+        let move = commandMode.mode == .normal ? "⌃N/P · j/k · ↑↓" : "⌃N/P · ↑↓"
         return "⇧Tab · \(move) · ↩ · Esc"
     }
 }

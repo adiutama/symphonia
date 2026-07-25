@@ -46,6 +46,8 @@ enum CommandBindingResolver {
             return CommandSequence.sanitize(override)
         }
         if let explicit = command.defaultSequence {
+            // Empty string = explicitly no sequence (e.g. Dismiss). Do not title-derive.
+            if explicit.isEmpty { return nil }
             return CommandSequence.sanitize(explicit)
         }
         return CommandSequence.defaultFromTitle(command.title)

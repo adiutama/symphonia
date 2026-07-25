@@ -145,20 +145,51 @@ final class CommandModeController: ObservableObject {
             lastInfo = "Settings"
             dismiss()
 
+        case .openKeymap:
+            let wasOpen = settingsNavigation.isKeymapOpen
+            settingsNavigation.toggleKeymap()
+            lastInfo = wasOpen ? "Keymap closed" : "Keymap"
+            if isActive { dismiss() }
+
         case .showWorkspacePicker:
-            enterNest(.pickWorkspace)
+            ensureCommandCenterThenNest(.pickWorkspace)
 
         case .showWorktreePicker:
-            enterNest(.pickWorktree)
+            ensureCommandCenterThenNest(.pickWorktree)
 
         case .showBackgroundPicker:
-            enterNest(.pickBackground)
+            openOverlaySwitcher()
+
+        case .newWorkspace:
+            workspaces.beginCreateWorkspace()
+            lastInfo = "New Workspace"
+            dismiss()
 
         case .switchWorkspace(let id):
             if let summary = workspaces.workspaces.first(where: { $0.id == id }) {
                 workspaces.select(summary)
                 lastInfo = "Workspace: \(summary.slug)"
             }
+            dismiss()
+
+        case .cycleNextWorkspace:
+            workspaces.cycleWorkspace(delta: 1)
+            lastInfo = workspaces.current.map { "Workspace: \($0.slug)" } ?? "No Workspace"
+            dismiss()
+
+        case .cyclePrevWorkspace:
+            workspaces.cycleWorkspace(delta: -1)
+            lastInfo = workspaces.current.map { "Workspace: \($0.slug)" } ?? "No Workspace"
+            dismiss()
+
+        case .cycleNextWorktree:
+            worktrees.cycleWorktree(delta: 1)
+            lastInfo = cycleWorktreeInfo()
+            dismiss()
+
+        case .cyclePrevWorktree:
+            worktrees.cycleWorktree(delta: -1)
+            lastInfo = cycleWorktreeInfo()
             dismiss()
 
         case .focusMainRepo:
@@ -244,12 +275,12 @@ final class CommandModeController: ObservableObject {
 
         case .createBackground:
             overlays.createBackgroundCLI()
-            lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Background CLI"
+            lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Overlay Terminal"
             dismiss()
 
         case .peekBackground(let id):
             overlays.peek(id)
-            lastInfo = overlays.visibleSession?.title ?? "Peek Overlay"
+            lastInfo = overlays.visibleSession?.title ?? "Overlay Switcher"
             dismiss()
 
         case .hideOverlay:
@@ -259,6 +290,11 @@ final class CommandModeController: ObservableObject {
             } else {
                 lastInfo = "Already on Main CLI"
             }
+            dismiss()
+
+        case .toggleOverlay:
+            overlays.toggle()
+            lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Toggle Overlay"
             dismiss()
 
         case .closeOverlay(let id):
@@ -278,6 +314,17 @@ final class CommandModeController: ObservableObject {
             UserDefaults.standard.set(next, forKey: key)
             lastInfo = next ? "Status cue on" : "Status cue off"
             dismiss()
+        }
+    }
+
+    private func cycleWorktreeInfo() -> String {
+        if let err = worktrees.lastError { return err }
+        guard let session = worktrees.focusedSession else { return "No session" }
+        switch session {
+        case .mainRepo(_, _, let slug):
+            return "Main · \(slug)"
+        case .worktree(let wt):
+            return "Worktree: \(wt.primaryLabel)"
         }
     }
 
@@ -309,7 +356,16 @@ final class CommandModeController: ObservableObject {
     private func filteredRootItems() -> [CommandModeItem] {
         let context = CommandContext(worktrees: worktrees, overlays: overlays)
         let commands = commandRegistry.availableCommands(context: context)
-            .filter { $0.action != .dismiss }
+            .filter { command in
+                switch command.action {
+                case .dismiss,
+                     .cycleNextWorkspace, .cyclePrevWorkspace,
+                     .cycleNextWorktree, .cyclePrevWorktree:
+                    return false
+                default:
+                    return true
+                }
+            }
         let overrides = preferences.preferences.commandBindings
 
         switch mode {
@@ -352,8 +408,10 @@ final class CommandModeController: ObservableObject {
         switch command.id {
         case "overlay.openEditor":
             return preferences.effective.editorCommand
-        case "overlay.hide":
-            return overlays.isShowingOverlay ? overlays.visibleSession?.title : "Already on Main CLI"
+        case "overlay.toggle":
+            return overlays.isShowingOverlay
+                ? overlays.visibleSession?.title
+                : "Main CLI"
         default:
             return command.subtitle
         }
@@ -536,7 +594,7 @@ final class CommandModeController: ObservableObject {
         list.append(CommandModeItem(
             id: "bg-hide",
             title: "Back",
-            subtitle: "Hide Overlay · Main CLI",
+            subtitle: "Main CLI · process stays alive",
             action: .hideOverlay
         ))
 
@@ -564,9 +622,18 @@ final class CommandModeController: ObservableObject {
     private func handleKeyDown(_ event: NSEvent) -> NSEvent? {
         let binding = LeaderKeyBinding.parse(preferences.effective.leaderKey)
 
+        // Keymap toggle works whether Command Center is open or not.
+        if KeymapBindings.isKeymapToggle(event) {
+            run(.openKeymap)
+            return nil
+        }
+
         if !isActive {
             if let binding, binding.matches(event) {
                 enter()
+                return nil
+            }
+            if handleGlobalShortcut(event) {
                 return nil
             }
             return event
@@ -595,8 +662,18 @@ final class CommandModeController: ObservableObject {
             return nil
         }
 
+        // ⌃N / ⌃P / ⌃U — both modes (ADR 0022).
+        if handleCommandCenterControlKeys(event) {
+            return nil
+        }
+
+        // CC-only modifier chords (ADR 0022).
+        if handleCommandCenterOnlyShortcut(event) {
+            return nil
+        }
+
         switch event.keyCode {
-        case 125: // down — Input (and always allowed)
+        case 125: // down
             moveSelection(1)
             return nil
         case 126: // up
@@ -652,6 +729,71 @@ final class CommandModeController: ObservableObject {
         return nil
     }
 
+    /// ⌃N / ⌃P move selection; ⌃U clears buffer (both Normal and Input).
+    private func handleCommandCenterControlKeys(_ event: NSEvent) -> Bool {
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard mods.contains(.control),
+              !mods.contains(.command),
+              !mods.contains(.option)
+        else { return false }
+        let chars = (event.charactersIgnoringModifiers ?? "").lowercased()
+        switch chars {
+        case "n":
+            moveSelection(1)
+            return true
+        case "p":
+            moveSelection(-1)
+            return true
+        case "u":
+            if !filterQuery.isEmpty {
+                filterQuery = ""
+                rebuildItems(resetSelection: true)
+            }
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Command Center–only chords from `KeymapBindings`.
+    private func handleCommandCenterOnlyShortcut(_ event: NSEvent) -> Bool {
+        guard let action = KeymapBindings.commandCenterOnlyAction(for: event) else { return false }
+        run(action)
+        return true
+    }
+
+    /// Global shortcuts when Command Center is inactive (`KeymapBindings`).
+    @discardableResult
+    private func handleGlobalShortcut(_ event: NSEvent) -> Bool {
+        // Keymap toggle handled earlier for all states.
+        guard let action = KeymapBindings.globalAction(for: event),
+              action != .openKeymap
+        else { return false }
+        if action == .showBackgroundPicker {
+            openOverlaySwitcher()
+        } else {
+            run(action)
+        }
+        return true
+    }
+
+    /// Open Command Center directly into Overlay Switcher nest.
+    private func openOverlaySwitcher() {
+        ensureCommandCenterThenNest(.pickBackground)
+    }
+
+    private func ensureCommandCenterThenNest(_ nest: CommandModePhase) {
+        if !isActive {
+            isActive = true
+            mode = preferences.preferences.commandCenterPreferredMode
+            filterQuery = ""
+            lastInfo = nil
+            nestSequences = [:]
+            resignTerminalFocus()
+        }
+        enterNest(nest)
+    }
+
     // MARK: - First responder
 
     private func resignTerminalFocus() {
@@ -689,5 +831,183 @@ final class CommandModeController: ObservableObject {
             }
         }
         return nil
+    }
+}
+
+// MARK: - KeymapBindings (globals / CC-only chords; ADR 0022)
+
+/// Single source of truth for Operator chords that are not Normal-mode sequences.
+///
+/// Matched by `CommandModeController`; listed by `KeymapCheatsheetView`.
+/// Sequences come from `CommandRegistry` + `CommandBindingResolver`.
+enum KeymapBindings {
+    enum Scope: String {
+        case global
+        case commandCenterOnly
+    }
+
+    /// One chord → action binding (globals and CC-only).
+    struct Chord: Identifiable, Equatable {
+        var id: String { "\(scope.rawValue)-\(display)-\(titleFallback)" }
+        let display: String
+        let titleFallback: String
+        let action: CommandModeAction
+        let scope: Scope
+        let matches: (NSEvent) -> Bool
+
+        static func == (lhs: Chord, rhs: Chord) -> Bool {
+            lhs.display == rhs.display
+                && lhs.titleFallback == rhs.titleFallback
+                && lhs.action == rhs.action
+                && lhs.scope == rhs.scope
+        }
+    }
+
+    /// Fixed Command Center navigation (not Commands).
+    struct ChromeRow: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let display: String
+    }
+
+    /// macOS / AppKit window life (not Symphonia Commands).
+    static let systemWindowRows: [(title: String, display: String)] = [
+        ("Quit", "⌘Q"),
+        ("Hide Symphonia", "⌘H"),
+        ("Hide Others", "⌥⌘H"),
+        ("Minimize", "⌘M"),
+        ("Close Window", "⌘W"),
+    ]
+
+    static let commandCenterChrome: [ChromeRow] = [
+        ChromeRow(id: "shift-tab", title: "Toggle Normal ↔ Input", display: "⇧Tab"),
+        ChromeRow(id: "esc", title: "Clear / leave nest / dismiss", display: "Esc"),
+        ChromeRow(id: "leader", title: "Dismiss", display: "Leader again"),
+        ChromeRow(id: "arrows", title: "Move selection", display: "↑ ↓"),
+        ChromeRow(id: "ctrl-np", title: "Move selection", display: "⌃N / ⌃P"),
+        ChromeRow(id: "return", title: "Run selected", display: "↩"),
+        ChromeRow(id: "delete", title: "Delete last char", display: "⌫"),
+        ChromeRow(id: "jk", title: "Move (Normal)", display: "j / k"),
+        ChromeRow(id: "ctrl-u", title: "Clear buffer", display: "⌃U"),
+    ]
+
+    static let globalChords: [Chord] = [
+        chord("⌘,", "Settings", .openSettings, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == ","
+        },
+        chord("⌘⇧/", "Keymap", .openKeymap, .global, matches: isKeymapToggle),
+        chord("⌘N", "New Workspace", .newWorkspace, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "n"
+        },
+        chord("⌘T", "New Worktree", .newWorktree, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "t"
+        },
+        chord("⌃⇥", "Next Workspace", .cycleNextWorkspace, .global) { e in
+            ctrlTab(e) && !shift(e)
+        },
+        chord("⌃⇧⇥", "Previous Workspace", .cyclePrevWorkspace, .global) { e in
+            ctrlTab(e) && shift(e)
+        },
+        chord("⌘]", "Next Worktree", .cycleNextWorktree, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "]"
+        },
+        chord("⌘[", "Previous Worktree", .cyclePrevWorktree, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "["
+        },
+        chord("⌘⇧M", "Focus Main", .focusMainRepo, .global) { e in
+            cmdOnly(e) && shift(e) && char(e) == "m"
+        },
+        chord("⌘E", "Open Editor", .openEditor, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "e"
+        },
+        chord("⌘J", "Overlay Terminal", .createBackground, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "j"
+        },
+        chord("⌘⇧O", "Overlay Switcher", .showBackgroundPicker, .global) { e in
+            cmdOnly(e) && shift(e) && char(e) == "o"
+        },
+        chord("⌘⇧E", "Toggle Overlay", .toggleOverlay, .global) { e in
+            cmdOnly(e) && shift(e) && char(e) == "e"
+        },
+        chord("⌘R", "Reload CLI", .reloadFocusedCLI, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "r"
+        },
+        chord("⌘⇧U", "Status Cue", .toggleStatusCue, .global) { e in
+            cmdOnly(e) && shift(e) && char(e) == "u"
+        },
+    ]
+
+    static let commandCenterOnlyChords: [Chord] = [
+        chord("⌘O", "Switch Workspace", .showWorkspacePicker, .commandCenterOnly) { e in
+            cmdOnly(e) && !shift(e) && !opt(e) && char(e) == "o"
+        },
+        chord("⌘⇧F", "Switch Worktree", .showWorktreePicker, .commandCenterOnly) { e in
+            cmdOnly(e) && shift(e) && !opt(e) && char(e) == "f"
+        },
+        chord("⌘⇧R", "Rename Slug", .renameWorkspace, .commandCenterOnly) { e in
+            cmdOnly(e) && shift(e) && !opt(e) && char(e) == "r"
+        },
+        chord("⌘⌥R", "Rename Tree", .renameFocusedWorktree, .commandCenterOnly) { e in
+            cmdOnly(e) && !shift(e) && opt(e) && char(e) == "r"
+        },
+        chord("⌘⇧⌫", "Discard Tree", .removeFocusedWorktree, .commandCenterOnly) { e in
+            cmdOnly(e) && shift(e) && !opt(e) && e.keyCode == 51
+        },
+        chord("⌘⌥⌫", "Discard Workspace", .removeCurrentWorkspace, .commandCenterOnly) { e in
+            cmdOnly(e) && !shift(e) && opt(e) && e.keyCode == 51
+        },
+    ]
+
+    static func globalAction(for event: NSEvent) -> CommandModeAction? {
+        globalChords.first(where: { $0.matches(event) })?.action
+    }
+
+    static func commandCenterOnlyAction(for event: NSEvent) -> CommandModeAction? {
+        commandCenterOnlyChords.first(where: { $0.matches(event) })?.action
+    }
+
+    static func isKeymapToggle(_ event: NSEvent) -> Bool {
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard mods.contains(.command),
+              mods.contains(.shift),
+              !mods.contains(.control),
+              !mods.contains(.option)
+        else { return false }
+        let chars = (event.charactersIgnoringModifiers ?? "").lowercased()
+        return chars == "/" || chars == "?" || event.keyCode == 44
+    }
+
+    private static func chord(
+        _ display: String,
+        _ title: String,
+        _ action: CommandModeAction,
+        _ scope: Scope,
+        matches: @escaping (NSEvent) -> Bool
+    ) -> Chord {
+        Chord(display: display, titleFallback: title, action: action, scope: scope, matches: matches)
+    }
+
+    private static func mods(_ event: NSEvent) -> NSEvent.ModifierFlags {
+        event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    }
+
+    private static func shift(_ event: NSEvent) -> Bool { mods(event).contains(.shift) }
+    private static func opt(_ event: NSEvent) -> Bool { mods(event).contains(.option) }
+
+    private static func char(_ event: NSEvent) -> String {
+        (event.charactersIgnoringModifiers ?? "").lowercased()
+    }
+
+    private static func cmdOnly(_ event: NSEvent) -> Bool {
+        let m = mods(event)
+        return m.contains(.command) && !m.contains(.control) && !m.contains(.option)
+    }
+
+    private static func ctrlTab(_ event: NSEvent) -> Bool {
+        let m = mods(event)
+        return m.contains(.control)
+            && !m.contains(.command)
+            && !m.contains(.option)
+            && event.keyCode == 48
     }
 }

@@ -234,6 +234,42 @@ final class WorktreeController: ObservableObject {
         applyFocus(.worktree(wt), forceRespawn: false)
     }
 
+    /// Cycle Main + Worktrees by `delta` (±1), wrapping (ADR 0022). Requires a current Workspace.
+    func cycleWorktree(delta: Int) {
+        guard let current = workspaces.current else {
+            lastError = "Select a Workspace first"
+            return
+        }
+        // Order: Main, then Worktrees in list order.
+        struct Slot {
+            let isMain: Bool
+            let worktree: WorktreeSummary?
+        }
+        var slots: [Slot] = [Slot(isMain: true, worktree: nil)]
+        slots.append(contentsOf: worktrees.map { Slot(isMain: false, worktree: $0) })
+        guard !slots.isEmpty else { return }
+
+        let index: Int
+        switch focusedSession {
+        case .some(.mainRepo):
+            index = 0
+        case .some(.worktree(let wt)):
+            index = slots.firstIndex(where: { $0.worktree?.id == wt.id }) ?? 0
+        case .none:
+            index = delta > 0 ? -1 : 0
+        }
+
+        let count = slots.count
+        let next = ((index + delta) % count + count) % count
+        let slot = slots[next]
+        if slot.isMain {
+            focusMain(for: current)
+        } else if let wt = slot.worktree {
+            focus(wt)
+        }
+        lastError = nil
+    }
+
     /// Focus Main Repo and respawn its CLI with current secrets, locale, and cwd.
     func reloadMainCLI(for workspace: WorkspaceSummary) {
         applyFocus(.mainRepo(for: workspace), forceRespawn: true)

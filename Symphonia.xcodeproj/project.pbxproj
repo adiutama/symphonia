@@ -15,6 +15,7 @@
 		S1T2U3V4W5X60718293A4B01 /* SettingsChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1T2U3V4W5X60718293A4B02 /* SettingsChrome.swift */; };
 		S1T2U3V4W5X60718293A4B03 /* DirectoryPathField.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1T2U3V4W5X60718293A4B04 /* DirectoryPathField.swift */; };
 		S1T2U3V4W5X60718293A4B05 /* KeyChordField.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1T2U3V4W5X60718293A4B06 /* KeyChordField.swift */; };
+		K1M2A3P4C5H60718293A4B01 /* KeymapCheatsheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1M2A3P4C5H60718293A4B02 /* KeymapCheatsheetView.swift */; };
 		6A59CCFBAA5045A5B1E97F7D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A6590DB81C34F668323C7B0 /* Assets.xcassets */; };
 		4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115412EC1D89435FBC63B315 /* TerminalModule.swift */; };
 		B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */; };
@@ -75,6 +76,7 @@
 		S1T2U3V4W5X60718293A4B02 /* SettingsChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsChrome.swift; sourceTree = "<group>"; };
 		S1T2U3V4W5X60718293A4B04 /* DirectoryPathField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryPathField.swift; sourceTree = "<group>"; };
 		S1T2U3V4W5X60718293A4B06 /* KeyChordField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyChordField.swift; sourceTree = "<group>"; };
+		K1M2A3P4C5H60718293A4B02 /* KeymapCheatsheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapCheatsheetView.swift; sourceTree = "<group>"; };
 		1A6590DB81C34F668323C7B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		115412EC1D89435FBC63B315 /* TerminalModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalModule.swift; sourceTree = "<group>"; };
 		C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurfaceView.swift; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 				S1T2U3V4W5X60718293A4B02 /* SettingsChrome.swift */,
 				S1T2U3V4W5X60718293A4B04 /* DirectoryPathField.swift */,
 				S1T2U3V4W5X60718293A4B06 /* KeyChordField.swift */,
+				K1M2A3P4C5H60718293A4B02 /* KeymapCheatsheetView.swift */,
 				9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */,
 				1A6590DB81C34F668323C7B0 /* Assets.xcassets */,
 			);
@@ -397,6 +400,7 @@
 				S1T2U3V4W5X60718293A4B01 /* SettingsChrome.swift in Sources */,
 				S1T2U3V4W5X60718293A4B03 /* DirectoryPathField.swift in Sources */,
 				S1T2U3V4W5X60718293A4B05 /* KeyChordField.swift in Sources */,
+				K1M2A3P4C5H60718293A4B01 /* KeymapCheatsheetView.swift in Sources */,
 				4D1FDB6B56E94FF6985556F3 /* TerminalModule.swift in Sources */,
 				E7A41C2A9F7D4E6B8C1A0D24 /* GhosttyChromeTheme.swift in Sources */,
 				E7A41C2A9F7D4E6B8C1A0D26 /* GhosttyWindowChrome.swift in Sources */,

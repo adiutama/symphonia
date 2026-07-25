@@ -99,7 +99,7 @@ struct OverlayHostView: View {
             .font(.caption.weight(.medium))
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("Hide Overlay (process stays alive); kill via Command Center nest")
+            .help("Hide Overlay (process stays alive); kill via Overlay Switcher")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)

@@ -24,6 +24,8 @@ final class OverlayController: ObservableObject {
     @Published private(set) var sessions: [OverlaySession] = []
     /// Currently peeked Overlay; nil shows Main CLI.
     @Published private(set) var visibleOverlayID: UUID?
+    /// Last peeked Overlay for the focused session (Toggle Overlay restore).
+    private var lastPeekedOverlayID: UUID?
     @Published var lastError: String?
     @Published var lastInfo: String?
 
@@ -77,10 +79,13 @@ final class OverlayController: ObservableObject {
         visibleOverlayID != nil
     }
 
-    // MARK: - Peek / hide
+    // MARK: - Peek / hide / toggle
 
     /// Return to Main CLI without quitting Overlay processes (ADR 0006/0007).
     func hide() {
+        if let visibleOverlayID {
+            lastPeekedOverlayID = visibleOverlayID
+        }
         visibleOverlayID = nil
         lastError = nil
     }
@@ -89,12 +94,38 @@ final class OverlayController: ObservableObject {
     func peek(_ id: UUID) {
         guard sessions.contains(where: { $0.id == id }) else { return }
         visibleOverlayID = id
+        lastPeekedOverlayID = id
         lastError = nil
+    }
+
+    /// Show or hide Overlay (ADR 0022). Visible → hide; hidden → last peeked, else Editor.
+    func toggle() {
+        if isShowingOverlay {
+            hide()
+            lastInfo = "Main CLI"
+            return
+        }
+        if let id = lastPeekedOverlayID,
+           focusedSessions.contains(where: { $0.id == id })
+        {
+            peek(id)
+            lastInfo = sessions.first(where: { $0.id == id })?.title ?? "Overlay"
+            return
+        }
+        if let editor = focusedEditor {
+            peek(editor.id)
+            lastInfo = editor.title
+            return
+        }
+        openEditor()
     }
 
     /// Explicit teardown (kills PTY when the host drops the surface).
     func close(_ id: UUID) {
         sessions.removeAll { $0.id == id }
+        if lastPeekedOverlayID == id {
+            lastPeekedOverlayID = nil
+        }
         if visibleOverlayID == id {
             visibleOverlayID = nil
         }
@@ -216,11 +247,17 @@ final class OverlayController: ObservableObject {
            let overlay = sessions.first(where: { $0.id == visibleOverlayID }),
            overlay.sessionId != focused?.id
         {
+            lastPeekedOverlayID = visibleOverlayID
             self.visibleOverlayID = nil
         }
         // Drop sessions whose owner is gone (removed Worktree / closed Workspace).
         let liveIDs = agents.liveOverlaySessionIDs
         sessions.removeAll { !liveIDs.contains($0.sessionId) }
+        if let lastPeekedOverlayID,
+           !sessions.contains(where: { $0.id == lastPeekedOverlayID })
+        {
+            self.lastPeekedOverlayID = nil
+        }
         if let visibleOverlayID,
            !sessions.contains(where: { $0.id == visibleOverlayID })
         {

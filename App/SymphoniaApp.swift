@@ -72,11 +72,75 @@ struct SymphoniaApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 720)
         .commands {
+            CommandGroup(replacing: .help) {
+                Button("Keymap") {
+                    settingsNavigation.toggleKeymap()
+                }
+                .keyboardShortcut("/", modifiers: [.command, .shift])
+            }
             CommandGroup(replacing: .appSettings) {
                 Button("Settings…") {
                     settingsNavigation.openSettings()
                 }
                 .keyboardShortcut(",", modifiers: .command)
+            }
+            CommandMenu("Workspace") {
+                Button("New Workspace") {
+                    workspaces.beginCreateWorkspace()
+                }
+                .keyboardShortcut("n", modifiers: .command)
+                Button("New Worktree") {
+                    commandMode.run(.newWorktree)
+                }
+                .keyboardShortcut("t", modifiers: .command)
+                Divider()
+                Button("Next Workspace") {
+                    commandMode.run(.cycleNextWorkspace)
+                }
+                .keyboardShortcut(.tab, modifiers: .control)
+                Button("Previous Workspace") {
+                    commandMode.run(.cyclePrevWorkspace)
+                }
+                .keyboardShortcut(.tab, modifiers: [.control, .shift])
+                Button("Next Worktree") {
+                    commandMode.run(.cycleNextWorktree)
+                }
+                .keyboardShortcut("]", modifiers: .command)
+                Button("Previous Worktree") {
+                    commandMode.run(.cyclePrevWorktree)
+                }
+                .keyboardShortcut("[", modifiers: .command)
+                Button("Focus Main") {
+                    commandMode.run(.focusMainRepo)
+                }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
+            }
+            CommandMenu("Overlay") {
+                Button("Open Editor") {
+                    commandMode.run(.openEditor)
+                }
+                .keyboardShortcut("e", modifiers: .command)
+                Button("Overlay Terminal") {
+                    commandMode.run(.createBackground)
+                }
+                .keyboardShortcut("j", modifiers: .command)
+                Button("Overlay Switcher") {
+                    commandMode.run(.showBackgroundPicker)
+                }
+                .keyboardShortcut("o", modifiers: [.command, .shift])
+                Button("Toggle Overlay") {
+                    commandMode.run(.toggleOverlay)
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                Divider()
+                Button("Reload CLI") {
+                    commandMode.run(.reloadFocusedCLI)
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                Button("Status Cue") {
+                    commandMode.run(.toggleStatusCue)
+                }
+                .keyboardShortcut("u", modifiers: [.command, .shift])
             }
         }
 
@@ -93,6 +157,19 @@ struct SymphoniaApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 860, height: 560)
+        .commandsRemoved()
+
+        Window("Keymap", id: SymphoniaSceneID.keymap) {
+            KeymapCheatsheetView()
+                .environmentObject(preferences)
+                .environmentObject(commandRegistry)
+                .environmentObject(settingsNavigation)
+                .environmentObject(ghosttyTheme)
+                .preferredColorScheme(ghosttyTheme.colorScheme)
+                .ghosttyWindowChrome(ghosttyTheme)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 480, height: 640)
         .commandsRemoved()
     }
 }

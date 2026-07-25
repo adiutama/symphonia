@@ -10,10 +10,6 @@ struct WorkspaceSidebarView: View {
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     @State private var expandedWorkspaceIDs: Set<String> = []
-    @State private var showCreateWorkspace = false
-    @State private var createSlug = ""
-    @State private var createPrefix = ""
-    @State private var createCloneURL = ""
     @State private var archivedSheetWorkspace: WorkspaceSummary?
     @State private var renameWorkspaceSlug = ""
     @State private var renameWorktreeBranch = ""
@@ -72,7 +68,12 @@ struct WorkspaceSidebarView: View {
         } message: {
             Text("Deletes the Workspace folder on disk (Main, Worktrees, secrets, config) and removes it from Symphonia’s index. This cannot be undone.")
         }
-        .sheet(isPresented: $showCreateWorkspace) {
+        .sheet(isPresented: Binding(
+            get: { workspaces.pendingCreateWorkspace },
+            set: { presented in
+                if !presented { workspaces.cancelCreateWorkspace() }
+            }
+        )) {
             createWorkspaceSheet
         }
         .sheet(isPresented: Binding(
@@ -417,12 +418,12 @@ struct WorkspaceSidebarView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Create Workspace")
                 .font(.headline)
-            TextField("slug", text: $createSlug)
+            TextField("slug", text: $workspaces.draftSlug)
                 .textFieldStyle(.roundedBorder)
-            TextField("prefix (optional)", text: $createPrefix)
+            TextField("prefix (optional)", text: $workspaces.draftPrefix)
                 .textFieldStyle(.roundedBorder)
             VStack(alignment: .leading, spacing: 4) {
-                TextField("clone URL (optional)", text: $createCloneURL)
+                TextField("clone URL (optional)", text: $workspaces.draftCloneURL)
                     .textFieldStyle(.roundedBorder)
                 Text("Leave empty to start an empty repo (`git init`). Set a URL to clone Main from it.")
                     .font(.caption2)
@@ -430,21 +431,17 @@ struct WorkspaceSidebarView: View {
             }
             HStack {
                 Spacer()
-                Button("Cancel") { showCreateWorkspace = false }
+                Button("Cancel") { workspaces.cancelCreateWorkspace() }
                 Button("Create") {
-                    workspaces.draftSlug = createSlug
-                    workspaces.draftPrefix = createPrefix
-                    workspaces.draftCloneURL = createCloneURL
                     workspaces.createWorkspace()
                     if workspaces.lastError == nil {
-                        showCreateWorkspace = false
                         if let current = workspaces.current {
                             expandedWorkspaceIDs.insert(current.id)
                             worktrees.focusMain(for: current)
                         }
                     }
                 }
-                .disabled(createSlug.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(workspaces.draftSlug.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .keyboardShortcut(.defaultAction)
             }
             if let error = workspaces.lastError {
@@ -616,11 +613,7 @@ struct WorkspaceSidebarView: View {
     }
 
     private func beginCreateWorkspace() {
-        createSlug = ""
-        createPrefix = ""
-        createCloneURL = ""
-        workspaces.lastError = nil
-        showCreateWorkspace = true
+        workspaces.beginCreateWorkspace()
     }
 
     private func beginCreateWorktree() {

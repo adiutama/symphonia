@@ -21,6 +21,9 @@ final class WorkspaceController: ObservableObject {
     /// Pending Workspace remove for confirm UI (deletes Data Dir + index entry).
     @Published var pendingRemoveWorkspace: WorkspaceSummary?
 
+    /// Pending New Workspace sheet (sidebar / Command Center / ⌘N).
+    @Published var pendingCreateWorkspace = false
+
     /// Pending Workspace rename sheet target + draft slug.
     @Published var pendingRenameWorkspace: WorkspaceSummary?
     @Published var draftRenameSlug: String = ""
@@ -84,12 +87,45 @@ final class WorkspaceController: ObservableObject {
             draftSlug = ""
             draftPrefix = ""
             draftCloneURL = ""
+            pendingCreateWorkspace = false
             refresh()
             select(summary)
             lastError = nil
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    /// Open the New Workspace sheet (draft fields cleared).
+    func beginCreateWorkspace() {
+        draftSlug = ""
+        draftPrefix = ""
+        draftCloneURL = ""
+        lastError = nil
+        pendingCreateWorkspace = true
+    }
+
+    func cancelCreateWorkspace() {
+        pendingCreateWorkspace = false
+        draftSlug = ""
+        draftPrefix = ""
+        draftCloneURL = ""
+        lastError = nil
+    }
+
+    /// Cycle current Workspace by `delta` (±1), wrapping. No-op if empty.
+    func cycleWorkspace(delta: Int) {
+        guard !workspaces.isEmpty else { return }
+        let ids = workspaces.map(\.id)
+        let index: Int
+        if let currentId = current?.id, let i = ids.firstIndex(of: currentId) {
+            index = i
+        } else {
+            index = delta > 0 ? -1 : 0
+        }
+        let count = ids.count
+        let next = ((index + delta) % count + count) % count
+        select(workspaces[next])
     }
 
     /// Switch current Workspace; loads `config.toml` into Effective Setting overrides. Opening
