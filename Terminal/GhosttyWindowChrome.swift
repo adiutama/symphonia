@@ -46,7 +46,7 @@ struct GhosttyWindowChrome: NSViewRepresentable {
     }
 }
 
-/// Empty chrome that starts a window drag (status bar / sidebar header gaps).
+/// Empty chrome that starts a window drag (sidebar header gaps).
 /// Do not place over the terminal or interactive controls.
 struct WindowDragRegion: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {

@@ -20,7 +20,7 @@ Prefer **Switch** over Select for Command titles (fits cycle language). Select m
 
 ## Design rules
 
-1. **Globals** are ⌘/⌃ chords for create, cycle, Editor, Overlay Terminal, Overlay Switcher, Toggle Overlay, Reload, Status Cue, **Keymap (⌘⇧/)**, plus macOS window life. No Toggle Sidebar. Every global is also a Command (ADR 0021); register `workspace.new` if missing.
+1. **Globals** are ⌘/⌃ chords for create, cycle, Editor, Overlay Terminal, Overlay Switcher, Toggle Overlay, Reload, **Keymap (⌘⇧/)**, plus macOS window life. No Toggle Sidebar. Every global is also a Command (ADR 0021); register `workspace.new` if missing.
 2. **Worktree cycle** includes **Main** (Main → Worktrees → wrap).
 3. **Command Center chrome** includes ↑↓, **⌃N/⌃P** (both modes), j/k (Normal only), ⇧Tab, Esc, ⌃U. Held: ⌃J/K, ⌃W, ⌃A/E, Tab-to-run.
 4. **CC-only chords** (⌘O, discard/rename, …) stay off the global map so they do not fight the PTY when CC is closed.

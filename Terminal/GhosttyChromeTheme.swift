@@ -11,8 +11,6 @@ final class GhosttyChromeTheme: ObservableObject {
     @Published private(set) var foreground: Color
     /// Slightly elevated from background for sidebar / rail separation.
     @Published private(set) var sidebar: Color
-    /// Slightly elevated for the status bar strip.
-    @Published private(set) var bar: Color
     /// Solid panel fill for Command Center (avoids light system materials on dark themes).
     @Published private(set) var panel: Color
     @Published private(set) var colorScheme: ColorScheme
@@ -33,7 +31,6 @@ final class GhosttyChromeTheme: ObservableObject {
         background = applied.background
         foreground = applied.foreground
         sidebar = applied.sidebar
-        bar = applied.bar
         panel = applied.panel
         colorScheme = applied.colorScheme
         nsBackground = applied.nsBackground
@@ -78,7 +75,6 @@ final class GhosttyChromeTheme: ObservableObject {
         background = applied.background
         foreground = applied.foreground
         sidebar = applied.sidebar
-        bar = applied.bar
         panel = applied.panel
         colorScheme = applied.colorScheme
         nsBackground = applied.nsBackground
@@ -88,7 +84,6 @@ final class GhosttyChromeTheme: ObservableObject {
         var background: Color
         var foreground: Color
         var sidebar: Color
-        var bar: Color
         var panel: Color
         var colorScheme: ColorScheme
         var nsBackground: NSColor
@@ -99,9 +94,8 @@ final class GhosttyChromeTheme: ObservableObject {
             background: Color(nsColor: resolved.background),
             foreground: Color(nsColor: resolved.foreground),
             // Sidebar lifts off the Ghostty terminal background so the traffic-light column
-            // reads as its own surface (Xcode / Raycast). Bar stays on background.
+            // reads as its own surface (Xcode / Raycast).
             sidebar: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.07)),
-            bar: Color(nsColor: resolved.background),
             // Command Center / Overlay chrome: tiny lift so panels read as peeks, not a different theme.
             panel: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.04)),
             colorScheme: resolved.isDark ? .dark : .light,

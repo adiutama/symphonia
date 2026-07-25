@@ -22,6 +22,7 @@ final class CommandModeController: ObservableObject {
     @Published var selectedIndex: Int = 0
     /// Shared buffer: filter text in Input, sequence prefix in Normal.
     @Published var filterQuery: String = ""
+    /// In-palette status line (e.g. Overlay Switcher after Close Overlay). Cleared on enter.
     @Published var lastInfo: String?
 
     private var localMonitor: Any?
@@ -142,13 +143,10 @@ final class CommandModeController: ObservableObject {
 
         case .openSettings:
             settingsNavigation.openSettings()
-            lastInfo = "Settings"
             dismiss()
 
         case .openKeymap:
-            let wasOpen = settingsNavigation.isKeymapOpen
             settingsNavigation.toggleKeymap()
-            lastInfo = wasOpen ? "Keymap closed" : "Keymap"
             if isActive { dismiss() }
 
         case .showWorkspacePicker:
@@ -162,143 +160,111 @@ final class CommandModeController: ObservableObject {
 
         case .newWorkspace:
             workspaces.beginCreateWorkspace()
-            lastInfo = "New Workspace"
             dismiss()
 
         case .switchWorkspace(let id):
             if let summary = workspaces.workspaces.first(where: { $0.id == id }) {
                 workspaces.select(summary)
-                lastInfo = "Workspace: \(summary.slug)"
             }
             dismiss()
 
         case .cycleNextWorkspace:
             workspaces.cycleWorkspace(delta: 1)
-            lastInfo = workspaces.current.map { "Workspace: \($0.slug)" } ?? "No Workspace"
             dismiss()
 
         case .cyclePrevWorkspace:
             workspaces.cycleWorkspace(delta: -1)
-            lastInfo = workspaces.current.map { "Workspace: \($0.slug)" } ?? "No Workspace"
             dismiss()
 
         case .cycleNextWorktree:
             worktrees.cycleWorktree(delta: 1)
-            lastInfo = cycleWorktreeInfo()
             dismiss()
 
         case .cyclePrevWorktree:
             worktrees.cycleWorktree(delta: -1)
-            lastInfo = cycleWorktreeInfo()
             dismiss()
 
         case .focusMainRepo:
             guard let current = workspaces.current else {
-                lastInfo = "Select a Workspace first"
                 dismiss()
                 return
             }
             worktrees.focusMain(for: current)
-            lastInfo = "Main"
             dismiss()
 
         case .focusWorktree(let id):
             if let wt = worktrees.worktrees.first(where: { $0.id == id }) {
                 worktrees.focus(wt)
-                lastInfo = "Worktree: \(wt.primaryLabel)"
             }
             dismiss()
 
         case .newWorktree:
             guard workspaces.current != nil else {
-                lastInfo = "Select a Workspace first"
                 dismiss()
                 return
             }
             worktrees.beginCreateWorktree()
-            lastInfo = "New Worktree"
             dismiss()
 
         case .removeFocusedWorktree:
             guard let focused = worktrees.focused else {
-                lastInfo = "No focused Worktree to remove"
                 dismiss()
                 return
             }
             worktrees.requestRemove(focused)
-            lastInfo = "Confirm Discard Tree"
             dismiss()
 
         case .removeCurrentWorkspace:
             guard let current = workspaces.current else {
-                lastInfo = "No Workspace selected"
                 dismiss()
                 return
             }
             workspaces.requestRemove(current)
-            lastInfo = "Confirm Discard Workspace"
             dismiss()
 
         case .renameWorkspace:
             guard let current = workspaces.current else {
-                lastInfo = "No Workspace selected"
                 dismiss()
                 return
             }
             workspaces.beginRename(current)
-            lastInfo = "Rename Slug"
             dismiss()
 
         case .renameFocusedWorktree:
             guard let focused = worktrees.focused else {
-                lastInfo = "Focus a Worktree first"
                 dismiss()
                 return
             }
             worktrees.beginRename(focused)
-            lastInfo = "Rename Tree"
             dismiss()
 
         case .reloadFocusedCLI:
             worktrees.respawnWithCurrentSecrets()
-            if let err = worktrees.lastError {
-                lastInfo = err
-            } else {
-                lastInfo = "Reloaded CLI"
-            }
             dismiss()
 
         case .openEditor:
             overlays.openEditor()
-            lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Editor"
             dismiss()
 
         case .createBackground:
             overlays.createBackgroundCLI()
-            lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Overlay Terminal"
             dismiss()
 
         case .peekBackground(let id):
             overlays.peek(id)
-            lastInfo = overlays.visibleSession?.title ?? "Overlay Switcher"
             dismiss()
 
         case .hideOverlay:
-            if overlays.isShowingOverlay {
-                overlays.hide()
-                lastInfo = "Main CLI"
-            } else {
-                lastInfo = "Already on Main CLI"
-            }
+            overlays.hide()
             dismiss()
 
         case .toggleOverlay:
             overlays.toggle()
-            lastInfo = overlays.lastInfo ?? overlays.lastError ?? "Toggle Overlay"
             dismiss()
 
         case .closeOverlay(let id):
             overlays.close(id)
+            // Stay in Overlay Switcher with feedback when more sessions remain.
             lastInfo = "Closed Overlay"
             if overlays.focusedSessions.isEmpty {
                 dismiss()
@@ -307,24 +273,6 @@ final class CommandModeController: ObservableObject {
                 assignNestSequences(for: .pickBackground)
                 rebuildItems(resetSelection: true)
             }
-
-        case .toggleStatusCue:
-            let key = StatusCueDefaults.listVisibleKey
-            let next = !UserDefaults.standard.bool(forKey: key)
-            UserDefaults.standard.set(next, forKey: key)
-            lastInfo = next ? "Status cue on" : "Status cue off"
-            dismiss()
-        }
-    }
-
-    private func cycleWorktreeInfo() -> String {
-        if let err = worktrees.lastError { return err }
-        guard let session = worktrees.focusedSession else { return "No session" }
-        switch session {
-        case .mainRepo(_, _, let slug):
-            return "Main · \(slug)"
-        case .worktree(let wt):
-            return "Worktree: \(wt.primaryLabel)"
         }
     }
 
@@ -931,9 +879,6 @@ enum KeymapBindings {
         },
         chord("⌘R", "Reload CLI", .reloadFocusedCLI, .global) { e in
             cmdOnly(e) && !shift(e) && char(e) == "r"
-        },
-        chord("⌘⇧U", "Status Cue", .toggleStatusCue, .global) { e in
-            cmdOnly(e) && shift(e) && char(e) == "u"
         },
     ]
 

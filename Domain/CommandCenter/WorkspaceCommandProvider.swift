@@ -163,14 +163,6 @@ struct ChromeCommandProvider: CommandProvider {
                 action: .openKeymap
             ),
             Command(
-                id: "chrome.toggleStatusCue",
-                title: "Status Cue",
-                subtitle: "Show or hide the calm Overlay info list",
-                group: "View",
-                defaultSequence: "ct",
-                action: .toggleStatusCue
-            ),
-            Command(
                 id: "chrome.dismiss",
                 title: "Dismiss",
                 subtitle: "Esc",

@@ -883,7 +883,7 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         statusLabel = nil
     }
 
-    /// Small auto-dismiss HUD for clipboard success (surface-local, not Status Cue).
+    /// Small auto-dismiss HUD for clipboard success (surface-local).
     private func showClipboardToast(_ message: String) {
         clipboardToastHideWorkItem?.cancel()
         clipboardToastHideWorkItem = nil

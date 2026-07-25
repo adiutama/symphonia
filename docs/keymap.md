@@ -32,7 +32,6 @@ Default Command **aliases are empty**. Sequences and chords below are defaults; 
 | Overlay Switcher | ⌘⇧O |
 | Toggle Overlay | ⌘⇧E |
 | Reload CLI | ⌘R |
-| Status Cue | ⌘⇧U |
 
 Worktree cycle includes **Main** (Main → Worktrees → wrap).
 
@@ -97,7 +96,6 @@ Min length 2; `j` / `k` reserved. Hot Commands use doubles; others use object + 
 | ot | Overlay Terminal |
 | os | Overlay Switcher |
 | so | Settings |
-| ct | Status Cue |
 | kh | Keymap |
 
 Dismiss has **no** sequence (Esc / Leader). Hide Overlay is not a Command — use **Toggle Overlay**.

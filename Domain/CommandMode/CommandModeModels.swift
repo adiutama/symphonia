@@ -145,9 +145,6 @@ struct CommandModeItem: Identifiable, Equatable {
         self.sequence = sequence
         self.action = action
     }
-
-    /// Legacy alias used by older call sites / docs.
-    var keybind: String? { sequence }
 }
 
 /// Actions runnable from Command Mode (ADR 0009 / 0022).
@@ -173,8 +170,6 @@ enum CommandModeAction: Equatable {
     case toggleOverlay
     /// Kill a Background Overlay PTY (Overlay Switcher nest only).
     case closeOverlay(id: UUID)
-    /// Toggle Status Cue list visibility (C.7).
-    case toggleStatusCue
     case cycleNextWorkspace
     case cyclePrevWorkspace
     case cycleNextWorktree

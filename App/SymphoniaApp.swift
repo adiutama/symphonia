@@ -137,10 +137,6 @@ struct SymphoniaApp: App {
                     commandMode.run(.reloadFocusedCLI)
                 }
                 .keyboardShortcut("r", modifiers: .command)
-                Button("Status Cue") {
-                    commandMode.run(.toggleStatusCue)
-                }
-                .keyboardShortcut("u", modifiers: [.command, .shift])
             }
         }
 

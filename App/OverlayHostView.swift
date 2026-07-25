@@ -55,8 +55,20 @@ struct OverlayHostView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .bottom) {
+            if let error = overlays.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(ghosttyTheme.panel.opacity(0.92))
+            }
+        }
         .animation(.easeOut(duration: 0.15), value: overlays.visibleOverlayID)
         .animation(.easeOut(duration: 0.12), value: worktrees.focusedSession?.id)
+        .animation(.easeOut(duration: 0.12), value: overlays.lastError)
     }
 
     private func overlayPane(session: OverlaySession, isVisible: Bool) -> some View {

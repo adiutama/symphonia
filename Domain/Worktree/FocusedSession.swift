@@ -38,41 +38,6 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
         return nil
     }
 
-    var workspaceId: String? {
-        switch self {
-        case .mainRepo(let workspaceId, _, _):
-            return workspaceId
-        case .worktree:
-            return nil
-        }
-    }
-
-    /// Sidebar / chrome label.
-    var displayTitle: String {
-        switch self {
-        case .mainRepo(_, _, let slug):
-            return "Main Repo · \(slug)"
-        case .worktree(let wt):
-            return wt.primaryLabel
-        }
-    }
-
-    /// Status bar SF Symbol — aligned with sidebar (`house.fill` for Main).
-    var statusBarIcon: String {
-        isMainRepo ? "house.fill" : "arrow.triangle.branch"
-    }
-
-    /// Calm status bar focus line: `slug · main` or `slug · branch`.
-    func statusBarContext(workspaceSlug: String) -> String {
-        let slug = displayLowercased(workspaceSlug)
-        switch self {
-        case .mainRepo:
-            return "\(slug) · main"
-        case .worktree(let wt):
-            return "\(slug) · \(displayLowercased(wt.primaryLabel))"
-        }
-    }
-
     static func mainRepo(for workspace: WorkspaceSummary) -> FocusedSession {
         .mainRepo(
             workspaceId: workspace.id,

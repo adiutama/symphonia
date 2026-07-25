@@ -2,9 +2,6 @@ import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var workspaces: WorkspaceController
-    @EnvironmentObject private var worktrees: WorktreeController
-    @EnvironmentObject private var secrets: SecretStoreController
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
@@ -21,12 +18,8 @@ struct ContentView: View {
                     .frame(width: sidebarWidth)
                 resizeDivider
 
-                VStack(spacing: 0) {
-                    statusBar
-                    OverlayHostView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                OverlayHostView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(minWidth: 720, minHeight: 420)
 
@@ -74,45 +67,5 @@ struct ContentView: View {
                         dragStartWidth = nil
                     }
             )
-    }
-
-    private var statusBar: some View {
-        HStack(spacing: 10) {
-            OverlayStatusCueView()
-
-            Spacer(minLength: 8)
-                .windowDragRegion()
-                .help("Drag to move window")
-
-            if let session = worktrees.focusedSession,
-               let slug = statusBarWorkspaceSlug(for: session) {
-                Label(session.statusBarContext(workspaceSlug: slug), systemImage: session.statusBarIcon)
-                    .lineLimit(1)
-            } else if let current = workspaces.current {
-                Text(displayLowercased(current.slug))
-                    .lineLimit(1)
-            }
-
-            if let info = commandMode.lastInfo, !commandMode.isActive {
-                Text(info)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        // Main column sits right of sidebar — light top pad under transparent titlebar.
-        .padding(.top, 2)
-        .background(ghosttyTheme.bar)
-    }
-
-    private func statusBarWorkspaceSlug(for session: FocusedSession) -> String? {
-        if case .mainRepo(_, _, let slug) = session {
-            return slug
-        }
-        return workspaces.current?.slug
     }
 }
