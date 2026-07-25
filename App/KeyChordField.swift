@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Record a Leader-style key combination into a binding string (`ctrl+p`).
+/// Record a Leader-style key combination into a binding string (`cmd+shift+p`).
 struct KeyChordField: View {
     @Binding var chord: String
     /// When true, recorded chords must include ctrl, opt, or cmd (Command Center shortcuts).

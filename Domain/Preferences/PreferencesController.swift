@@ -37,9 +37,10 @@ final class PreferencesController: ObservableObject {
         }
         let didMigrateShortcuts = Self.migrateBareCommandShortcuts(in: &loaded)
         let didMigrateIds = Self.migrateCommandIds(in: &loaded)
+        let didMigrateLeader = Self.migrateLeaderAndCtrlDefaults(in: &loaded)
         self.preferences = loaded
         self.effective = EffectiveSettings.resolve(global: loaded, workspace: .none)
-        if didMigrateShortcuts || didMigrateIds {
+        if didMigrateShortcuts || didMigrateIds || didMigrateLeader {
             do {
                 try store.save(loaded)
                 lastError = nil
@@ -88,6 +89,43 @@ final class PreferencesController: ObservableObject {
         return changed
     }
 
+    /// Bump stock Leader `ctrl+p` → `cmd+shift+p`, and stock in-palette `ctrl+…`
+    /// overrides → macOS/`⌘` defaults. Custom chords are left alone.
+    @discardableResult
+    private static func migrateLeaderAndCtrlDefaults(in preferences: inout GlobalPreferences) -> Bool {
+        var changed = false
+        let leader = preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if leader == "ctrl+p" || leader == "control+p" || leader == "⌃p" {
+            preferences.leaderKey = GlobalPreferences.default.leaderKey
+            changed = true
+        }
+
+        let shortcutRemap: [String: String] = [
+            "ctrl+w": "cmd+o",
+            "ctrl+a": "cmd+shift+a",
+            "ctrl+m": "cmd+shift+m",
+            "ctrl+r": "cmd+shift+r",
+            "ctrl+l": "cmd+r",
+            "ctrl+n": "cmd+n",
+            "ctrl+x": "cmd+shift+x",
+            "ctrl+,": "cmd+,",
+            "ctrl+e": "cmd+e",
+            "ctrl+h": "cmd+shift+h",
+            "ctrl+b": "cmd+shift+b",
+            "ctrl+o": "cmd+shift+o",
+        ]
+        for (id, override) in preferences.commandBindings {
+            guard let raw = override.shortcut, !raw.isEmpty else { continue }
+            let key = CommandBindingResolver.normalizeShortcut(raw)
+            guard let nextShortcut = shortcutRemap[key] else { continue }
+            var next = override
+            next.shortcut = nextShortcut
+            preferences.commandBindings[id] = next
+            changed = true
+        }
+        return changed
+    }
+
     private func refreshEffective() {
         effective = EffectiveSettings.resolve(global: preferences, workspace: workspaceOverrides)
     }
@@ -111,7 +149,7 @@ final class PreferencesController: ObservableObject {
     }
 
     /// Debounced persist of Global Setting only (`preferences.toml`). Does not touch Workspace config.
-    /// Empty Leader is restored to the default (`ctrl+p`) — Global must always have a binding.
+    /// Empty Leader is restored to the default (`cmd+shift+p`) — Global must always have a binding.
     func scheduleSave(after seconds: TimeInterval = 0.35) {
         pendingSave?.cancel()
         let work = DispatchWorkItem { [weak self] in

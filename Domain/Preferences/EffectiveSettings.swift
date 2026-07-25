@@ -37,10 +37,23 @@ struct EffectiveSettings: Equatable, Sendable {
             mainCLICommand: overrides.mainCLICommand ?? global.mainCLICommand,
             editorCommand: editorCommand,
             editorPresentation: EditorCommandResolver.presentation(forCommand: editorCommand),
-            leaderKey: overrides.leaderKey ?? global.leaderKey,
+            leaderKey: Self.resolvedLeaderKey(global: global.leaderKey, workspace: overrides.leaderKey),
             workspacesRoot: workspacesRoot,
             workspacesRootURL: SymphoniaPaths.expandingTildeInPath(workspacesRoot),
             baseRef: overrides.baseRef ?? global.baseRef
         )
+    }
+
+    /// Prefer Workspace Leader when set; ignore the old stock `ctrl+p` override so Global
+    /// `cmd+shift+p` can take over after the default Leader change.
+    private static func resolvedLeaderKey(global: String, workspace: String?) -> String {
+        guard let raw = workspace?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty
+        else { return global }
+        let normalized = raw.lowercased()
+        if normalized == "ctrl+p" || normalized == "control+p" || normalized == "⌃p" {
+            return global
+        }
+        return raw
     }
 }

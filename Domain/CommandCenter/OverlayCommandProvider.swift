@@ -13,7 +13,7 @@ struct OverlayCommandProvider: CommandProvider {
                 subtitle: "Open the Editor Overlay for the focused Worktree or Main",
                 group: "Overlay",
                 defaultAliases: ["/editor", "/e"],
-                defaultShortcut: "ctrl+e",
+                defaultShortcut: "cmd+e",
                 action: .openEditor,
                 isEnabled: { $0.hasFocusedSession }
             ),
@@ -23,7 +23,7 @@ struct OverlayCommandProvider: CommandProvider {
                 subtitle: "Return to Main CLI without quitting the Overlay process",
                 group: "Overlay",
                 defaultAliases: ["/hide", "/x", "/exit"],
-                defaultShortcut: "ctrl+h",
+                defaultShortcut: "cmd+shift+h",
                 action: .hideOverlay,
                 isEnabled: { $0.hasFocusedSession && $0.overlayVisible }
             ),
@@ -33,7 +33,7 @@ struct OverlayCommandProvider: CommandProvider {
                 subtitle: "Peek a new Background Overlay (empty command = shell)",
                 group: "Overlay",
                 defaultAliases: ["/background", "/bg"],
-                defaultShortcut: "ctrl+b",
+                defaultShortcut: "cmd+shift+b",
                 action: .createBackground,
                 isEnabled: { $0.hasFocusedSession }
             ),
@@ -43,7 +43,7 @@ struct OverlayCommandProvider: CommandProvider {
                 subtitle: "Pick from live Editor / Background Overlays",
                 group: "Overlay",
                 defaultAliases: ["/pick", "/p"],
-                defaultShortcut: "ctrl+o",
+                defaultShortcut: "cmd+shift+o",
                 action: .showBackgroundPicker,
                 isEnabled: { $0.hasFocusedSession }
             ),

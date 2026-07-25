@@ -223,9 +223,9 @@ struct PreferencesSettingsView: View {
 
     private var leaderDescription: String {
         if preferences.preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Required — empty restores default ⌃P on save."
+            return "Required — empty restores default ⌘⇧P on save."
         }
-        return "Opens Command Center."
+        return "Opens Command Center (VS Code–style ⌘⇧P by default)."
     }
 
     // MARK: - Commands

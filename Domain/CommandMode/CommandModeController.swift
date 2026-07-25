@@ -293,9 +293,7 @@ final class CommandModeController: ObservableObject {
             id: command.id,
             title: command.title,
             subtitle: liveSubtitle(for: command),
-            keybind: CommandBindingResolver.shortcutDisplay(
-                CommandBindingResolver.shortcut(for: command, overrides: overrides)
-            ),
+            keybind: CommandBindingResolver.shortcut(for: command, overrides: overrides),
             action: command.action
         )
     }
@@ -364,7 +362,7 @@ final class CommandModeController: ObservableObject {
                 id: "wt-main",
                 title: "main" + (mainFocused ? " ← focus" : ""),
                 subtitle: SymphoniaPaths.workspaceMainDirectory(in: current.dataDirURL).path,
-                keybind: "⌃M",
+                keybind: "cmd+shift+m",
                 action: .focusMainRepo
             ))
             if worktrees.worktrees.isEmpty {

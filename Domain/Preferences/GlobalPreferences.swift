@@ -13,8 +13,8 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// GUI editors need external launch (see ``EditorPresentation``).
     var editorCommand: String
 
-    /// Leader key binding that enters Command Mode. Default `ctrl+p` (ADR 0009).
-    /// Stored as a binding string; parsed by ``LeaderKeyBinding`` (Phase 7).
+    /// Leader key binding that enters Command Mode. Default `cmd+shift+p`
+    /// (VS Code / Cursor Command Palette). Parsed by ``LeaderKeyBinding``.
     var leaderKey: String
 
     /// Global Workspaces Root (default parent for Workspace containers). ADR 0015.
@@ -33,7 +33,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     static let `default` = GlobalPreferences(
         mainCLICommand: "",
         editorCommand: "",
-        leaderKey: "ctrl+p",
+        leaderKey: "cmd+shift+p",
         workspacesRoot: "~/.symphonia/workspaces",
         baseRef: "main",
         commandBindings: [:]

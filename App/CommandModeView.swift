@@ -71,7 +71,10 @@ struct CommandModeView: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
             Spacer()
-            Text(preferences.effective.leaderKey)
+            Text(
+                LeaderKeyBinding.parse(preferences.effective.leaderKey)?.displaySymbolString
+                    ?? preferences.effective.leaderKey
+            )
                 .font(.caption2.monospaced())
                 .foregroundStyle(.tertiary)
             Button("Esc") {
@@ -149,7 +152,7 @@ struct CommandModeView: View {
             }
             Spacer(minLength: 8)
             if let keybind = item.keybind {
-                Text(keybind)
+                Text(CommandBindingResolver.shortcutDisplay(keybind) ?? keybind)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
