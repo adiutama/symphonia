@@ -62,8 +62,8 @@ struct SecretStoreScaffoldView: View {
             SettingsCard {
                 if secrets.document.groups.isEmpty {
                     SettingsRow(
-                        title: "No groups",
-                        description: "Off = member vars stay out of spawn env. Vars can stay ungrouped."
+                        title: "No groups yet",
+                        description: "Groups toggle sets of Env Vars in spawn env. Vars can stay ungrouped."
                     ) {
                         EmptyView()
                     }
@@ -77,7 +77,7 @@ struct SecretStoreScaffoldView: View {
 
                 SettingsRow(
                     title: "New group",
-                    description: "Add a group to toggle sets of Env Vars in spawn env."
+                    description: "Name a group, then assign Env Vars to it."
                 ) {
                     HStack(spacing: 8) {
                         TextField("Name", text: $secrets.draftGroupName)
@@ -195,7 +195,7 @@ struct SecretStoreScaffoldView: View {
 
                         TableColumn("Key") { envVar in
                             TextField(
-                                "KEY",
+                                "Key",
                                 text: Binding(
                                     get: { envVar.key },
                                     set: { newKey in
@@ -216,9 +216,9 @@ struct SecretStoreScaffoldView: View {
                         TableColumn("Value") { envVar in
                             Group {
                                 if revealValues {
-                                    TextField("value", text: valueBinding(envVar))
+                                    TextField("Value", text: valueBinding(envVar))
                                 } else {
-                                    SecureField("value", text: valueBinding(envVar))
+                                    SecureField("Value", text: valueBinding(envVar))
                                 }
                             }
                             .textFieldStyle(.plain)
@@ -273,16 +273,16 @@ struct SecretStoreScaffoldView: View {
                     description: "Key is required. Value can be empty."
                 ) {
                     HStack(spacing: 8) {
-                        TextField("KEY", text: $secrets.draftVarKey)
+                        TextField("Key", text: $secrets.draftVarKey)
                             .textFieldStyle(.roundedBorder)
                             .font(.body.monospaced())
                             .frame(width: 120)
 
                         Group {
                             if revealValues {
-                                TextField("value", text: $secrets.draftVarValue)
+                                TextField("Value", text: $secrets.draftVarValue)
                             } else {
-                                SecureField("value", text: $secrets.draftVarValue)
+                                SecureField("Value", text: $secrets.draftVarValue)
                             }
                         }
                         .textFieldStyle(.roundedBorder)
@@ -340,15 +340,6 @@ struct SecretStoreScaffoldView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-
-            if let current = workspaces.current {
-                Text(SymphoniaPaths.workspaceSecretsFile(in: current.dataDirURL).path)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .textSelection(.enabled)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
 
             if let error = secrets.lastError {
                 Text(error)

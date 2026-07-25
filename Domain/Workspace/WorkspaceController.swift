@@ -121,36 +121,79 @@ final class WorkspaceController: ObservableObject {
     /// Relocates the Data Dir + session index when Prefix parent changes.
     func saveCurrentWorkspaceSettings() {
         guard let current else { return }
-        let oldId = current.id
+        saveWorkspaceSettings(for: current, overrides: preferences.workspaceOverrides)
+    }
+
+    /// Debounced persist of the selected Workspace’s `config.toml` only. Does not write Global prefs.
+    func scheduleSaveCurrentWorkspaceSettings(after seconds: TimeInterval = 0.35) {
+        guard let current else { return }
+        scheduleSaveWorkspaceSettings(
+            for: current,
+            overrides: preferences.workspaceOverrides,
+            after: seconds
+        )
+    }
+
+    /// Load `config.toml` overrides for a Workspace without changing Main selection / Effective Setting.
+    func loadSettingsOverrides(for summary: WorkspaceSummary) -> WorkspaceSettingOverrides? {
+        do {
+            let config = try store.loadConfig(from: summary.dataDirURL)
+            lastError = nil
+            return config.asOverrides
+        } catch {
+            lastError = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// Persist Settings for a Workspace without requiring it to be Main’s current selection.
+    /// When the target is current, keeps Effective Setting overrides in sync.
+    @discardableResult
+    func saveWorkspaceSettings(
+        for summary: WorkspaceSummary,
+        overrides: WorkspaceSettingOverrides
+    ) -> WorkspaceSummary? {
+        let oldId = summary.id
         do {
             let updated = try store.persistSettings(
-                summary: current,
-                overrides: preferences.workspaceOverrides,
+                summary: summary,
+                overrides: overrides,
                 workspacesRoot: workspacesRoot
             )
             lastError = nil
             refresh()
             if updated.id != oldId {
                 lastWorkspaceIdRemap = WorkspaceIdRemap(from: oldId, to: updated.id)
-                select(updated)
-            } else if let refreshed = workspaces.first(where: { $0.id == updated.id }) {
-                self.current = refreshed
-                if let config = try? store.loadConfig(from: refreshed.dataDirURL) {
-                    currentConfig = config
-                }
-            } else {
-                select(updated)
             }
+            if current?.id == oldId || current?.id == updated.id {
+                if updated.id != oldId {
+                    select(updated)
+                } else if let refreshed = workspaces.first(where: { $0.id == updated.id }) {
+                    self.current = refreshed
+                    preferences.workspaceOverrides = overrides
+                    if let config = try? store.loadConfig(from: refreshed.dataDirURL) {
+                        currentConfig = config
+                    }
+                } else {
+                    select(updated)
+                }
+            }
+            return updated
         } catch {
             lastError = error.localizedDescription
+            return nil
         }
     }
 
-    /// Debounced persist of the selected Workspace’s `config.toml` only. Does not write Global prefs.
-    func scheduleSaveCurrentWorkspaceSettings(after seconds: TimeInterval = 0.35) {
+    /// Debounced persist for a specific Workspace’s Settings (Settings UI may edit non-current).
+    func scheduleSaveWorkspaceSettings(
+        for summary: WorkspaceSummary,
+        overrides: WorkspaceSettingOverrides,
+        after seconds: TimeInterval = 0.35
+    ) {
         pendingWorkspaceSettingsSave?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            self?.saveCurrentWorkspaceSettings()
+            self?.saveWorkspaceSettings(for: summary, overrides: overrides)
         }
         pendingWorkspaceSettingsSave = work
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)

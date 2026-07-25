@@ -62,10 +62,15 @@ final class PreferencesController: ObservableObject {
     }
 
     /// Debounced persist of Global Setting only (`preferences.toml`). Does not touch Workspace config.
+    /// Empty Leader is restored to the default (`ctrl+p`) — Global must always have a binding.
     func scheduleSave(after seconds: TimeInterval = 0.35) {
         pendingSave?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            self?.save()
+            guard let self else { return }
+            if self.preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                self.preferences.leaderKey = GlobalPreferences.default.leaderKey
+            }
+            self.save()
         }
         pendingSave = work
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)

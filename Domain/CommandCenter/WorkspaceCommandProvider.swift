@@ -120,8 +120,8 @@ struct ChromeCommandProvider: CommandProvider {
             Command(
                 id: "chrome.openSettings",
                 title: "Open Settings…",
-                subtitle: "Opens Settings",
-                group: "Settings",
+                subtitle: "Opens the Settings window",
+                group: "App",
                 defaultAliases: ["/settings"],
                 defaultShortcut: ",",
                 action: .openSettings
@@ -130,7 +130,7 @@ struct ChromeCommandProvider: CommandProvider {
                 id: "chrome.toggleStatusCue",
                 title: "Toggle Status Cue",
                 subtitle: "Show or hide the calm Overlay info list",
-                group: "Settings",
+                group: "View",
                 defaultAliases: ["/cue", "/status"],
                 defaultShortcut: nil,
                 action: .toggleStatusCue
@@ -139,7 +139,7 @@ struct ChromeCommandProvider: CommandProvider {
                 id: "chrome.dismiss",
                 title: "Dismiss Command Center",
                 subtitle: "Esc",
-                group: "Settings",
+                group: "App",
                 action: .dismiss
             ),
         ]

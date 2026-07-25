@@ -40,21 +40,21 @@ Status: `open` · `batch1` · `done` · `defer`
 
 | # | Finding | Status |
 |---|---------|--------|
-| 16 | Mixed `.tag` vs `NavigationLink` selection models | open |
-| 17 | Naming collision — Settings / Effective Setting / Command Center “Settings” group | open |
-| 18 | Leader empty warned but not blocked on save | open |
-| 19 | Prefix labeled “Path” while model/TOML use `prefix` ↔ `workspacesRoot` | open |
-| 20 | Opening workspace Settings/Secrets force-selects that workspace | open |
+| 16 | Mixed `.tag` vs `NavigationLink` selection models | done |
+| 17 | Naming collision — Settings / Effective Setting / Command Center “Settings” group | done |
+| 18 | Leader empty warned but not blocked on save | done |
+| 19 | Prefix labeled “Path” while model/TOML use `prefix` ↔ `workspacesRoot` | done |
+| 20 | Opening workspace Settings/Secrets force-selects that workspace | done |
 | 21 | Search always prominent on panes where it doesn’t match content (e.g. Secret Store) | done |
 
 ## Low
 
 | # | Finding | Status |
 |---|---------|--------|
-| 22 | Low-contrast captions + raw TOML path footers | open |
-| 23 | Secret Store quirks — Groups copy, `KEY`/`value` casing, chrome differs | open |
-| 24 | Unused `secrets` env on Settings root | open |
-| 25 | Docs still mention `config.json`; no prefs/TOML unit tests | open |
+| 22 | Low-contrast captions + raw TOML path footers | done |
+| 23 | Secret Store quirks — Groups copy, `KEY`/`value` casing (chrome aligned in Batch 2 polish) | done |
+| 24 | Unused `secrets` env on Settings root | done |
+| 25 | Docs still mention `config.json`; no prefs/TOML unit tests | done |
 | 26 | `SettingsNavigation.openSettings()` unused | done |
 
 ---
@@ -64,13 +64,23 @@ Status: `open` · `batch1` · `done` · `defer`
 - **Batch 1** (#1–12): TOML comment parse + Settings UI/IA polish. Stop for verify.
 - **Batch 1 polish** (verify feedback): ⌘, from terminal; input focus shift; Reset only on real change; sidebar search spacing.
 - **Batch 2** (#13–15): behavior / deep-links.
-- **Batch 2 polish — Supacode chrome** (2026-07-25): page title → section → multi-row cards; label+description|control rows; `DirectoryPathField`; Leader `KeyChordField`; Commands + **Secret Store** on same chrome; custom Settings `Window` with traffic lights in sidebar; elevated sidebar color; **no Settings search**; main sidebar **not collapsible**.
-- **Batch 3** (#16–20, #22–25): medium / low. (#21 closed — Settings search removed.)
+- **Batch 2 polish — Supacode chrome** (2026-07-25): page title → section → multi-row cards; label+description|control rows; `DirectoryPathField`; Leader `KeyChordField`; Commands + **Secret Store** on same chrome; custom Settings `Window` with traffic lights in sidebar; elevated sidebar color; **no Settings search**; main sidebar **not collapsible**. Also closed #16 (selection is `.tag` only) and #19 (Prefix label).
+- **Batch 3** (#17–18, #20, #22–25): remaining medium / low. Closed between batches: #16, #19, #21.
+
+### Batch 3 notes
+
+- **#17:** Command Center groups — Open Settings / Dismiss → `App`; Toggle Status Cue → `View`. Domain “Effective Setting” kept (resolver term, not a Settings page).
+- **#18:** Empty Global Leader restores default `ctrl+p` on autosave.
+- **#20:** Workspace **Settings** loads/saves by id without changing Main selection. **Secret Store** still selects that Workspace (controller + spawn env are current-bound).
+- **#22–23:** Dropped raw `secrets.toml` path footer; Groups copy + Key/Value placeholders.
+- **#24:** Removed unused `secrets` env from Settings root view.
+- **#25:** Docs updated to `config.toml` / `secrets.toml`. Unit tests deferred (no test target in app project).
 
 ## Later (out of Settings batches)
 
 - Rename product/code references from **Agent** → **Worktree** in Commands and other call sites (titles, ids/aliases as needed, UI copy). Do not start until Settings batches finish unless prioritized.
 - **Command shortcut vs alias UX:** plain-char shortcuts (e.g. `w`) collide with Command Center search (typing `w` both filters and is a shortcut). Discuss redesign — Raycast’s alias/hotkey recording + filter model is the reference (elegant set flow, clear filter). Not Batch 2/3 unless prioritized.
+- **Secret Store without force-select:** optional follow-up so editing another Workspace’s secrets doesn’t switch Main (needs edit-vs-spawn document split).
 
 ## Batch 1 acceptance
 

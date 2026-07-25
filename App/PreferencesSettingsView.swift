@@ -6,11 +6,13 @@ import SwiftUI
 struct PreferencesSettingsView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var workspaces: WorkspaceController
-    @EnvironmentObject private var secrets: SecretStoreController
     @EnvironmentObject private var settingsNavigation: SettingsNavigation
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     @State private var selection: SettingsNavItem? = .globalGeneral
+    /// Draft overrides for the Workspace Settings pane (may differ from Main’s current Workspace).
+    @State private var draftOverrides: WorkspaceSettingOverrides = .none
+    @State private var draftWorkspaceId: String?
     /// Skip workspace autosave while selection loads overrides from disk.
     @State private var suppressWorkspaceAutosave = false
 
@@ -42,7 +44,9 @@ struct PreferencesSettingsView: View {
         }
         .onChange(of: selection) { _, newValue in
             suppressWorkspaceAutosave = true
-            ensureWorkspaceSelected(for: newValue)
+            mountWorkspaceSettingsIfNeeded(for: newValue)
+            // Secret Store still uses current Workspace (spawn env) — select only for that pane.
+            ensureWorkspaceSelectedForSecrets(for: newValue)
             DispatchQueue.main.async {
                 suppressWorkspaceAutosave = false
             }
@@ -51,9 +55,17 @@ struct PreferencesSettingsView: View {
             guard isEditingGlobal else { return }
             preferences.scheduleSave()
         }
-        .onChange(of: preferences.workspaceOverrides) { _, _ in
-            guard case .workspaceSettings = selection, !suppressWorkspaceAutosave else { return }
-            workspaces.scheduleSaveCurrentWorkspaceSettings()
+        .onChange(of: draftOverrides) { _, _ in
+            guard case .workspaceSettings = selection,
+                  let id = draftWorkspaceId,
+                  !suppressWorkspaceAutosave,
+                  let workspace = workspaces.workspaces.first(where: { $0.id == id })
+            else { return }
+            // Keep Main’s Effective Setting live when editing the current Workspace.
+            if workspaces.current?.id == id {
+                preferences.workspaceOverrides = draftOverrides
+            }
+            workspaces.scheduleSaveWorkspaceSettings(for: workspace, overrides: draftOverrides)
         }
         .onChange(of: workspaces.lastWorkspaceIdRemap) { _, remap in
             guard let remap else { return }
@@ -213,7 +225,7 @@ struct PreferencesSettingsView: View {
 
     private var leaderDescription: String {
         if preferences.preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Opens Command Center. Leader key should not be empty."
+            return "Required — empty restores default ⌃P on save."
         }
         return "Opens Command Center."
     }
@@ -237,11 +249,6 @@ struct PreferencesSettingsView: View {
     private func workspaceSettingsDetail(_ workspaceId: String) -> some View {
         if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId }) {
             SettingsPage(title: workspace.slug) {
-                Text(workspace.dataDirURL.path)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-
                 Text("Empty fields inherit Global. Changes save to this Workspace’s config.toml.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -256,13 +263,13 @@ struct PreferencesSettingsView: View {
                                 TextField(
                                     "Command",
                                     text: Binding(
-                                        get: { preferences.workspaceOverrides.mainCLICommand ?? "" },
+                                        get: { draftOverrides.mainCLICommand ?? "" },
                                         set: { newValue in
-                                            if preferences.workspaceOverrides.mainCLICommand == nil {
+                                            if draftOverrides.mainCLICommand == nil {
                                                 if newValue.isEmpty { return }
-                                                preferences.workspaceOverrides.mainCLICommand = newValue
+                                                draftOverrides.mainCLICommand = newValue
                                             } else {
-                                                preferences.workspaceOverrides.mainCLICommand = newValue
+                                                draftOverrides.mainCLICommand = newValue
                                             }
                                         }
                                     )
@@ -282,8 +289,8 @@ struct PreferencesSettingsView: View {
                             TextField(
                                 "Command",
                                 text: Binding(
-                                    get: { preferences.workspaceOverrides.editorCommand ?? "" },
-                                    set: { preferences.workspaceOverrides.editorCommand = $0.isEmpty ? nil : $0 }
+                                    get: { draftOverrides.editorCommand ?? "" },
+                                    set: { draftOverrides.editorCommand = $0.isEmpty ? nil : $0 }
                                 )
                             )
                             .textFieldStyle(.roundedBorder)
@@ -316,8 +323,8 @@ struct PreferencesSettingsView: View {
                             TextField(
                                 "Ref",
                                 text: Binding(
-                                    get: { preferences.workspaceOverrides.baseRef ?? "" },
-                                    set: { preferences.workspaceOverrides.baseRef = $0.isEmpty ? nil : $0 }
+                                    get: { draftOverrides.baseRef ?? "" },
+                                    set: { draftOverrides.baseRef = $0.isEmpty ? nil : $0 }
                                 )
                             )
                             .textFieldStyle(.roundedBorder)
@@ -327,7 +334,7 @@ struct PreferencesSettingsView: View {
                     }
                 }
 
-                if let lastError = preferences.lastError ?? workspaces.lastError {
+                if let lastError = workspaces.lastError {
                     Text(lastError)
                         .font(.caption)
                         .foregroundStyle(.red)
@@ -340,20 +347,20 @@ struct PreferencesSettingsView: View {
 
     private var workspaceLeaderBinding: Binding<String> {
         Binding(
-            get: { preferences.workspaceOverrides.leaderKey ?? "" },
-            set: { preferences.workspaceOverrides.leaderKey = $0.isEmpty ? nil : $0 }
+            get: { draftOverrides.leaderKey ?? "" },
+            set: { draftOverrides.leaderKey = $0.isEmpty ? nil : $0 }
         )
     }
 
     private var workspacePrefixBinding: Binding<String> {
         Binding(
-            get: { preferences.workspaceOverrides.workspacesRoot ?? "" },
-            set: { preferences.workspaceOverrides.workspacesRoot = $0.isEmpty ? nil : $0 }
+            get: { draftOverrides.workspacesRoot ?? "" },
+            set: { draftOverrides.workspacesRoot = $0.isEmpty ? nil : $0 }
         )
     }
 
     private var mainCLIOverrideDescription: String {
-        let override = preferences.workspaceOverrides.mainCLICommand
+        let override = draftOverrides.mainCLICommand
         let global = preferences.preferences.mainCLICommand
         let globalLabel = global.isEmpty ? "bare shell" : global
         if override == nil {
@@ -367,16 +374,16 @@ struct PreferencesSettingsView: View {
 
     @ViewBuilder
     private var mainCLIOverrideControls: some View {
-        let override = preferences.workspaceOverrides.mainCLICommand
+        let override = draftOverrides.mainCLICommand
         if override == nil {
             Button("Use bare shell") {
-                preferences.workspaceOverrides.mainCLICommand = ""
+                draftOverrides.mainCLICommand = ""
             }
             .buttonStyle(.borderless)
             .font(.caption)
         } else {
             Button("Inherit Global") {
-                preferences.workspaceOverrides.mainCLICommand = nil
+                draftOverrides.mainCLICommand = nil
             }
             .buttonStyle(.borderless)
             .font(.caption)
@@ -387,14 +394,9 @@ struct PreferencesSettingsView: View {
 
     @ViewBuilder
     private func workspaceSecretsDetail(_ workspaceId: String) -> some View {
-        if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId }) {
+        if workspaces.workspaces.contains(where: { $0.id == workspaceId }) {
             SecretStoreScaffoldView()
                 .navigationTitle("")
-                .onAppear {
-                    if workspaces.current?.id != workspace.id {
-                        workspaces.select(workspace)
-                    }
-                }
         } else {
             ContentUnavailableView("Workspace not found", systemImage: "folder.badge.questionmark")
         }
@@ -411,24 +413,36 @@ struct PreferencesSettingsView: View {
             selection = .globalCommands
         case .workspaceSettings(let workspaceId):
             selection = .workspaceSettings(workspaceId)
-            ensureWorkspaceSelected(for: selection)
         case .workspaceSecrets(let workspaceId):
             selection = .workspaceSecrets(workspaceId)
-            ensureWorkspaceSelected(for: selection)
         }
     }
 
-    private func ensureWorkspaceSelected(for item: SettingsNavItem?) {
-        switch item {
-        case .workspaceSettings(let id), .workspaceSecrets(let id):
-            if let workspace = workspaces.workspaces.first(where: { $0.id == id }),
-               workspaces.current?.id != id
-            {
-                workspaces.select(workspace)
-            }
-        default:
-            break
+    /// Load draft overrides for Workspace Settings without changing Main’s current Workspace.
+    private func mountWorkspaceSettingsIfNeeded(for item: SettingsNavItem?) {
+        guard case .workspaceSettings(let id) = item,
+              let workspace = workspaces.workspaces.first(where: { $0.id == id })
+        else {
+            draftWorkspaceId = nil
+            return
         }
+        draftWorkspaceId = id
+        if workspace.id == workspaces.current?.id {
+            draftOverrides = preferences.workspaceOverrides
+        } else if let loaded = workspaces.loadSettingsOverrides(for: workspace) {
+            draftOverrides = loaded
+        } else {
+            draftOverrides = .none
+        }
+    }
+
+    /// Secret Store is bound to Main’s current Workspace (spawn env) — select only for that pane.
+    private func ensureWorkspaceSelectedForSecrets(for item: SettingsNavItem?) {
+        guard case .workspaceSecrets(let id) = item,
+              let workspace = workspaces.workspaces.first(where: { $0.id == id }),
+              workspaces.current?.id != id
+        else { return }
+        workspaces.select(workspace)
     }
 
     private func healSelectionAfterWorkspaceRelocate(from oldId: String, to newId: String) {
@@ -437,6 +451,7 @@ struct PreferencesSettingsView: View {
         case .workspaceSettings(let id) where id == oldId:
             suppressWorkspaceAutosave = true
             selection = .workspaceSettings(newId)
+            draftWorkspaceId = newId
             DispatchQueue.main.async { suppressWorkspaceAutosave = false }
         case .workspaceSecrets(let id) where id == oldId:
             suppressWorkspaceAutosave = true
