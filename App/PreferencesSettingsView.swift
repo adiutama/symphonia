@@ -45,8 +45,6 @@ struct PreferencesSettingsView: View {
         .onChange(of: selection) { _, newValue in
             suppressWorkspaceAutosave = true
             mountWorkspaceSettingsIfNeeded(for: newValue)
-            // Secret Store still uses current Workspace (spawn env) — select only for that pane.
-            ensureWorkspaceSelectedForSecrets(for: newValue)
             DispatchQueue.main.async {
                 suppressWorkspaceAutosave = false
             }
@@ -394,8 +392,8 @@ struct PreferencesSettingsView: View {
 
     @ViewBuilder
     private func workspaceSecretsDetail(_ workspaceId: String) -> some View {
-        if workspaces.workspaces.contains(where: { $0.id == workspaceId }) {
-            SecretStoreScaffoldView()
+        if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId }) {
+            SecretStoreScaffoldView(workspace: workspace)
                 .navigationTitle("")
         } else {
             ContentUnavailableView("Workspace not found", systemImage: "folder.badge.questionmark")
@@ -434,15 +432,6 @@ struct PreferencesSettingsView: View {
         } else {
             draftOverrides = .none
         }
-    }
-
-    /// Secret Store is bound to Main’s current Workspace (spawn env) — select only for that pane.
-    private func ensureWorkspaceSelectedForSecrets(for item: SettingsNavItem?) {
-        guard case .workspaceSecrets(let id) = item,
-              let workspace = workspaces.workspaces.first(where: { $0.id == id }),
-              workspaces.current?.id != id
-        else { return }
-        workspaces.select(workspace)
     }
 
     private func healSelectionAfterWorkspaceRelocate(from oldId: String, to newId: String) {

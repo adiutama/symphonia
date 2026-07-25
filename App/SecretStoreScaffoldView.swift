@@ -1,31 +1,46 @@
 import SwiftUI
 
 /// Secret Store editor — `secrets.toml` (T.6), styled with Settings chrome (page → section → card).
+///
+/// Scoped to a Workspace Data Dir so Settings can edit without switching Main (L3).
 struct SecretStoreScaffoldView: View {
+    let workspace: WorkspaceSummary
+
     @EnvironmentObject private var workspaces: WorkspaceController
-    @EnvironmentObject private var secrets: SecretStoreController
+    /// App-wide spawn-bound store (Main’s current Workspace).
+    @EnvironmentObject private var spawnSecrets: SecretStoreController
+    @StateObject private var secrets: SecretStoreController
 
     @State private var revealValues = false
     @State private var filter = ""
 
+    init(workspace: WorkspaceSummary) {
+        self.workspace = workspace
+        _secrets = StateObject(wrappedValue: SecretStoreController(dataDirURL: workspace.dataDirURL))
+    }
+
     var body: some View {
-        Group {
-            if workspaces.current == nil {
-                ContentUnavailableView(
-                    "No Workspace",
-                    systemImage: "folder.badge.questionmark",
-                    description: Text("Select a Workspace to manage Env Vars.")
-                )
-            } else {
-                SettingsPage(title: "Secret Store") {
-                    optionsSection
-                    groupsSection
-                    envVarsSection
-                    footer
-                }
-            }
+        SettingsPage(title: "Secret Store") {
+            Text(workspace.slug)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            optionsSection
+            groupsSection
+            envVarsSection
+            footer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onChange(of: secrets.revision) { _, _ in
+            syncSpawnSecretsIfEditingCurrent()
+        }
+    }
+
+    private func syncSpawnSecretsIfEditingCurrent() {
+        guard let current = workspaces.current,
+              current.dataDirURL.standardizedFileURL == workspace.dataDirURL.standardizedFileURL
+        else { return }
+        spawnSecrets.reload()
     }
 
     // MARK: - Options
@@ -336,10 +351,13 @@ struct SecretStoreScaffoldView: View {
     private var footer: some View {
         VStack(alignment: .leading, spacing: 4) {
             let enabled = secrets.enabledEnvironment
-            Text("Spawn env: \(enabled.isEmpty ? "(none)" : enabled.map(\.key).sorted().joined(separator: ", "))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
+            Text(
+                "Enabled for this Workspace: " +
+                (enabled.isEmpty ? "(none)" : enabled.map(\.key).sorted().joined(separator: ", "))
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
 
             if let error = secrets.lastError {
                 Text(error)

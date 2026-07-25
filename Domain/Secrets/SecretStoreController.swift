@@ -1,14 +1,22 @@
 import Foundation
 import Combine
 
-/// Observable Secret Store for the current Workspace (P5 scaffold).
+/// Observable Secret Store for a Workspace Data Dir (P5).
+///
+/// App-wide instance (wired in `SymphoniaApp`) tracks Main’s current Workspace for spawn env.
+/// Settings may create a **dataDir-scoped** instance to edit another Workspace’s `secrets.toml`
+/// without calling `workspaces.select` (L3).
 @MainActor
 final class SecretStoreController: ObservableObject {
     private let store: SecretStore
-    private let workspaces: WorkspaceController
+    private let workspaces: WorkspaceController?
+    /// When set, load/persist this Data Dir only (Settings editor). Ignores `workspaces.current`.
+    private let fixedDataDirURL: URL?
     private var cancellables = Set<AnyCancellable>()
 
     @Published private(set) var document: SecretStoreDocument = .empty
+    /// Bumps after a successful write so Settings can refresh the spawn-bound controller.
+    @Published private(set) var revision: Int = 0
     @Published var lastError: String?
 
     /// Draft fields for scaffold add forms.
@@ -21,12 +29,14 @@ final class SecretStoreController: ObservableObject {
     @Published var selectedVarId: String?
     @Published var selectedGroupId: String?
 
+    /// App-wide spawn-bound controller (follows `workspaces.current`).
     init(
         workspaces: WorkspaceController,
         store: SecretStore = SecretStore()
     ) {
         self.workspaces = workspaces
         self.store = store
+        self.fixedDataDirURL = nil
 
         workspaces.$current
             .receive(on: RunLoop.main)
@@ -38,14 +48,28 @@ final class SecretStoreController: ObservableObject {
         reload()
     }
 
+    /// Settings editor scoped to one Workspace Data Dir (does not follow Main selection).
+    init(dataDirURL: URL, store: SecretStore = SecretStore()) {
+        self.workspaces = nil
+        self.store = store
+        self.fixedDataDirURL = dataDirURL.standardizedFileURL
+        reload()
+    }
+
+    private var activeDataDirURL: URL? {
+        if let fixedDataDirURL { return fixedDataDirURL }
+        return workspaces?.current?.dataDirURL
+    }
+
     /// Enabled Env Var pairs for Ghostty spawn injection (empty when no Workspace).
+    /// Only meaningful on the app-wide (spawn) controller.
     var enabledEnvironment: [(key: String, value: String)] {
-        guard workspaces.current != nil else { return [] }
+        guard activeDataDirURL != nil else { return [] }
         return document.enabledEnvironment()
     }
 
     func reload() {
-        guard let current = workspaces.current else {
+        guard let dataDir = activeDataDirURL else {
             document = .empty
             selectedVarId = nil
             selectedGroupId = nil
@@ -55,7 +79,7 @@ final class SecretStoreController: ObservableObject {
         }
 
         do {
-            document = try store.load(from: current.dataDirURL)
+            document = try store.load(from: dataDir)
             lastError = nil
             if let selectedVarId,
                !document.vars.contains(where: { $0.id == selectedVarId })
@@ -96,7 +120,6 @@ final class SecretStoreController: ObservableObject {
 
     func renameGroup(_ id: String, name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Skip empty mid-edit keystrokes from scaffold TextFields.
         guard !trimmed.isEmpty else { return }
         var next = document
         guard let index = next.groups.firstIndex(where: { $0.id == id }) else { return }
@@ -147,7 +170,6 @@ final class SecretStoreController: ObservableObject {
 
     func updateVar(_ id: String, key: String, value: String, groupId: String?) {
         let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Skip empty mid-edit keystrokes from scaffold TextFields.
         guard !trimmedKey.isEmpty else { return }
         switch SecretStore.validateKey(trimmedKey) {
         case .failure(let error):
@@ -180,13 +202,14 @@ final class SecretStoreController: ObservableObject {
     // MARK: - Private
 
     private func persist(_ next: SecretStoreDocument) {
-        guard let current = workspaces.current else {
+        guard let dataDir = activeDataDirURL else {
             lastError = SecretStore.StoreError.missingWorkspace.localizedDescription
             return
         }
         do {
-            try store.write(next, to: current.dataDirURL)
+            try store.write(next, to: dataDir)
             document = next
+            revision += 1
             lastError = nil
         } catch {
             lastError = error.localizedDescription

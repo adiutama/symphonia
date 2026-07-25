@@ -329,11 +329,9 @@ struct WorkspaceSidebarView: View {
         }
         Divider()
         Button("Secrets…") {
-            selectWorkspace(workspace)
             settingsNavigation.open(.workspaceSecrets(workspaceId: workspace.id))
         }
         Button("Workspace Settings…") {
-            selectWorkspace(workspace)
             settingsNavigation.open(.workspaceSettings(workspaceId: workspace.id))
         }
         Divider()
