@@ -307,16 +307,13 @@ struct PreferencesSettingsView: View {
     @ViewBuilder
     private func workspaceSecretsDetail(_ workspaceId: String) -> some View {
         if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId }) {
-            ScrollView {
-                SecretStoreScaffoldView()
-                    .padding()
-            }
-            .navigationTitle("Secret Store")
-            .onAppear {
-                if workspaces.current?.id != workspace.id {
-                    workspaces.select(workspace)
+            SecretStoreScaffoldView()
+                .navigationTitle("Secret Store")
+                .onAppear {
+                    if workspaces.current?.id != workspace.id {
+                        workspaces.select(workspace)
+                    }
                 }
-            }
         } else {
             ContentUnavailableView("Workspace not found", systemImage: "folder.badge.questionmark")
         }
