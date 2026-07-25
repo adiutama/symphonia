@@ -3,109 +3,123 @@ import SwiftUI
 /// Settings → Global → Commands: edit per-Command alias/shortcut overrides and surface
 /// duplicate-binding conflicts across the whole registry (ADR 0021 CC.4).
 ///
-/// Meant to be embedded inside `PreferencesSettingsView`'s `globalForm` (Sections only —
-/// no own `Form`/padding) so it gets the existing Save / Reload / Reset chrome for free.
+/// Uses Settings chrome cards. Autosave is owned by the parent via Global preferences debounce.
 struct CommandBindingsSettingsView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var commandRegistry: CommandRegistry
 
-    @State private var searchText: String = ""
-
     var body: some View {
-        Group {
-            Section("Commands") {
-                TextField("Search", text: $searchText, prompt: Text("Filter by title or id"))
-                Text(
-                    "Aliases are comma-separated free text (Command Center matches title or any " +
-                    "alias). Shortcut fires when Command Center's filter is empty. An emptied " +
-                    "field is saved as an explicit override (e.g. \"no aliases\") — use Reset to " +
-                    "clear the override and fall back to the Command's own defaults."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 20) {
+            Text(
+                "Aliases are comma-separated free text (Command Center matches title or any " +
+                "alias). Shortcut fires when Command Center's filter is empty. An emptied " +
+                "field is saved as an explicit override — use Reset to fall back to defaults."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
 
             if !conflicts.isEmpty {
-                Section("Conflicts") {
-                    ForEach(conflicts) { conflict in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Label(conflict.label, systemImage: "exclamationmark.triangle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                            Text(conflict.commandTitles.joined(separator: " ↔ "))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                SettingsSection(title: "Conflicts") {
+                    SettingsCard {
+                        ForEach(Array(conflicts.enumerated()), id: \.element.id) { index, conflict in
+                            if index > 0 { SettingsRowDivider() }
+                            SettingsRow(title: conflict.label, description: conflict.commandTitles.joined(separator: " ↔ ")) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                            }
                         }
                     }
                 }
             }
 
-            ForEach(filteredGroups, id: \.group) { entry in
-                Section(entry.group) {
-                    ForEach(entry.commands) { command in
-                        row(for: command)
+            ForEach(groupedCommands, id: \.group) { entry in
+                SettingsSection(title: entry.group) {
+                    SettingsCard {
+
+                        ForEach(Array(entry.commands.enumerated()), id: \.element.id) { index, command in
+                            if index > 0 { SettingsRowDivider() }
+                            commandRow(command)
+                        }
                     }
                 }
             }
         }
     }
 
-    // MARK: - Row
-
     @ViewBuilder
-    private func row(for command: Command) -> some View {
-        let hasOverride = preferences.preferences.commandBindings[command.id] != nil
-        VStack(alignment: .leading, spacing: 4) {
+    private func commandRow(_ command: Command) -> some View {
+        let changed = hasChangedOverride(for: command)
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(command.title)
-                        .fontWeight(.medium)
+                        .font(.body.weight(.medium))
                     Text(command.id)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }
-                Spacer()
-                if hasOverride {
-                    Button("Reset") {
-                        preferences.preferences.commandBindings.removeValue(forKey: command.id)
-                    }
-                    .font(.caption)
+                Spacer(minLength: 8)
+                Button("Reset") {
+                    preferences.preferences.commandBindings.removeValue(forKey: command.id)
+                }
+                .font(.caption)
+                .opacity(changed ? 1 : 0)
+                .disabled(!changed)
+                .accessibilityHidden(!changed)
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Aliases")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField(
+                        "Aliases",
+                        text: aliasesBinding(for: command),
+                        prompt: Text(
+                            command.defaultAliases.isEmpty
+                                ? "none"
+                                : command.defaultAliases.joined(separator: ", ")
+                        )
+                    )
+                    .textFieldStyle(.roundedBorder)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Shortcut")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                    TextField(
+                        "Shortcut",
+                        text: shortcutBinding(for: command),
+                        prompt: Text(command.defaultShortcut ?? "none")
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 120)
                 }
             }
-            HStack(spacing: 8) {
-                TextField(
-                    "Aliases",
-                    text: aliasesBinding(for: command),
-                    prompt: Text(
-                        command.defaultAliases.isEmpty
-                            ? "none"
-                            : command.defaultAliases.joined(separator: ", ")
-                    )
-                )
-                .textFieldStyle(.roundedBorder)
-
-                TextField(
-                    "Shortcut",
-                    text: shortcutBinding(for: command),
-                    prompt: Text(command.defaultShortcut ?? "none")
-                )
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 90)
-            }
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 
-    /// `nil` override → shows empty text (placeholder shows defaults). Typing writes a
-    /// (possibly empty) explicit override string, matching `CommandBindingOverride` /
-    /// `CommandBindingResolver` semantics from CC.3 — Reset above is the only way back
-    /// to "use the Command's defaults" once an override key exists.
+    private func hasChangedOverride(for command: Command) -> Bool {
+        guard let override = preferences.preferences.commandBindings[command.id] else {
+            return false
+        }
+        return override.aliases != nil || override.shortcut != nil
+    }
+
     private func aliasesBinding(for command: Command) -> Binding<String> {
         Binding(
             get: { preferences.preferences.commandBindings[command.id]?.aliases ?? "" },
             set: { newValue in
-                var override = preferences.preferences.commandBindings[command.id] ?? CommandBindingOverride()
+                let existing = preferences.preferences.commandBindings[command.id]
+                if existing == nil, newValue.isEmpty { return }
+                if existing?.aliases == nil, newValue.isEmpty { return }
+                var override = existing ?? CommandBindingOverride()
                 override.aliases = newValue
                 preferences.preferences.commandBindings[command.id] = override
             }
@@ -116,14 +130,15 @@ struct CommandBindingsSettingsView: View {
         Binding(
             get: { preferences.preferences.commandBindings[command.id]?.shortcut ?? "" },
             set: { newValue in
-                var override = preferences.preferences.commandBindings[command.id] ?? CommandBindingOverride()
+                let existing = preferences.preferences.commandBindings[command.id]
+                if existing == nil, newValue.isEmpty { return }
+                if existing?.shortcut == nil, newValue.isEmpty { return }
+                var override = existing ?? CommandBindingOverride()
                 override.shortcut = newValue
                 preferences.preferences.commandBindings[command.id] = override
             }
         )
     }
-
-    // MARK: - Grouping / filtering
 
     private var groupedCommands: [(group: String, commands: [Command])] {
         var order: [String] = []
@@ -139,28 +154,12 @@ struct CommandBindingsSettingsView: View {
         return order.map { (group: $0, commands: buckets[$0] ?? []) }
     }
 
-    private var filteredGroups: [(group: String, commands: [Command])] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return groupedCommands }
-        return groupedCommands.compactMap { entry in
-            let matches = entry.commands.filter {
-                $0.title.lowercased().contains(query) || $0.id.lowercased().contains(query)
-            }
-            return matches.isEmpty ? nil : (group: entry.group, commands: matches)
-        }
-    }
-
-    // MARK: - Conflicts
-
     private struct Conflict: Identifiable {
         let id: String
         let label: String
         let commandTitles: [String]
     }
 
-    /// Non-blocking: Commands sharing an effective alias (case-insensitive, trimmed) or a
-    /// non-empty effective shortcut, computed over the *whole* registry regardless of the
-    /// search filter above (ADR 0021 CC.4 — "clear error", not a hard save block).
     private var conflicts: [Conflict] {
         let overrides = preferences.preferences.commandBindings
         let all = commandRegistry.allCommands

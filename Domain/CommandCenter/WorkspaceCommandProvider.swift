@@ -120,7 +120,7 @@ struct ChromeCommandProvider: CommandProvider {
             Command(
                 id: "chrome.openSettings",
                 title: "Open Settings…",
-                subtitle: "Secret Store lives under Workspace",
+                subtitle: "Opens Settings",
                 group: "Settings",
                 defaultAliases: ["/settings"],
                 defaultShortcut: ",",

@@ -12,6 +12,7 @@ final class CommandModeController: ObservableObject {
     private let workspaces: WorkspaceController
     private let agents: AgentController
     private let overlays: OverlayController
+    private let settingsNavigation: SettingsNavigation
     /// Source of root-palette items and matching data (ADR 0021 / CC.2). Root no longer
     /// owns a private hardcoded item/slash-verb table — see `filteredRootItems()`.
     private let commandRegistry: CommandRegistry
@@ -33,12 +34,14 @@ final class CommandModeController: ObservableObject {
         workspaces: WorkspaceController,
         agents: AgentController,
         overlays: OverlayController,
+        settingsNavigation: SettingsNavigation,
         commandRegistry: CommandRegistry
     ) {
         self.preferences = preferences
         self.workspaces = workspaces
         self.agents = agents
         self.overlays = overlays
+        self.settingsNavigation = settingsNavigation
         self.commandRegistry = commandRegistry
 
         Publishers.CombineLatest4(
@@ -114,7 +117,7 @@ final class CommandModeController: ObservableObject {
             rebuildItems(resetSelection: true)
 
         case .openSettings:
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            settingsNavigation.openSettings()
             lastInfo = "Settings"
             dismiss()
 

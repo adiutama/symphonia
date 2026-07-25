@@ -1,12 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Sidebar display mode: fully expanded, or a narrow rail that keeps focus/switch affordances.
-enum SidebarMode: String {
-    case expanded
-    case rail
-}
-
 struct ContentView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var agents: AgentController
@@ -14,29 +8,18 @@ struct ContentView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
-    @AppStorage("sidebarMode") private var sidebarModeRaw: String = SidebarMode.expanded.rawValue
     @AppStorage("sidebarWidth") private var sidebarWidth: Double = 240
     @State private var dragStartWidth: Double?
 
     private let sidebarMinWidth: Double = 180
     private let sidebarMaxWidth: Double = 400
-    private let sidebarRailWidth: CGFloat = 52
-
-    private var sidebarMode: SidebarMode {
-        SidebarMode(rawValue: sidebarModeRaw) ?? .expanded
-    }
 
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                if sidebarMode == .expanded {
-                    WorkspaceSidebarView()
-                        .frame(width: sidebarWidth)
-                    resizeDivider
-                } else {
-                    sidebarRail
-                    Divider()
-                }
+                WorkspaceSidebarView()
+                    .frame(width: sidebarWidth)
+                resizeDivider
 
                 VStack(spacing: 0) {
                     statusBar
@@ -59,11 +42,14 @@ struct ContentView: View {
             }
         }
         .background(ghosttyTheme.background.ignoresSafeArea())
+        // Extend under the hidden titlebar so the sidebar owns the traffic-light column.
+        .ignoresSafeArea(.container, edges: .top)
+        .symphoniaTitlebarChrome()
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
-        .animation(.easeInOut(duration: 0.15), value: sidebarModeRaw)
+        .background(SettingsWindowPresenter())
     }
 
-    /// Draggable divider between the expanded sidebar and the workspace content; persists width.
+    /// Draggable divider between the sidebar and the workspace content; persists width.
     private var resizeDivider: some View {
         Divider()
             .contentShape(Rectangle().inset(by: -4))
@@ -90,97 +76,8 @@ struct ContentView: View {
             )
     }
 
-    /// Narrow rail shown when the sidebar is collapsed: keeps expand control + current
-    /// Workspace’s Main/Worktree affordances so Operator can still see focus / switch sessions.
-    private var sidebarRail: some View {
-        VStack(spacing: 6) {
-            Button {
-                sidebarModeRaw = SidebarMode.expanded.rawValue
-            } label: {
-                Image(systemName: "sidebar.leading")
-            }
-            .buttonStyle(.borderless)
-            .help("Expand sidebar")
-            .padding(.top, 28)
-
-            Divider()
-                .padding(.horizontal, 10)
-
-            if let current = workspaces.current {
-                ScrollView {
-                    VStack(spacing: 6) {
-                        railMark(
-                            systemImage: "house.fill",
-                            isFocused: isMainFocused(current),
-                            help: "Main · \(current.slug)"
-                        ) {
-                            workspaces.select(current)
-                            agents.focusMain(for: current)
-                        }
-
-                        ForEach(agents.agents(in: current)) { agent in
-                            railMark(
-                                systemImage: "arrow.triangle.branch",
-                                isFocused: agents.focusedSession?.agent?.id == agent.id,
-                                help: agent.primaryLabel
-                            ) {
-                                workspaces.select(current)
-                                agents.focus(agent)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-        .frame(width: sidebarRailWidth)
-        .frame(maxHeight: .infinity)
-        .background(ghosttyTheme.sidebar)
-    }
-
-    private func railMark(
-        systemImage: String,
-        isFocused: Bool,
-        help: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13))
-                .foregroundStyle(isFocused ? Color.accentColor : .secondary)
-                .frame(width: 32, height: 28)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
-                )
-        }
-        .buttonStyle(.plain)
-        .help(help)
-    }
-
-    private func isMainFocused(_ workspace: WorkspaceSummary) -> Bool {
-        guard workspaces.current?.id == workspace.id,
-              let session = agents.focusedSession,
-              case .mainRepo = session
-        else { return false }
-        return true
-    }
-
     private var statusBar: some View {
         HStack(spacing: 10) {
-            Button {
-                sidebarModeRaw = (sidebarMode == .expanded ? SidebarMode.rail : SidebarMode.expanded).rawValue
-            } label: {
-                Image(systemName: sidebarMode == .expanded
-                    ? "sidebar.left"
-                    : "sidebar.leading")
-            }
-            .buttonStyle(.borderless)
-            .help(sidebarMode == .expanded ? "Collapse sidebar" : "Expand sidebar")
-            .keyboardShortcut("s", modifiers: [.command, .control])
-
             OverlayStatusCueView()
 
             Spacer(minLength: 8)

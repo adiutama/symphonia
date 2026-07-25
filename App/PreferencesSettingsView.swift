@@ -1,127 +1,141 @@
 import SwiftUI
 
 /// Settings (⌘,) — Global + per-Workspace settings and Secret Store (T.5).
+/// Detail chrome follows Supacode: page title → section → multi-row cards.
+/// Window uses fullSizeContentView so traffic lights sit in the sidebar (Raycast/Supacode).
 struct PreferencesSettingsView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var secrets: SecretStoreController
     @EnvironmentObject private var settingsNavigation: SettingsNavigation
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
-    @State private var selection: SettingsNavItem? = .globalMainCLI
-    @State private var searchText = ""
+    @State private var selection: SettingsNavItem? = .globalGeneral
+    /// Skip workspace autosave while selection loads overrides from disk.
+    @State private var suppressWorkspaceAutosave = false
+
+    /// Clearance under system traffic lights when titlebar is transparent / full-size content.
+    private let trafficLightClearance: CGFloat = 28
 
     var body: some View {
-        NavigationSplitView {
-            List(selection: $selection) {
-                if !filteredGlobalItems.isEmpty {
-                    Section("Global") {
-                        ForEach(filteredGlobalItems) { item in
-                            Label(item.title, systemImage: item.systemImage)
-                                .tag(item)
-                        }
-                    }
-                }
+        // Custom HStack split — NavigationSplitView draws an inset sidebar that never
+        // reaches the traffic lights (unlike Xcode / Raycast / Supacode).
+        HStack(spacing: 0) {
+            settingsSidebar
+                .frame(width: 220)
+                .frame(maxHeight: .infinity, alignment: .top)
 
-                Section("Workspace") {
-                    if workspaces.workspaces.isEmpty {
-                        Text("No Workspaces")
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                    } else if filteredWorkspaces.isEmpty {
-                        Text("No matches")
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                    } else {
-                        ForEach(filteredWorkspaces) { workspace in
-                            if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                DisclosureGroup {
-                                    workspaceNavLinks(workspace)
-                                } label: {
-                                    Label(workspace.slug, systemImage: "folder")
-                                }
-                            } else {
-                                DisclosureGroup(isExpanded: .constant(true)) {
-                                    workspaceNavLinks(workspace)
-                                } label: {
-                                    Label(workspace.slug, systemImage: "folder")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .searchable(text: $searchText, prompt: "Search settings")
-            .navigationSplitViewColumnWidth(min: 180, ideal: 220)
-            .navigationTitle("Settings")
-        } detail: {
+            Divider()
+
             detailView
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(ghosttyTheme.background)
         }
         .frame(minWidth: 720, minHeight: 480)
+        .background(ghosttyTheme.background)
+        .ignoresSafeArea(.container, edges: .top)
+        .symphoniaTitlebarChrome()
+        .background(SettingsWindowChrome())
         .onAppear { applyPendingNavigation() }
         .onChange(of: settingsNavigation.pending) { _, _ in
             applyPendingNavigation()
         }
         .onChange(of: selection) { _, newValue in
+            suppressWorkspaceAutosave = true
             ensureWorkspaceSelected(for: newValue)
+            DispatchQueue.main.async {
+                suppressWorkspaceAutosave = false
+            }
+        }
+        .onChange(of: preferences.preferences) { _, _ in
+            guard isEditingGlobal else { return }
+            preferences.scheduleSave()
+        }
+        .onChange(of: preferences.workspaceOverrides) { _, _ in
+            guard case .workspaceSettings = selection, !suppressWorkspaceAutosave else { return }
+            workspaces.scheduleSaveCurrentWorkspaceSettings()
+        }
+        .onChange(of: workspaces.lastWorkspaceIdRemap) { _, remap in
+            guard let remap else { return }
+            healSelectionAfterWorkspaceRelocate(from: remap.from, to: remap.to)
+        }
+    }
+
+    private var settingsSidebar: some View {
+        VStack(spacing: 0) {
+            Color.clear
+                .frame(height: trafficLightClearance)
+                .frame(maxWidth: .infinity)
+                .windowDragRegion()
+
+            List(selection: $selection) {
+                Section {
+                    ForEach(SettingsNavItem.globalItems) { item in
+                        Label(item.title, systemImage: item.systemImage)
+                            .tag(item)
+                    }
+                } header: {
+                    Text("Global")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
+                }
+
+                Section {
+                    if workspaces.workspaces.isEmpty {
+                        Text("No Workspaces")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    } else {
+                        ForEach(workspaces.workspaces) { workspace in
+                            DisclosureGroup {
+                                workspaceNavRows(workspace)
+                            } label: {
+                                Label(workspace.slug, systemImage: "folder")
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Workspace")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
+                }
+            }
+            .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(ghosttyTheme.sidebar)
+    }
+
+    private var isEditingGlobal: Bool {
+        switch selection {
+        case .globalGeneral, .globalCommands: return true
+        default: return false
         }
     }
 
     @ViewBuilder
-    private func workspaceNavLinks(_ workspace: WorkspaceSummary) -> some View {
-        NavigationLink(value: SettingsNavItem.workspaceSettings(workspace.id)) {
-            Label("Settings", systemImage: "slider.horizontal.3")
-        }
-        NavigationLink(value: SettingsNavItem.workspaceSecrets(workspace.id)) {
-            Label("Secret Store", systemImage: "key.fill")
-        }
-    }
-
-    private var filteredGlobalItems: [SettingsNavItem] {
-        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else { return SettingsNavItem.globalItems }
-        return SettingsNavItem.globalItems.filter { $0.title.lowercased().contains(q) }
-    }
-
-    private var filteredWorkspaces: [WorkspaceSummary] {
-        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else { return workspaces.workspaces }
-        return workspaces.workspaces.filter { workspace in
-            if workspace.slug.lowercased().contains(q) { return true }
-            // Typing "set…" / "sec…" surfaces every Workspace so Settings / Secret Store links show.
-            if "settings".hasPrefix(q) || "secret".hasPrefix(q) || "secrets".hasPrefix(q) {
-                return true
-            }
-            return false
-        }
+    private func workspaceNavRows(_ workspace: WorkspaceSummary) -> some View {
+        Label("Settings", systemImage: "slider.horizontal.3")
+            .tag(SettingsNavItem.workspaceSettings(workspace.id))
+        Label("Secret Store", systemImage: "key")
+            .tag(SettingsNavItem.workspaceSecrets(workspace.id))
     }
 
     @ViewBuilder
     private var detailView: some View {
         switch selection {
-        case .globalMainCLI:
-            globalForm { mainCLIFields }
-                .navigationTitle("Main CLI")
-        case .globalEditor:
-            globalForm { editorFields }
-                .navigationTitle("Editor")
-        case .globalLeader:
-            globalForm { leaderFields }
-                .navigationTitle("Leader")
-        case .globalWorkspacesRoot:
-            globalForm { workspacesRootFields }
-                .navigationTitle("Workspaces Root")
-        case .globalBaseRef:
-            globalForm { baseRefFields }
-                .navigationTitle("Base Ref")
-        case .globalEffective:
-            globalForm { effectiveFields }
-                .navigationTitle("Effective Setting")
+        case .globalGeneral:
+            generalPage
+                .navigationTitle("")
         case .globalCommands:
-            globalForm { CommandBindingsSettingsView() }
-                .navigationTitle("Commands")
+            commandsPage
+                .navigationTitle("")
         case .workspaceSettings(let id):
             workspaceSettingsDetail(id)
+                .navigationTitle("")
         case .workspaceSecrets(let id):
             workspaceSecretsDetail(id)
         case .none:
@@ -133,182 +147,249 @@ struct PreferencesSettingsView: View {
         }
     }
 
-    private func globalForm<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        Form {
-            content()
-            saveSection(showResetGlobal: true)
-        }
-        .formStyle(.grouped)
-        .padding()
-    }
+    // MARK: - General
 
-    private var mainCLIFields: some View {
-        Section("Main CLI") {
-            TextField(
-                "Command",
-                text: $preferences.preferences.mainCLICommand,
-                prompt: Text("empty = bare shell")
-            )
-            Text("Empty runs a login shell. Set a command when you want a specific CLI on spawn.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
+    private var generalPage: some View {
+        SettingsPage(title: "General") {
+            SettingsSection(title: "Runtime") {
+                SettingsCard {
+                    SettingsRow(
+                        title: "Main CLI",
+                        description: "Empty runs a login shell. Set a command when you want a specific CLI on spawn."
+                    ) {
+                        TextField("Command", text: $preferences.preferences.mainCLICommand)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 160, idealWidth: 220)
+                            .frame(maxWidth: 280)
+                    }
+                    SettingsRowDivider()
+                    SettingsRow(
+                        title: "Editor",
+                        description: "Empty uses $EDITOR (fallback vi). GUI editors launch externally."
+                    ) {
+                        TextField("Command", text: $preferences.preferences.editorCommand)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 160, idealWidth: 220)
+                            .frame(maxWidth: 280)
+                    }
+                    SettingsRowDivider()
+                    SettingsRow(
+                        title: "Leader",
+                        description: leaderDescription
+                    ) {
+                        KeyChordField(chord: $preferences.preferences.leaderKey)
+                    }
+                }
+            }
 
-    private var editorFields: some View {
-        Section("Editor") {
-            TextField(
-                "Command",
-                text: $preferences.preferences.editorCommand,
-                prompt: Text("empty = $EDITOR")
-            )
-            Text("Empty uses $EDITOR (fallback vi). GUI editors launch externally.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
+            SettingsSection(title: "Workspace defaults") {
+                SettingsCard {
+                    SettingsRow(
+                        title: "Workspaces Root",
+                        description: "Parent for new Workspaces when Prefix is empty."
+                    ) {
+                        DirectoryPathField(path: $preferences.preferences.workspacesRoot)
+                    }
+                    SettingsRowDivider()
+                    SettingsRow(
+                        title: "Base Ref",
+                        description: "New Worktree branches are created from this ref."
+                    ) {
+                        TextField("Ref", text: $preferences.preferences.baseRef)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 100, idealWidth: 140)
+                            .frame(maxWidth: 180)
+                    }
+                }
+            }
 
-    private var leaderFields: some View {
-        Section("Leader") {
-            TextField("Leader key", text: $preferences.preferences.leaderKey)
-            Text("Opens Command Center. Example: ctrl+p")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if preferences.preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("Leader key should not be empty.")
+            if let lastError = preferences.lastError {
+                Text(lastError)
                     .font(.caption)
                     .foregroundStyle(.red)
             }
         }
     }
 
-    private var workspacesRootFields: some View {
-        Section("Workspaces Root") {
-            TextField("Path", text: $preferences.preferences.workspacesRoot)
-            Text("Parent for new Workspaces when Prefix is empty.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private var leaderDescription: String {
+        if preferences.preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Opens Command Center. Leader key should not be empty."
+        }
+        return "Opens Command Center."
+    }
+
+    // MARK: - Commands
+
+    private var commandsPage: some View {
+        SettingsPage(title: "Commands") {
+            CommandBindingsSettingsView()
+            if let lastError = preferences.lastError {
+                Text(lastError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
     }
 
-    private var baseRefFields: some View {
-        Section("Base Ref") {
-            TextField("Base Ref", text: $preferences.preferences.baseRef)
-            Text("New Worktree branches are created from this ref.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var effectiveFields: some View {
-        Section("Effective Setting") {
-            LabeledContent(
-                "Main CLI",
-                value: preferences.effective.mainCLICommand.isEmpty
-                    ? "(bare shell)"
-                    : preferences.effective.mainCLICommand
-            )
-            LabeledContent("Editor", value: preferences.effective.editorCommand)
-            LabeledContent("Editor presentation", value: preferences.effective.editorPresentation.rawValue)
-            LabeledContent("Leader", value: preferences.effective.leaderKey)
-            LabeledContent("Workspaces Root / Prefix", value: preferences.effective.workspacesRoot)
-            LabeledContent("Expanded parent", value: preferences.effective.workspacesRootURL.path)
-            LabeledContent("Base Ref", value: preferences.effective.baseRef)
-            Text("Workspace values win when set; otherwise Global.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
+    // MARK: - Workspace Settings
 
     @ViewBuilder
     private func workspaceSettingsDetail(_ workspaceId: String) -> some View {
         if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId }) {
-            Form {
-                Section {
-                    Text(workspace.dataDirURL.path)
+            SettingsPage(title: workspace.slug) {
+                Text(workspace.dataDirURL.path)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+
+                Text("Empty fields inherit Global. Changes save to this Workspace’s config.toml.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                SettingsSection(title: "Runtime") {
+                    SettingsCard {
+                        SettingsRow(
+                            title: "Main CLI",
+                            description: mainCLIOverrideDescription
+                        ) {
+                            VStack(alignment: .trailing, spacing: 6) {
+                                TextField(
+                                    "Command",
+                                    text: Binding(
+                                        get: { preferences.workspaceOverrides.mainCLICommand ?? "" },
+                                        set: { newValue in
+                                            if preferences.workspaceOverrides.mainCLICommand == nil {
+                                                if newValue.isEmpty { return }
+                                                preferences.workspaceOverrides.mainCLICommand = newValue
+                                            } else {
+                                                preferences.workspaceOverrides.mainCLICommand = newValue
+                                            }
+                                        }
+                                    )
+                                )
+                                .textFieldStyle(.roundedBorder)
+                                .frame(minWidth: 160, idealWidth: 220)
+                                .frame(maxWidth: 280)
+
+                                mainCLIOverrideControls
+                            }
+                        }
+                        SettingsRowDivider()
+                        SettingsRow(
+                            title: "Editor",
+                            description: "Empty inherits Global Editor."
+                        ) {
+                            TextField(
+                                "Command",
+                                text: Binding(
+                                    get: { preferences.workspaceOverrides.editorCommand ?? "" },
+                                    set: { preferences.workspaceOverrides.editorCommand = $0.isEmpty ? nil : $0 }
+                                )
+                            )
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 160, idealWidth: 220)
+                            .frame(maxWidth: 280)
+                        }
+                        SettingsRowDivider()
+                        SettingsRow(
+                            title: "Leader",
+                            description: "Empty inherits Global Leader."
+                        ) {
+                            KeyChordField(chord: workspaceLeaderBinding)
+                        }
+                    }
+                }
+
+                SettingsSection(title: "Paths") {
+                    SettingsCard {
+                        SettingsRow(
+                            title: "Prefix",
+                            description: "Parent directory for this Workspace’s Data Dir. Empty uses Global Workspaces Root. Changing Prefix moves the Data Dir."
+                        ) {
+                            DirectoryPathField(path: workspacePrefixBinding, prompt: "Prefix")
+                        }
+                        SettingsRowDivider()
+                        SettingsRow(
+                            title: "Base Ref",
+                            description: "Empty inherits Global Base Ref."
+                        ) {
+                            TextField(
+                                "Ref",
+                                text: Binding(
+                                    get: { preferences.workspaceOverrides.baseRef ?? "" },
+                                    set: { preferences.workspaceOverrides.baseRef = $0.isEmpty ? nil : $0 }
+                                )
+                            )
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 100, idealWidth: 140)
+                            .frame(maxWidth: 180)
+                        }
+                    }
+                }
+
+                if let lastError = preferences.lastError ?? workspaces.lastError {
+                    Text(lastError)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                    Text("Empty fields inherit Global. Saved to config.toml.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } header: {
-                    Text(workspace.slug)
+                        .foregroundStyle(.red)
                 }
-
-                Section("Main CLI") {
-                    TextField(
-                        "Command",
-                        text: Binding(
-                            get: { preferences.workspaceOverrides.mainCLICommand ?? "" },
-                            set: { preferences.workspaceOverrides.mainCLICommand = $0.isEmpty ? nil : $0 }
-                        ),
-                        prompt: Text("inherit Global")
-                    )
-                }
-
-                Section("Editor") {
-                    TextField(
-                        "Command",
-                        text: Binding(
-                            get: { preferences.workspaceOverrides.editorCommand ?? "" },
-                            set: { preferences.workspaceOverrides.editorCommand = $0.isEmpty ? nil : $0 }
-                        ),
-                        prompt: Text("inherit Global")
-                    )
-                }
-
-                Section("Leader") {
-                    TextField(
-                        "Leader key",
-                        text: Binding(
-                            get: { preferences.workspaceOverrides.leaderKey ?? "" },
-                            set: { preferences.workspaceOverrides.leaderKey = $0.isEmpty ? nil : $0 }
-                        ),
-                        prompt: Text("inherit Global")
-                    )
-                }
-
-                Section("Prefix") {
-                    TextField(
-                        "Path",
-                        text: Binding(
-                            get: { preferences.workspaceOverrides.workspacesRoot ?? "" },
-                            set: { preferences.workspaceOverrides.workspacesRoot = $0.isEmpty ? nil : $0 }
-                        ),
-                        prompt: Text("empty = Global Workspaces Root")
-                    )
-                    Text("Parent directory for this Workspace’s Data Dir.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Base Ref") {
-                    TextField(
-                        "Base Ref",
-                        text: Binding(
-                            get: { preferences.workspaceOverrides.baseRef ?? "" },
-                            set: { preferences.workspaceOverrides.baseRef = $0.isEmpty ? nil : $0 }
-                        ),
-                        prompt: Text("inherit Global")
-                    )
-                }
-
-                saveSection(showResetGlobal: false)
             }
-            .formStyle(.grouped)
-            .padding()
-            .navigationTitle("Workspace Settings")
         } else {
             ContentUnavailableView("Workspace not found", systemImage: "folder.badge.questionmark")
         }
     }
 
+    private var workspaceLeaderBinding: Binding<String> {
+        Binding(
+            get: { preferences.workspaceOverrides.leaderKey ?? "" },
+            set: { preferences.workspaceOverrides.leaderKey = $0.isEmpty ? nil : $0 }
+        )
+    }
+
+    private var workspacePrefixBinding: Binding<String> {
+        Binding(
+            get: { preferences.workspaceOverrides.workspacesRoot ?? "" },
+            set: { preferences.workspaceOverrides.workspacesRoot = $0.isEmpty ? nil : $0 }
+        )
+    }
+
+    private var mainCLIOverrideDescription: String {
+        let override = preferences.workspaceOverrides.mainCLICommand
+        let global = preferences.preferences.mainCLICommand
+        let globalLabel = global.isEmpty ? "bare shell" : global
+        if override == nil {
+            return "Inherits Global (\(globalLabel))."
+        }
+        if override?.isEmpty == true {
+            return "Bare shell (overrides Global)."
+        }
+        return "Overrides Global (\(globalLabel))."
+    }
+
+    @ViewBuilder
+    private var mainCLIOverrideControls: some View {
+        let override = preferences.workspaceOverrides.mainCLICommand
+        if override == nil {
+            Button("Use bare shell") {
+                preferences.workspaceOverrides.mainCLICommand = ""
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+        } else {
+            Button("Inherit Global") {
+                preferences.workspaceOverrides.mainCLICommand = nil
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+        }
+    }
+
+    // MARK: - Secret Store
+
     @ViewBuilder
     private func workspaceSecretsDetail(_ workspaceId: String) -> some View {
         if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId }) {
             SecretStoreScaffoldView()
-                .navigationTitle("Secret Store")
+                .navigationTitle("")
                 .onAppear {
                     if workspaces.current?.id != workspace.id {
                         workspaces.select(workspace)
@@ -319,51 +400,15 @@ struct PreferencesSettingsView: View {
         }
     }
 
-    private func saveSection(showResetGlobal: Bool) -> some View {
-        Section {
-            HStack {
-                Button("Save") {
-                    preferences.save()
-                    workspaces.saveCurrentWorkspaceSettings()
-                }
-                .keyboardShortcut("s", modifiers: .command)
-                Button("Reload") {
-                    preferences.reload()
-                    workspaces.refresh()
-                    if let current = workspaces.current {
-                        workspaces.select(current)
-                    }
-                }
-                if showResetGlobal {
-                    Button("Reset Global to defaults") { preferences.resetToDefaults() }
-                }
-            }
-
-            if let lastError = preferences.lastError ?? workspaces.lastError {
-                Text(lastError)
-                    .foregroundStyle(.red)
-                    .font(.caption)
-            } else if case .workspaceSettings = selection {
-                if let current = workspaces.current {
-                    Text(SymphoniaPaths.workspaceConfigFile(in: current.dataDirURL).path)
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                        .textSelection(.enabled)
-                }
-            } else {
-                Text(SymphoniaPaths.preferencesFile.path)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-                    .textSelection(.enabled)
-            }
-        }
-    }
+    // MARK: - Navigation
 
     private func applyPendingNavigation() {
         guard let destination = settingsNavigation.consume() else { return }
         switch destination {
-        case .globalMainCLI:
-            selection = .globalMainCLI
+        case .globalMainCLI, .globalGeneral:
+            selection = .globalGeneral
+        case .globalCommands:
+            selection = .globalCommands
         case .workspaceSettings(let workspaceId):
             selection = .workspaceSettings(workspaceId)
             ensureWorkspaceSelected(for: selection)
@@ -385,28 +430,34 @@ struct PreferencesSettingsView: View {
             break
         }
     }
+
+    private func healSelectionAfterWorkspaceRelocate(from oldId: String, to newId: String) {
+        guard oldId != newId else { return }
+        switch selection {
+        case .workspaceSettings(let id) where id == oldId:
+            suppressWorkspaceAutosave = true
+            selection = .workspaceSettings(newId)
+            DispatchQueue.main.async { suppressWorkspaceAutosave = false }
+        case .workspaceSecrets(let id) where id == oldId:
+            suppressWorkspaceAutosave = true
+            selection = .workspaceSecrets(newId)
+            DispatchQueue.main.async { suppressWorkspaceAutosave = false }
+        default:
+            break
+        }
+    }
 }
 
 private enum SettingsNavItem: Hashable, Identifiable {
-    case globalMainCLI
-    case globalEditor
-    case globalLeader
-    case globalWorkspacesRoot
-    case globalBaseRef
+    case globalGeneral
     case globalCommands
-    case globalEffective
     case workspaceSettings(String)
     case workspaceSecrets(String)
 
     var id: String {
         switch self {
-        case .globalMainCLI: return "g-main"
-        case .globalEditor: return "g-editor"
-        case .globalLeader: return "g-leader"
-        case .globalWorkspacesRoot: return "g-root"
-        case .globalBaseRef: return "g-base"
+        case .globalGeneral: return "g-general"
         case .globalCommands: return "g-commands"
-        case .globalEffective: return "g-effective"
         case .workspaceSettings(let id): return "wo-\(id)"
         case .workspaceSecrets(let id): return "ws-\(id)"
         }
@@ -414,13 +465,8 @@ private enum SettingsNavItem: Hashable, Identifiable {
 
     var title: String {
         switch self {
-        case .globalMainCLI: return "Main CLI"
-        case .globalEditor: return "Editor"
-        case .globalLeader: return "Leader"
-        case .globalWorkspacesRoot: return "Workspaces Root"
-        case .globalBaseRef: return "Base Ref"
+        case .globalGeneral: return "General"
         case .globalCommands: return "Commands"
-        case .globalEffective: return "Effective Setting"
         case .workspaceSettings: return "Settings"
         case .workspaceSecrets: return "Secret Store"
         }
@@ -428,22 +474,14 @@ private enum SettingsNavItem: Hashable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .globalMainCLI: return "terminal"
-        case .globalEditor: return "pencil"
-        case .globalLeader: return "keyboard"
-        case .globalWorkspacesRoot: return "externaldrive"
-        case .globalBaseRef: return "arrow.triangle.branch"
+        case .globalGeneral: return "gearshape"
         case .globalCommands: return "command"
-        case .globalEffective: return "checkmark.seal"
         case .workspaceSettings: return "slider.horizontal.3"
-        case .workspaceSecrets: return "key.fill"
+        case .workspaceSecrets: return "key"
         }
     }
 
     static var globalItems: [SettingsNavItem] {
-        [
-            .globalMainCLI, .globalEditor, .globalLeader, .globalWorkspacesRoot, .globalBaseRef,
-            .globalCommands, .globalEffective,
-        ]
+        [.globalGeneral, .globalCommands]
     }
 }

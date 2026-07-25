@@ -302,6 +302,11 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     /// before the Edit/View menu consumes them — same seam as Ghostty `SurfaceView_AppKit`.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard event.type == .keyDown else { return false }
+        // App menu Settings (⌘,) must reach SwiftUI's Settings scene even when the
+        // terminal is first responder — Ghostty must not claim it as a surface binding.
+        if Self.isAppSettingsKeyEquivalent(event) {
+            return false
+        }
         guard surfaceFocused, let surface else { return false }
 
         var ghosttyEvent = event.ghosttyKeyEvent(GHOSTTY_ACTION_PRESS)
@@ -315,6 +320,17 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
             return true
         }
         return false
+    }
+
+    /// macOS standard Settings shortcut: ⌘, (no ctrl/opt).
+    private static func isAppSettingsKeyEquivalent(_ event: NSEvent) -> Bool {
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard mods.contains(.command),
+              !mods.contains(.control),
+              !mods.contains(.option)
+        else { return false }
+        let chars = event.charactersIgnoringModifiers ?? ""
+        return chars == "," || event.keyCode == 43
     }
 
     @discardableResult

@@ -40,6 +40,7 @@ struct SymphoniaApp: App {
             workspaces: workspaces,
             agents: agents,
             overlays: overlays,
+            settingsNavigation: settingsNavigation,
             commandRegistry: commandRegistry
         )
         _preferences = StateObject(wrappedValue: preferences)
@@ -68,14 +69,22 @@ struct SymphoniaApp: App {
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .ghosttyWindowChrome(ghosttyTheme)
         }
+        // Hidden titlebar + full-size content: traffic lights float over the leading
+        // sidebar (Xcode / Raycast). Must be set on the Scene — applying fullSizeContentView
+        // after the fact via NSViewRepresentable is unreliable.
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 720)
         .commands {
-            CommandGroup(after: .sidebar) {
-                // Sidebar toggle is also on the status bar (⌃⌘S).
+            // SwiftUI `Settings` scene forces a system titlebar — use a custom Window instead.
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    settingsNavigation.openSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
             }
         }
 
-        Settings {
+        Window("Settings", id: SymphoniaSceneID.settings) {
             PreferencesSettingsView()
                 .environmentObject(preferences)
                 .environmentObject(workspaces)
@@ -86,5 +95,8 @@ struct SymphoniaApp: App {
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .ghosttyWindowChrome(ghosttyTheme)
         }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 860, height: 560)
+        .commandsRemoved()
     }
 }

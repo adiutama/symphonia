@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Secret Store editor — table/grid over `secrets.toml` (T.6).
+/// Secret Store editor — `secrets.toml` (T.6), styled with Settings chrome (page → section → card).
 struct SecretStoreScaffoldView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var secrets: SecretStoreController
@@ -17,80 +17,123 @@ struct SecretStoreScaffoldView: View {
                     description: Text("Select a Workspace to manage Env Vars.")
                 )
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    toolbar
-                    groupsBar
-                    varsTable
-                    addVarRow
+                SettingsPage(title: "Secret Store") {
+                    optionsSection
+                    groupsSection
+                    envVarsSection
                     footer
                 }
-                .padding(12)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    // MARK: - Toolbar
+    // MARK: - Options
 
-    private var toolbar: some View {
-        HStack(spacing: 12) {
-            Text("Secret Store")
-                .font(.title3.weight(.semibold))
-
-            Spacer()
-
-            Toggle("Reveal values", isOn: $revealValues)
-                .toggleStyle(.checkbox)
-                .help("Show Env Var values in plain text")
-
-            Button("Reload") {
-                secrets.reload()
+    private var optionsSection: some View {
+        SettingsSection(title: "Options") {
+            SettingsCard {
+                SettingsRow(
+                    title: "Reveal values",
+                    description: "Show Env Var values in plain text."
+                ) {
+                    Toggle("", isOn: $revealValues)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                }
+                SettingsRowDivider()
+                SettingsRow(
+                    title: "Reload",
+                    description: "Re-read secrets.toml from disk."
+                ) {
+                    Button("Reload") {
+                        secrets.reload()
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
         }
     }
 
     // MARK: - Groups
 
-    private var groupsBar: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Groups")
-                    .font(.subheadline.weight(.semibold))
-                Text("Off = member vars stay out of spawn env")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-
-            if secrets.document.groups.isEmpty {
-                Text("No groups — vars can stay ungrouped.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                FlowGroups(
-                    groups: secrets.document.groups,
-                    onToggle: { secrets.setGroupEnabled($0, enabled: $1) },
-                    onRename: { secrets.renameGroup($0, name: $1) },
-                    onDelete: { secrets.deleteGroup($0) }
-                )
-            }
-
-            HStack(spacing: 8) {
-                TextField("New group name", text: $secrets.draftGroupName)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 220)
-                Button("Add Group") {
-                    secrets.addGroup()
+    private var groupsSection: some View {
+        SettingsSection(title: "Groups") {
+            SettingsCard {
+                if secrets.document.groups.isEmpty {
+                    SettingsRow(
+                        title: "No groups",
+                        description: "Off = member vars stay out of spawn env. Vars can stay ungrouped."
+                    ) {
+                        EmptyView()
+                    }
+                } else {
+                    ForEach(Array(secrets.document.groups.enumerated()), id: \.element.id) { index, group in
+                        if index > 0 { SettingsRowDivider() }
+                        groupRow(group)
+                    }
+                    SettingsRowDivider()
                 }
-                .disabled(secrets.draftGroupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                SettingsRow(
+                    title: "New group",
+                    description: "Add a group to toggle sets of Env Vars in spawn env."
+                ) {
+                    HStack(spacing: 8) {
+                        TextField("Name", text: $secrets.draftGroupName)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 120, idealWidth: 160)
+                            .frame(maxWidth: 200)
+                        Button("Add") {
+                            secrets.addGroup()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(secrets.draftGroupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
             }
         }
-        .padding(10)
-        .background(.quaternary.opacity(0.35))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Vars table
+    private func groupRow(_ group: SecretGroup) -> some View {
+        SettingsRow(
+            title: group.name.isEmpty ? "Untitled" : group.name,
+            description: group.enabled ? "On — member vars can enter spawn env." : "Off — member vars stay out of spawn env."
+        ) {
+            HStack(spacing: 8) {
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { group.enabled },
+                        set: { secrets.setGroupEnabled(group.id, enabled: $0) }
+                    )
+                )
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .help("Group On")
+
+                TextField(
+                    "Name",
+                    text: Binding(
+                        get: { group.name },
+                        set: { secrets.renameGroup(group.id, name: $0) }
+                    )
+                )
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 140)
+
+                Button(role: .destructive) {
+                    secrets.deleteGroup(group.id)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .help("Delete group (vars become ungrouped)")
+            }
+        }
+    }
+
+    // MARK: - Env Vars
 
     private var filteredVars: [EnvVar] {
         let q = filter.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -107,97 +150,151 @@ struct SecretStoreScaffoldView: View {
         }
     }
 
-    private var varsTable: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Env Vars")
-                    .font(.subheadline.weight(.semibold))
-                TextField("Filter key or group", text: $filter)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 220)
-                Spacer()
-                Text("\(filteredVars.count) shown")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private var envVarsSection: some View {
+        SettingsSection(title: "Env Vars") {
+            SettingsCard {
+                SettingsRow(
+                    title: "Filter",
+                    description: "\(filteredVars.count) shown"
+                ) {
+                    TextField("Key or group", text: $filter)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(minWidth: 140, idealWidth: 200)
+                        .frame(maxWidth: 260)
+                }
+                SettingsRowDivider()
 
-            if secrets.document.vars.isEmpty {
-                Text("No Env Vars yet — add one below.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
-            } else if filteredVars.isEmpty {
-                Text("No matches for “\(filter)”.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
-            } else {
-                Table(filteredVars, selection: $secrets.selectedVarId) {
-                    TableColumn("On") { envVar in
-                        Toggle(
-                            "",
-                            isOn: Binding(
-                                get: { envVar.enabled },
-                                set: { secrets.setVarEnabled(envVar.id, enabled: $0) }
-                            )
-                        )
-                        .labelsHidden()
-                        .help("Include when Enabled (and group On, if any)")
+                if secrets.document.vars.isEmpty {
+                    SettingsRow(
+                        title: "No Env Vars yet",
+                        description: "Add one below."
+                    ) {
+                        EmptyView()
                     }
-                    .width(min: 36, ideal: 44, max: 52)
+                } else if filteredVars.isEmpty {
+                    SettingsRow(
+                        title: "No matches",
+                        description: "Nothing matches “\(filter)”."
+                    ) {
+                        EmptyView()
+                    }
+                } else {
+                    Table(filteredVars, selection: $secrets.selectedVarId) {
+                        TableColumn("On") { envVar in
+                            Toggle(
+                                "",
+                                isOn: Binding(
+                                    get: { envVar.enabled },
+                                    set: { secrets.setVarEnabled(envVar.id, enabled: $0) }
+                                )
+                            )
+                            .labelsHidden()
+                            .help("Include when Enabled (and group On, if any)")
+                        }
+                        .width(min: 36, ideal: 44, max: 52)
 
-                    TableColumn("Key") { envVar in
-                        TextField(
-                            "KEY",
-                            text: Binding(
-                                get: { envVar.key },
-                                set: { newKey in
-                                    secrets.updateVar(
-                                        envVar.id,
-                                        key: newKey,
-                                        value: envVar.value,
-                                        groupId: envVar.groupId
-                                    )
+                        TableColumn("Key") { envVar in
+                            TextField(
+                                "KEY",
+                                text: Binding(
+                                    get: { envVar.key },
+                                    set: { newKey in
+                                        secrets.updateVar(
+                                            envVar.id,
+                                            key: newKey,
+                                            value: envVar.value,
+                                            groupId: envVar.groupId
+                                        )
+                                    }
+                                )
+                            )
+                            .textFieldStyle(.plain)
+                            .font(.body.monospaced())
+                        }
+                        .width(min: 100, ideal: 160)
+
+                        TableColumn("Value") { envVar in
+                            Group {
+                                if revealValues {
+                                    TextField("value", text: valueBinding(envVar))
+                                } else {
+                                    SecureField("value", text: valueBinding(envVar))
                                 }
-                            )
-                        )
-                        .textFieldStyle(.plain)
-                        .font(.body.monospaced())
-                    }
-                    .width(min: 100, ideal: 160)
+                            }
+                            .textFieldStyle(.plain)
+                            .font(.body.monospaced())
+                        }
+                        .width(min: 120, ideal: 240)
 
-                    TableColumn("Value") { envVar in
+                        TableColumn("Group") { envVar in
+                            Picker(
+                                "",
+                                selection: Binding(
+                                    get: { envVar.groupId ?? "" },
+                                    set: { raw in
+                                        secrets.updateVar(
+                                            envVar.id,
+                                            key: envVar.key,
+                                            value: envVar.value,
+                                            groupId: raw.isEmpty ? nil : raw
+                                        )
+                                    }
+                                )
+                            ) {
+                                Text("—").tag("")
+                                ForEach(secrets.document.groups) { group in
+                                    Text(group.name).tag(group.id)
+                                }
+                            }
+                            .labelsHidden()
+                        }
+                        .width(min: 100, ideal: 140, max: 180)
+
+                        TableColumn("") { envVar in
+                            Button(role: .destructive) {
+                                secrets.deleteVar(envVar.id)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Delete Env Var")
+                        }
+                        .width(36)
+                    }
+                    .frame(minHeight: 160)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+
+                    SettingsRowDivider()
+                }
+
+                SettingsRow(
+                    title: "Add Env Var",
+                    description: "Key is required. Value can be empty."
+                ) {
+                    HStack(spacing: 8) {
+                        TextField("KEY", text: $secrets.draftVarKey)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.body.monospaced())
+                            .frame(width: 120)
+
                         Group {
                             if revealValues {
-                                TextField(
-                                    "value",
-                                    text: valueBinding(envVar)
-                                )
+                                TextField("value", text: $secrets.draftVarValue)
                             } else {
-                                SecureField(
-                                    "value",
-                                    text: valueBinding(envVar)
-                                )
+                                SecureField("value", text: $secrets.draftVarValue)
                             }
                         }
-                        .textFieldStyle(.plain)
+                        .textFieldStyle(.roundedBorder)
                         .font(.body.monospaced())
-                    }
-                    .width(min: 120, ideal: 240)
+                        .frame(minWidth: 100, idealWidth: 140)
+                        .frame(maxWidth: 180)
 
-                    TableColumn("Group") { envVar in
                         Picker(
-                            "",
+                            "Group",
                             selection: Binding(
-                                get: { envVar.groupId ?? "" },
-                                set: { raw in
-                                    secrets.updateVar(
-                                        envVar.id,
-                                        key: envVar.key,
-                                        value: envVar.value,
-                                        groupId: raw.isEmpty ? nil : raw
-                                    )
-                                }
+                                get: { secrets.draftVarGroupId ?? "" },
+                                set: { secrets.draftVarGroupId = $0.isEmpty ? nil : $0 }
                             )
                         ) {
                             Text("—").tag("")
@@ -206,21 +303,16 @@ struct SecretStoreScaffoldView: View {
                             }
                         }
                         .labelsHidden()
-                    }
-                    .width(min: 100, ideal: 140, max: 180)
+                        .frame(width: 100)
 
-                    TableColumn("") { envVar in
-                        Button(role: .destructive) {
-                            secrets.deleteVar(envVar.id)
-                        } label: {
-                            Image(systemName: "trash")
+                        Button("Add") {
+                            secrets.addVar()
                         }
-                        .buttonStyle(.borderless)
-                        .help("Delete Env Var")
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.return, modifiers: [])
+                        .disabled(secrets.draftVarKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    .width(36)
                 }
-                .frame(minHeight: 180)
             }
         }
     }
@@ -237,48 +329,6 @@ struct SecretStoreScaffoldView: View {
                 )
             }
         )
-    }
-
-    // MARK: - Add row
-
-    private var addVarRow: some View {
-        HStack(spacing: 8) {
-            TextField("KEY", text: $secrets.draftVarKey)
-                .textFieldStyle(.roundedBorder)
-                .font(.body.monospaced())
-                .frame(minWidth: 100, maxWidth: 160)
-
-            Group {
-                if revealValues {
-                    TextField("value", text: $secrets.draftVarValue)
-                } else {
-                    SecureField("value", text: $secrets.draftVarValue)
-                }
-            }
-            .textFieldStyle(.roundedBorder)
-            .font(.body.monospaced())
-
-            Picker(
-                "Group",
-                selection: Binding(
-                    get: { secrets.draftVarGroupId ?? "" },
-                    set: { secrets.draftVarGroupId = $0.isEmpty ? nil : $0 }
-                )
-            ) {
-                Text("—").tag("")
-                ForEach(secrets.document.groups) { group in
-                    Text(group.name).tag(group.id)
-                }
-            }
-            .labelsHidden()
-            .frame(maxWidth: 140)
-
-            Button("Add") {
-                secrets.addVar()
-            }
-            .keyboardShortcut(.return, modifiers: [])
-            .disabled(secrets.draftVarKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        }
     }
 
     // MARK: - Footer
@@ -305,52 +355,6 @@ struct SecretStoreScaffoldView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
-            }
-        }
-    }
-}
-
-/// Compact editable chips for Secret Groups (keeps the Env Vars table as the main grid).
-private struct FlowGroups: View {
-    let groups: [SecretGroup]
-    let onToggle: (String, Bool) -> Void
-    let onRename: (String, String) -> Void
-    let onDelete: (String) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(groups) { group in
-                HStack(spacing: 8) {
-                    Toggle(
-                        "",
-                        isOn: Binding(
-                            get: { group.enabled },
-                            set: { onToggle(group.id, $0) }
-                        )
-                    )
-                    .labelsHidden()
-                    .help("Group On")
-
-                    TextField(
-                        "name",
-                        text: Binding(
-                            get: { group.name },
-                            set: { onRename(group.id, $0) }
-                        )
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 200)
-
-                    Button(role: .destructive) {
-                        onDelete(group.id)
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Delete group (vars become ungrouped)")
-
-                    Spacer(minLength: 0)
-                }
             }
         }
     }
