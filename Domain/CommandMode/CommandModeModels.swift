@@ -31,9 +31,9 @@ enum CommandModeAction: Equatable {
     case openSettings
     case switchWorkspace(id: String)
     case focusMainRepo
-    case focusAgent(id: String)
-    case newAgent
-    case removeFocusedAgent
+    case focusWorktree(id: String)
+    case newWorktree
+    case removeFocusedWorktree
     case removeCurrentWorkspace
     case renameWorkspace
     case renameFocusedWorktree
@@ -45,9 +45,9 @@ enum CommandModeAction: Equatable {
     /// Toggle Status Cue list visibility (C.7).
     case toggleStatusCue
 
-    /// Drill into a picker list (Workspace / Agent / Background).
+    /// Drill into a picker list (Workspace / Worktree / Background).
     case showWorkspacePicker
-    case showAgentPicker
+    case showWorktreePicker
     case showBackgroundPicker
 }
 
@@ -55,6 +55,6 @@ enum CommandModeAction: Equatable {
 enum CommandModePhase: Equatable {
     case root
     case pickWorkspace
-    case pickAgent
+    case pickWorktree
     case pickBackground
 }

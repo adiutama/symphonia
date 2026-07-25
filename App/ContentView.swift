@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
-    @EnvironmentObject private var agents: AgentController
+    @EnvironmentObject private var worktrees: WorktreeController
     @EnvironmentObject private var secrets: SecretStoreController
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
@@ -84,7 +84,7 @@ struct ContentView: View {
                 .windowDragRegion()
                 .help("Drag to move window")
 
-            if let session = agents.focusedSession,
+            if let session = worktrees.focusedSession,
                let slug = statusBarWorkspaceSlug(for: session) {
                 Label(session.statusBarContext(workspaceSlug: slug), systemImage: session.statusBarIcon)
                     .lineLimit(1)

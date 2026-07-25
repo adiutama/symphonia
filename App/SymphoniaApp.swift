@@ -6,7 +6,7 @@ struct SymphoniaApp: App {
     @StateObject private var workspaces: WorkspaceController
     @StateObject private var secrets: SecretStoreController
     @StateObject private var settingsNavigation: SettingsNavigation
-    @StateObject private var agents: AgentController
+    @StateObject private var worktrees: WorktreeController
     @StateObject private var overlays: OverlayController
     @StateObject private var commandMode: CommandModeController
     /// Command registry (ADR 0021). Drives `commandMode`'s root palette (CC.2);
@@ -20,25 +20,25 @@ struct SymphoniaApp: App {
         let workspaces = WorkspaceController(preferences: preferences)
         let secrets = SecretStoreController(workspaces: workspaces)
         let settingsNavigation = SettingsNavigation()
-        let agents = AgentController(
+        let worktrees = WorktreeController(
             preferences: preferences,
             workspaces: workspaces,
             secrets: secrets
         )
         let overlays = OverlayController(
             preferences: preferences,
-            agents: agents,
+            agents: worktrees,
             secrets: secrets
         )
         let commandRegistry = CommandRegistry(providers: [
-            WorkspaceCommandProvider(workspaces: workspaces, agents: agents),
+            WorkspaceCommandProvider(workspaces: workspaces, worktrees: worktrees),
             OverlayCommandProvider(),
             ChromeCommandProvider(),
         ])
         let commandMode = CommandModeController(
             preferences: preferences,
             workspaces: workspaces,
-            agents: agents,
+            worktrees: worktrees,
             overlays: overlays,
             settingsNavigation: settingsNavigation,
             commandRegistry: commandRegistry
@@ -47,7 +47,7 @@ struct SymphoniaApp: App {
         _workspaces = StateObject(wrappedValue: workspaces)
         _secrets = StateObject(wrappedValue: secrets)
         _settingsNavigation = StateObject(wrappedValue: settingsNavigation)
-        _agents = StateObject(wrappedValue: agents)
+        _worktrees = StateObject(wrappedValue: worktrees)
         _overlays = StateObject(wrappedValue: overlays)
         _commandMode = StateObject(wrappedValue: commandMode)
         _commandRegistry = StateObject(wrappedValue: commandRegistry)
@@ -59,7 +59,7 @@ struct SymphoniaApp: App {
             ContentView()
                 .environmentObject(preferences)
                 .environmentObject(workspaces)
-                .environmentObject(agents)
+                .environmentObject(worktrees)
                 .environmentObject(secrets)
                 .environmentObject(settingsNavigation)
                 .environmentObject(overlays)
@@ -69,13 +69,9 @@ struct SymphoniaApp: App {
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .ghosttyWindowChrome(ghosttyTheme)
         }
-        // Hidden titlebar + full-size content: traffic lights float over the leading
-        // sidebar (Xcode / Raycast). Must be set on the Scene — applying fullSizeContentView
-        // after the fact via NSViewRepresentable is unreliable.
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 720)
         .commands {
-            // SwiftUI `Settings` scene forces a system titlebar — use a custom Window instead.
             CommandGroup(replacing: .appSettings) {
                 Button("Settings…") {
                     settingsNavigation.openSettings()

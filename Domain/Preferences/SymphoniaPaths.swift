@@ -60,8 +60,8 @@ enum SymphoniaPaths {
     /// Reserved top-level names directly under a Workspace Data Dir that a Worktree folder can
     /// never take — case-insensitive (ADR 0014, P1.5). Currently just `main`, the protected Main
     /// Repo directory. `WorkspaceSlug.validate` folds this set into its own reserved-name check
-    /// (reused by `AgentController.createAgent()` for Operator-edited Worktree folder names), and
-    /// `AgentStore` re-checks it directly so the guard holds even when the domain layer is called
+    /// (reused by `WorktreeController.createWorktree()` for Operator-edited Worktree folder names), and
+    /// `WorktreeStore` re-checks it directly so the guard holds even when the domain layer is called
     /// without going through that validator.
     static let reservedWorkspaceChildNames: Set<String> = ["main"]
 

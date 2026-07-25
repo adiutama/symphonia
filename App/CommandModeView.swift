@@ -59,7 +59,7 @@ struct CommandModeView: View {
         switch commandMode.phase {
         case .root: return "Type a command or /verb…"
         case .pickWorkspace: return "Search Workspaces…"
-        case .pickAgent: return "Search Worktrees…"
+        case .pickWorktree: return "Search Worktrees…"
         case .pickBackground: return "Search Overlays…"
         }
     }
@@ -95,7 +95,7 @@ struct CommandModeView: View {
         switch commandMode.phase {
         case .root: return "Command Center"
         case .pickWorkspace: return "Switch Workspace"
-        case .pickAgent: return "Focus Worktree"
+        case .pickWorktree: return "Focus Worktree"
         case .pickBackground: return "Peek Overlay"
         }
     }

@@ -10,7 +10,7 @@ import Foundation
 /// Opening an externally prepared `main/` is supported — layout ensure does not touch an
 /// existing repo, and healing is a no-op once Main is a valid git repo. Worktree checkouts are
 /// **siblings** of `main/` directly under the Workspace Data Dir (P1.5 flat layout; no
-/// `worktrees/` parent) — created lazily by `AgentStore`, not by this store.
+/// `worktrees/` parent) — created lazily by `WorktreeStore`, not by this store.
 struct WorkspaceStore: Sendable {
     enum StoreError: LocalizedError, Equatable {
         case invalidSlug(String)
@@ -100,7 +100,7 @@ struct WorkspaceStore: Sendable {
     }
 
     /// Ensure `config.toml`, `secrets.toml` (0600), and `main/` exist (P1.5: no `worktrees/`
-    /// parent — Worktree checkouts are created lazily as siblings of `main/` by `AgentStore`).
+    /// parent — Worktree checkouts are created lazily as siblings of `main/` by `WorktreeStore`).
     /// When `main/` is not yet a git repo: clone `cloneRemoteURL` if given, else `git init` when
     /// `initializeMainRepo` is true.
     func ensureLayout(at dataDir: URL, initializeMainRepo: Bool, cloneRemoteURL: String? = nil) throws {

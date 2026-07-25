@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Minimal list / create / focus / remove scaffold for Agents (P4.7). Ugly on purpose.
-struct AgentScaffoldView: View {
+/// Minimal list / create / focus / remove scaffold for Worktrees (P4.7). Ugly on purpose.
+struct WorktreeScaffoldView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
-    @EnvironmentObject private var agents: AgentController
+    @EnvironmentObject private var worktrees: WorktreeController
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -14,26 +14,26 @@ struct AgentScaffoldView: View {
                 Text("Select a Workspace to manage Worktrees.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            } else if agents.agents.isEmpty {
+            } else if worktrees.worktrees.isEmpty {
                 Text("None yet — create one below.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
                 List(selection: Binding(
-                    get: { agents.focused?.id },
+                    get: { worktrees.focused?.id },
                     set: { newID in
                         guard let newID,
-                              let summary = agents.agents.first(where: { $0.id == newID })
+                              let summary = worktrees.worktrees.first(where: { $0.id == newID })
                         else { return }
-                        agents.focus(summary)
+                        worktrees.focus(summary)
                     }
                 )) {
-                    ForEach(agents.agents) { item in
+                    ForEach(worktrees.worktrees) { item in
                         VStack(alignment: .leading, spacing: 2) {
                             HStack {
                                 Text(item.threeWordName)
-                                    .fontWeight(agents.focused?.id == item.id ? .bold : .regular)
-                                if agents.focused?.id == item.id {
+                                    .fontWeight(worktrees.focused?.id == item.id ? .bold : .regular)
+                                if worktrees.focused?.id == item.id {
                                     Text("← focus")
                                         .font(.caption2)
                                         .foregroundStyle(.tint)
@@ -56,43 +56,43 @@ struct AgentScaffoldView: View {
             }
 
             HStack {
-                TextField("branch (optional)", text: $agents.draftBranchName)
+                TextField("branch (optional)", text: $worktrees.draftBranchName)
                     .textFieldStyle(.roundedBorder)
                     .disabled(workspaces.current == nil)
 
                 Button("Create Worktree") {
-                    agents.createAgent()
+                    worktrees.createWorktree()
                 }
                 .disabled(workspaces.current == nil)
 
                 Button("Refresh") {
-                    agents.refresh()
+                    worktrees.refresh()
                 }
                 .disabled(workspaces.current == nil)
 
-                if let focused = agents.focused {
+                if let focused = worktrees.focused {
                     Button("Clear focus") {
-                        agents.clearFocus()
+                        worktrees.clearFocus()
                     }
 
                     Button("Respawn w/ secrets") {
-                        agents.respawnWithCurrentSecrets()
+                        worktrees.respawnWithCurrentSecrets()
                     }
                     .help("Restart focused Worktree CLI with the current Enabled Secret Store set")
 
                     Button("Remove…", role: .destructive) {
-                        agents.requestRemove(focused)
+                        worktrees.requestRemove(focused)
                     }
                 }
             }
 
-            if let focused = agents.focused {
+            if let focused = worktrees.focused {
                 Text("Focused: \(focused.threeWordName) @ \(focused.worktreeURL.path)")
                     .font(.caption)
                     .textSelection(.enabled)
             }
 
-            if let error = agents.lastError {
+            if let error = worktrees.lastError {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -105,21 +105,21 @@ struct AgentScaffoldView: View {
         .confirmationDialog(
             removeDialogTitle,
             isPresented: Binding(
-                get: { agents.pendingRemove != nil },
-                set: { if !$0 { agents.cancelRemove() } }
+                get: { worktrees.pendingRemove != nil },
+                set: { if !$0 { worktrees.cancelRemove() } }
             ),
             titleVisibility: .visible
         ) {
             Button("Remove worktree (keep branch)", role: .destructive) {
-                agents.pendingRemoveDeleteBranch = false
-                agents.confirmRemove()
+                worktrees.pendingRemoveDeleteBranch = false
+                worktrees.confirmRemove()
             }
             Button("Remove worktree and delete branch", role: .destructive) {
-                agents.pendingRemoveDeleteBranch = true
-                agents.confirmRemove()
+                worktrees.pendingRemoveDeleteBranch = true
+                worktrees.confirmRemove()
             }
             Button("Cancel", role: .cancel) {
-                agents.cancelRemove()
+                worktrees.cancelRemove()
             }
         } message: {
             Text("Default keeps the git branch. Folder + worktree registration are removed.")
@@ -127,8 +127,8 @@ struct AgentScaffoldView: View {
     }
 
     private var removeDialogTitle: String {
-        if let name = agents.pendingRemove?.threeWordName {
-            return "Remove Worktree “\(name)”?"
+        if let name = worktrees.pendingRemove?.threeWordName {
+            return "Remove Worktree \u{201C}\(name)\u{201D}?"
         }
         return "Remove Worktree?"
     }

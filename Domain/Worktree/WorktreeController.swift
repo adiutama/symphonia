@@ -1,24 +1,24 @@
 import Foundation
 import Combine
 
-/// Observable Agent list / create / focus / remove + focused session (Main Repo or Agent).
+/// Observable Worktree list / create / focus / remove + focused session (Main Repo or Worktree).
 ///
 /// Main CLI PTYs persist per session (show/hide on focus); tear down only on remove / Workspace switch.
 @MainActor
-final class AgentController: ObservableObject {
-    private let store: AgentStore
+final class WorktreeController: ObservableObject {
+    private let store: WorktreeStore
     private let preferences: PreferencesController
     private let workspaces: WorkspaceController
     private let secrets: SecretStoreController?
     private var cancellables = Set<AnyCancellable>()
-    /// Watches each Worktree’s git `HEAD` (read-only) so sidebar branch labels update after checkout.
+    /// Watches each Worktree's git `HEAD` (read-only) so sidebar branch labels update after checkout.
     private let branchWatcher = WorktreeBranchWatcher()
 
     /// Non-archived Worktrees under the current Workspace (P1.3: archived are hidden by default).
-    @Published private(set) var agents: [AgentSummary] = []
+    @Published private(set) var worktrees: [WorktreeSummary] = []
     /// Bumped when any watched HEAD changes so sidebar re-queries Worktrees in non-current Workspaces.
     @Published private(set) var branchDiskGeneration: UInt64 = 0
-    /// Main Repo or Agent — drives which Main CLI surface is visible and Overlay scope.
+    /// Main Repo or Worktree — drives which Main CLI surface is visible and Overlay scope.
     @Published private(set) var focusedSession: FocusedSession?
     /// Opened Main CLI surfaces (alive PTYs). Host mounts all; only focused is visible.
     @Published private(set) var openedMainCLISessions: [MainCLISurfaceSlot] = []
@@ -35,13 +35,13 @@ final class AgentController: ObservableObject {
     @Published var draftThreeWordName: String = ""
 
     /// Pending remove target for confirm UI (ADR 0020).
-    @Published var pendingRemove: AgentSummary?
+    @Published var pendingRemove: WorktreeSummary?
 
     /// When confirming remove, optionally also delete the branch (default keep).
     @Published var pendingRemoveDeleteBranch: Bool = false
 
     /// Pending rename target + draft fields (branch primary, folder secondary — ADR 0018).
-    @Published var pendingRename: AgentSummary?
+    @Published var pendingRename: WorktreeSummary?
     @Published var draftRenameBranchName: String = ""
     @Published var draftRenameFolderName: String = ""
 
@@ -52,7 +52,7 @@ final class AgentController: ObservableObject {
         preferences: PreferencesController,
         workspaces: WorkspaceController,
         secrets: SecretStoreController? = nil,
-        store: AgentStore = AgentStore()
+        store: WorktreeStore = WorktreeStore()
     ) {
         self.preferences = preferences
         self.workspaces = workspaces
@@ -78,12 +78,12 @@ final class AgentController: ObservableObject {
         }
     }
 
-    /// Focused Agent when session is an Agent; nil for Main Repo.
-    var focused: AgentSummary? {
-        focusedSession?.agent
+    /// Focused Worktree when session is a Worktree; nil for Main Repo.
+    var focused: WorktreeSummary? {
+        focusedSession?.worktree
     }
 
-    /// Effective Main CLI command for the focused session’s terminal spawn (empty = bare shell).
+    /// Effective Main CLI command for the focused session's terminal spawn (empty = bare shell).
     var focusedMainCLICommand: String {
         preferences.effective.mainCLICommand
     }
@@ -98,9 +98,9 @@ final class AgentController: ObservableObject {
         spawnCommandValue()
     }
 
-    /// Session ids whose Overlay PTYs should stay alive (current Workspace Main + Agents).
+    /// Session ids whose Overlay PTYs should stay alive (current Workspace Main + Worktrees).
     var liveOverlaySessionIDs: Set<String> {
-        var ids = Set(agents.map { FocusedSession.agent($0).id })
+        var ids = Set(worktrees.map { FocusedSession.worktree($0).id })
         if let current = workspaces.current {
             ids.insert(FocusedSession.mainRepo(for: current).id)
         }
@@ -109,7 +109,7 @@ final class AgentController: ObservableObject {
 
     func refresh() {
         guard let current = workspaces.current else {
-            agents = []
+            worktrees = []
             branchWatcher.stopAll()
             if focusedSession != nil {
                 focusedSession = nil
@@ -122,7 +122,7 @@ final class AgentController: ObservableObject {
         do {
             let all = try store.list(workspaceDataDir: current.dataDirURL)
             let archived = workspaces.archivedWorktreeNames(for: current)
-            agents = all.filter { !archived.contains($0.threeWordName) }
+            worktrees = all.filter { !archived.contains($0.threeWordName) }
             lastError = nil
             reconcileFocusedSession(workspace: current)
             pruneOpenedSessionsToLiveSet()
@@ -132,27 +132,26 @@ final class AgentController: ObservableObject {
         }
     }
 
-    /// Non-archived Agents under any Workspace Data Dir (sidebar expansion, Command Center).
-    func agents(in workspace: WorkspaceSummary) -> [AgentSummary] {
-        // Establish observation so HEAD-watch refreshes also rebuild non-current Workspace rows.
+    /// Non-archived Worktrees under any Workspace Data Dir (sidebar expansion, Command Center).
+    func worktrees(in workspace: WorkspaceSummary) -> [WorktreeSummary] {
         _ = branchDiskGeneration
         if workspace.id == workspaces.current?.id {
-            return agents
+            return worktrees
         }
         let archived = workspaces.archivedWorktreeNames(for: workspace)
-        return allAgents(in: workspace).filter { !archived.contains($0.threeWordName) }
+        return allWorktrees(in: workspace).filter { !archived.contains($0.threeWordName) }
     }
 
     /// All Worktrees under a Workspace **including archived** — folder still exists on disk.
-    func allAgents(in workspace: WorkspaceSummary) -> [AgentSummary] {
+    func allWorktrees(in workspace: WorkspaceSummary) -> [WorktreeSummary] {
         (try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? []
     }
 
     /// Archived Worktrees for the “Archived Worktrees…” sheet (P1.3).
-    func archivedAgents(in workspace: WorkspaceSummary) -> [AgentSummary] {
+    func archivedWorktrees(in workspace: WorkspaceSummary) -> [WorktreeSummary] {
         let archived = workspaces.archivedWorktreeNames(for: workspace)
         guard !archived.isEmpty else { return [] }
-        return allAgents(in: workspace).filter { archived.contains($0.threeWordName) }
+        return allWorktrees(in: workspace).filter { archived.contains($0.threeWordName) }
     }
 
     /// Generate a fresh unique Three-Word folder name for the current Workspace (P1.4 prefill /
@@ -162,13 +161,13 @@ final class AgentController: ObservableObject {
         return (try? ThreeWordName.generateUnique(existing: existing)) ?? ""
     }
 
-    /// Create Agent under the selected Workspace (P4.1–P4.4).
+    /// Create Worktree under the selected Workspace (P4.1–P4.4).
     ///
     /// Folder name comes from `draftThreeWordName` when non-empty (Operator-edited prefill from
     /// the New Worktree sheet, P1.4); otherwise a fresh unique Three-Word Name is generated.
-    func createAgent() {
+    func createWorktree() {
         guard let current = workspaces.current else {
-            lastError = AgentStore.StoreError.noWorkspace.localizedDescription
+            lastError = WorktreeStore.StoreError.noWorkspace.localizedDescription
             return
         }
 
@@ -179,8 +178,6 @@ final class AgentController: ObservableObject {
                 let existing = try store.existingFolderNames(workspaceDataDir: current.dataDirURL)
                 threeWord = try ThreeWordName.generateUnique(existing: existing)
             } else {
-                // Reuse Workspace Slug validation: folder name must be a single safe path
-                // component (no traversal / separators) even when Operator-edited.
                 switch WorkspaceSlug.validate(manualName) {
                 case .success(let validated):
                     threeWord = validated
@@ -233,8 +230,8 @@ final class AgentController: ObservableObject {
         applyFocus(.mainRepo(for: workspace), forceRespawn: false)
     }
 
-    func focus(_ agent: AgentSummary) {
-        applyFocus(.agent(agent), forceRespawn: false)
+    func focus(_ wt: WorktreeSummary) {
+        applyFocus(.worktree(wt), forceRespawn: false)
     }
 
     /// Focus Main Repo and respawn its CLI with current secrets, locale, and cwd.
@@ -243,8 +240,8 @@ final class AgentController: ObservableObject {
     }
 
     /// Focus a Worktree and respawn its CLI with current secrets, locale, and cwd.
-    func reloadCLI(for agent: AgentSummary) {
-        applyFocus(.agent(agent), forceRespawn: true)
+    func reloadCLI(for wt: WorktreeSummary) {
+        applyFocus(.worktree(wt), forceRespawn: true)
     }
 
     /// Re-apply current Enabled Secret Store + locale by restarting the focused session CLI only.
@@ -263,14 +260,14 @@ final class AgentController: ObservableObject {
 
     /// Archive Worktree: soft flag only — folder + git worktree stay on disk (P1.3, ADR 0020
     /// spirit). Hides it from default lists; refocuses Main Repo if it was the focused session.
-    /// Takes an `AgentSummary`, not a Workspace — Main can never be archived through this API
+    /// Takes a `WorktreeSummary`, not a Workspace — Main can never be archived through this API
     /// (P1.5 protects Main structurally, not just via missing UI affordances).
-    func archive(_ agent: AgentSummary) {
+    func archive(_ wt: WorktreeSummary) {
         guard let current = workspaces.current else { return }
-        if focusedSession?.agent?.id == agent.id {
+        if focusedSession?.worktree?.id == wt.id {
             focusMain(for: current)
         }
-        workspaces.setWorktreeArchived(agent.threeWordName, archived: true, in: current)
+        workspaces.setWorktreeArchived(wt.threeWordName, archived: true, in: current)
         refresh()
     }
 
@@ -282,11 +279,11 @@ final class AgentController: ObservableObject {
         }
     }
 
-    /// Begin Remove Agent confirm (ADR 0020). Takes an `AgentSummary`, not a Workspace — Main
+    /// Begin Remove Worktree confirm (ADR 0020). Takes a `WorktreeSummary`, not a Workspace — Main
     /// can never be removed through this API (P1.5 protects Main structurally).
-    func requestRemove(_ agent: AgentSummary) {
+    func requestRemove(_ wt: WorktreeSummary) {
         pendingRemoveDeleteBranch = false
-        pendingRemove = agent
+        pendingRemove = wt
     }
 
     func cancelRemove() {
@@ -296,10 +293,10 @@ final class AgentController: ObservableObject {
 
     // MARK: - Rename Worktree
 
-    func beginRename(_ agent: AgentSummary) {
-        pendingRename = agent
-        draftRenameBranchName = agent.branchName ?? agent.threeWordName
-        draftRenameFolderName = agent.threeWordName
+    func beginRename(_ wt: WorktreeSummary) {
+        pendingRename = wt
+        draftRenameBranchName = wt.branchName ?? wt.threeWordName
+        draftRenameFolderName = wt.threeWordName
         lastError = nil
     }
 
@@ -310,31 +307,31 @@ final class AgentController: ObservableObject {
     }
 
     /// Rename branch and/or folder; refresh list and re-focus when this Worktree was focused.
-    func renameAgent() {
+    func renameWorktree() {
         guard let current = workspaces.current,
-              let agent = pendingRename
+              let wt = pendingRename
         else { return }
 
-        let wasFocused = focusedSession?.agent?.id == agent.id
+        let wasFocused = focusedSession?.worktree?.id == wt.id
 
         do {
             let updated = try store.rename(
                 workspaceDataDir: current.dataDirURL,
-                agent: agent,
+                agent: wt,
                 newBranchName: draftRenameBranchName,
                 newFolderName: draftRenameFolderName
             )
 
-            if updated.threeWordName != agent.threeWordName {
+            if updated.threeWordName != wt.threeWordName {
                 workspaces.renameArchivedWorktreeName(
-                    from: agent.threeWordName,
+                    from: wt.threeWordName,
                     to: updated.threeWordName,
                     in: current
                 )
             }
 
-            if updated.worktreeURL != agent.worktreeURL {
-                migrateOpenedSession(from: agent, to: updated)
+            if updated.worktreeURL != wt.worktreeURL {
+                migrateOpenedSession(from: wt, to: updated)
             }
 
             pendingRename = nil
@@ -350,25 +347,25 @@ final class AgentController: ObservableObject {
         }
     }
 
-    /// Confirm Remove Agent: unregister worktree + delete folder; keep branch unless opted in.
+    /// Confirm Remove Worktree: unregister worktree + delete folder; keep branch unless opted in.
     func confirmRemove() {
         guard let current = workspaces.current,
-              let agent = pendingRemove
+              let wt = pendingRemove
         else {
             pendingRemove = nil
             return
         }
 
-        let removedSessionID = FocusedSession.agent(agent).id
+        let removedSessionID = FocusedSession.worktree(wt).id
 
         do {
             try store.remove(
                 workspaceDataDir: current.dataDirURL,
-                agent: agent,
+                agent: wt,
                 deleteBranch: pendingRemoveDeleteBranch
             )
             openedMainCLISessions.removeAll { $0.id == removedSessionID }
-            if focusedSession?.agent?.id == agent.id {
+            if focusedSession?.worktree?.id == wt.id {
                 focusMain(for: current)
             }
             pendingRemove = nil
@@ -436,11 +433,11 @@ final class AgentController: ObservableObject {
                 return .mainRepo(for: workspace)
             }
             return session
-        case .agent(let agent):
-            if let updated = agents.first(where: { $0.id == agent.id })
-                ?? agents.first(where: { $0.threeWordName == agent.threeWordName })
+        case .worktree(let wt):
+            if let updated = worktrees.first(where: { $0.id == wt.id })
+                ?? worktrees.first(where: { $0.threeWordName == wt.threeWordName })
             {
-                return .agent(updated)
+                return .worktree(updated)
             }
             return session
         }
@@ -459,20 +456,19 @@ final class AgentController: ObservableObject {
             if workspaceId != workspace.id {
                 focusMain(for: workspace)
             } else {
-                // Refresh main path / slug if Workspace moved; keep existing PTY if same id.
                 let updated = FocusedSession.mainRepo(for: workspace)
                 focusedSession = updated
                 if !openedMainCLISessions.contains(where: { $0.id == updated.id }) {
                     applyFocus(updated, forceRespawn: false)
                 }
             }
-        case .agent(let agent)?:
-            if let updated = agents.first(where: { $0.worktreeURL == agent.worktreeURL })
-                ?? agents.first(where: { $0.threeWordName == agent.threeWordName })
+        case .worktree(let wt)?:
+            if let updated = worktrees.first(where: { $0.worktreeURL == wt.worktreeURL })
+                ?? worktrees.first(where: { $0.threeWordName == wt.threeWordName })
             {
-                focusedSession = .agent(updated)
-                if updated.worktreeURL != agent.worktreeURL {
-                    migrateOpenedSession(from: agent, to: updated)
+                focusedSession = .worktree(updated)
+                if updated.worktreeURL != wt.worktreeURL {
+                    migrateOpenedSession(from: wt, to: updated)
                 }
             } else {
                 focusMain(for: workspace)
@@ -480,9 +476,9 @@ final class AgentController: ObservableObject {
         }
     }
 
-    private func migrateOpenedSession(from old: AgentSummary, to updated: AgentSummary) {
-        let oldID = FocusedSession.agent(old).id
-        let newID = FocusedSession.agent(updated).id
+    private func migrateOpenedSession(from old: WorktreeSummary, to updated: WorktreeSummary) {
+        let oldID = FocusedSession.worktree(old).id
+        let newID = FocusedSession.worktree(updated).id
         guard oldID != newID,
               let index = openedMainCLISessions.firstIndex(where: { $0.id == oldID })
         else { return }
@@ -506,17 +502,15 @@ final class AgentController: ObservableObject {
         pendingCreateWorktree = false
         draftBranchName = ""
         draftThreeWordName = ""
-        // Drop Main CLI PTYs from the previous Workspace (cmux-style: sessions are per workspace).
         openedMainCLISessions = []
         guard let current = workspaces.current else {
-            agents = []
+            worktrees = []
             branchWatcher.stopAll()
             focusedSession = nil
             focusedSpawnEnvironment = []
             return
         }
         refresh()
-        // Always land on Main Repo when switching Workspace (opens a fresh Main PTY for that workspace).
         focusMain(for: current)
     }
 
@@ -527,27 +521,27 @@ final class AgentController: ObservableObject {
         syncBranchWatchers()
     }
 
-    /// Patch `branchName` on current Agents + focused session without tearing down PTYs.
+    /// Patch `branchName` on current Worktrees + focused session without tearing down PTYs.
     private func refreshBranchLabels() {
         var changed = false
-        let updated: [AgentSummary] = agents.map { agent in
-            let branch = store.readCurrentBranch(at: agent.worktreeURL)
-            if branch != agent.branchName {
+        let updated: [WorktreeSummary] = worktrees.map { wt in
+            let branch = store.readCurrentBranch(at: wt.worktreeURL)
+            if branch != wt.branchName {
                 changed = true
-                return AgentSummary(
-                    threeWordName: agent.threeWordName,
-                    worktreeURL: agent.worktreeURL,
+                return WorktreeSummary(
+                    threeWordName: wt.threeWordName,
+                    worktreeURL: wt.worktreeURL,
                     branchName: branch
                 )
             }
-            return agent
+            return wt
         }
         guard changed else { return }
-        agents = updated
-        if case .agent(let focused)? = focusedSession,
+        worktrees = updated
+        if case .worktree(let focused)? = focusedSession,
            let refreshed = updated.first(where: { $0.id == focused.id })
         {
-            focusedSession = .agent(refreshed)
+            focusedSession = .worktree(refreshed)
         }
     }
 
@@ -555,7 +549,7 @@ final class AgentController: ObservableObject {
     private func syncBranchWatchers() {
         var checkouts: [URL] = []
         for workspace in workspaces.workspaces {
-            checkouts.append(contentsOf: allAgents(in: workspace).map(\.worktreeURL))
+            checkouts.append(contentsOf: allWorktrees(in: workspace).map(\.worktreeURL))
         }
         branchWatcher.watch(checkouts: checkouts)
     }

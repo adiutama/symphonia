@@ -21,7 +21,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// May use `~` for the Operator home directory.
     var workspacesRoot: String
 
-    /// Default Base Ref for new Agent branches (ADR 0019).
+    /// Default Base Ref for new Worktree branches (ADR 0019).
     var baseRef: String
 
     /// Operator overrides for Command aliases/shortcuts, keyed by stable Command `id`

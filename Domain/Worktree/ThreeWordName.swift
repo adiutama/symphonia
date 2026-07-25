@@ -1,6 +1,6 @@
 import Foundation
 
-/// Auto Three-Word Name for Agent Worktree folders (ADR 0017, 0018).
+/// Auto Three-Word Name for Worktree folders (ADR 0017, 0018).
 ///
 /// Pattern: `{word}-{word}-{word}` — lowercase, hyphen-separated, fixed word list.
 enum ThreeWordName {

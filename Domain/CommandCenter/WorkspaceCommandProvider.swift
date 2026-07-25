@@ -1,6 +1,6 @@
 import Foundation
 
-/// Exports Workspace / Agent Commands into the `CommandRegistry` (ADR 0021 §2).
+/// Exports Workspace / Worktree Commands into the `CommandRegistry` (ADR 0021 §2).
 ///
 /// Matches today's hardcoded Command Mode root items for switching Workspaces and
 /// focusing Worktrees (`CommandModeController.rootItems()`). Subtitles are computed live
@@ -8,16 +8,16 @@ import Foundation
 /// selection the same way the old private root list did.
 struct WorkspaceCommandProvider: CommandProvider {
     let workspaces: WorkspaceController
-    let agents: AgentController
+    let worktrees: WorktreeController
 
     var commands: [Command] {
         let focusedTargetSubtitle: String = {
-            guard let session = agents.focusedSession else { return "none focused" }
+            guard let session = worktrees.focusedSession else { return "none focused" }
             switch session {
             case .mainRepo(_, _, let slug):
                 return "main · \(slug)"
-            case .agent(let agent):
-                return agent.primaryLabel
+            case .worktree(let wt):
+                return wt.primaryLabel
             }
         }()
 
@@ -48,7 +48,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 group: "Worktree",
                 defaultAliases: ["/focus"],
                 defaultShortcut: "ctrl+a",
-                action: .showAgentPicker
+                action: .showWorktreePicker
             ),
             Command(
                 id: "worktree.focusMain",
@@ -62,12 +62,12 @@ struct WorkspaceCommandProvider: CommandProvider {
             Command(
                 id: "worktree.renameFocused",
                 title: "Rename Worktree…",
-                subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
+                subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
                 defaultAliases: ["/renameworktree"],
                 defaultShortcut: "ctrl+r",
                 action: .renameFocusedWorktree,
-                isEnabled: { _ in agents.focused != nil }
+                isEnabled: { _ in worktrees.focused != nil }
             ),
             Command(
                 id: "worktree.reloadCLI",
@@ -86,21 +86,21 @@ struct WorkspaceCommandProvider: CommandProvider {
                 group: "Worktree",
                 defaultAliases: ["/new"],
                 defaultShortcut: "ctrl+n",
-                action: .newAgent
+                action: .newWorktree
             ),
             Command(
                 id: "worktree.removeFocused",
                 title: "Remove Worktree…",
-                subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
+                subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
                 defaultAliases: ["/remove"],
                 defaultShortcut: "ctrl+x",
-                action: .removeFocusedAgent
+                action: .removeFocusedWorktree
             ),
             Command(
                 id: "workspace.remove",
                 title: "Remove Workspace…",
-                subtitle: workspaces.current.map { "delete “\($0.slug)” from disk" } ?? "needs Workspace",
+                subtitle: workspaces.current.map { "delete \u{201C}\($0.slug)\u{201D} from disk" } ?? "needs Workspace",
                 group: "Workspace",
                 defaultAliases: ["/rmworkspace", "/rw"],
                 defaultShortcut: nil,

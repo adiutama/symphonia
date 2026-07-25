@@ -10,7 +10,7 @@ import Foundation
 final class CommandModeController: ObservableObject {
     private let preferences: PreferencesController
     private let workspaces: WorkspaceController
-    private let agents: AgentController
+    private let worktrees: WorktreeController
     private let overlays: OverlayController
     private let settingsNavigation: SettingsNavigation
     /// Source of root-palette items and matching data (ADR 0021 / CC.2). Root no longer
@@ -32,21 +32,21 @@ final class CommandModeController: ObservableObject {
     init(
         preferences: PreferencesController,
         workspaces: WorkspaceController,
-        agents: AgentController,
+        worktrees: WorktreeController,
         overlays: OverlayController,
         settingsNavigation: SettingsNavigation,
         commandRegistry: CommandRegistry
     ) {
         self.preferences = preferences
         self.workspaces = workspaces
-        self.agents = agents
+        self.worktrees = worktrees
         self.overlays = overlays
         self.settingsNavigation = settingsNavigation
         self.commandRegistry = commandRegistry
 
         Publishers.CombineLatest4(
             workspaces.$workspaces,
-            agents.$agents,
+            worktrees.$worktrees,
             overlays.$sessions,
             preferences.$preferences
         )
@@ -126,8 +126,8 @@ final class CommandModeController: ObservableObject {
             filterQuery = ""
             rebuildItems(resetSelection: true)
 
-        case .showAgentPicker:
-            phase = .pickAgent
+        case .showWorktreePicker:
+            phase = .pickWorktree
             filterQuery = ""
             rebuildItems(resetSelection: true)
 
@@ -149,34 +149,34 @@ final class CommandModeController: ObservableObject {
                 dismiss()
                 return
             }
-            agents.focusMain(for: current)
+            worktrees.focusMain(for: current)
             lastInfo = "Main"
             dismiss()
 
-        case .focusAgent(let id):
-            if let agent = agents.agents.first(where: { $0.id == id }) {
-                agents.focus(agent)
-                lastInfo = "Worktree: \(agent.primaryLabel)"
+        case .focusWorktree(let id):
+            if let wt = worktrees.worktrees.first(where: { $0.id == id }) {
+                worktrees.focus(wt)
+                lastInfo = "Worktree: \(wt.primaryLabel)"
             }
             dismiss()
 
-        case .newAgent:
+        case .newWorktree:
             guard workspaces.current != nil else {
                 lastInfo = "Select a Workspace first"
                 dismiss()
                 return
             }
-            agents.beginCreateWorktree()
+            worktrees.beginCreateWorktree()
             lastInfo = "New Worktree"
             dismiss()
 
-        case .removeFocusedAgent:
-            guard let focused = agents.focused else {
+        case .removeFocusedWorktree:
+            guard let focused = worktrees.focused else {
                 lastInfo = "No focused Worktree to remove"
                 dismiss()
                 return
             }
-            agents.requestRemove(focused)
+            worktrees.requestRemove(focused)
             lastInfo = "Confirm Remove Worktree"
             dismiss()
 
@@ -201,18 +201,18 @@ final class CommandModeController: ObservableObject {
             dismiss()
 
         case .renameFocusedWorktree:
-            guard let focused = agents.focused else {
+            guard let focused = worktrees.focused else {
                 lastInfo = "Focus a Worktree first"
                 dismiss()
                 return
             }
-            agents.beginRename(focused)
+            worktrees.beginRename(focused)
             lastInfo = "Rename Worktree"
             dismiss()
 
         case .reloadFocusedCLI:
-            agents.respawnWithCurrentSecrets()
-            if let err = agents.lastError {
+            worktrees.respawnWithCurrentSecrets()
+            if let err = worktrees.lastError {
                 lastInfo = err
             } else {
                 lastInfo = "Reloaded CLI"
@@ -260,8 +260,8 @@ final class CommandModeController: ObservableObject {
             items = filteredRootItems()
         case .pickWorkspace:
             items = filter(workspacePickerItems())
-        case .pickAgent:
-            items = filter(agentPickerItems())
+        case .pickWorktree:
+            items = filter(worktreePickerItems())
         case .pickBackground:
             items = filter(backgroundPickerItems())
         }
@@ -272,15 +272,8 @@ final class CommandModeController: ObservableObject {
 
     // MARK: - Root (Command registry, ADR 0021 / CC.2)
 
-    /// Root palette rows straight from the `CommandRegistry`, narrowed by `filterQuery`.
-    /// Matching (see `matches(_:query:)`) checks title, subtitle, **and** every effective
-    /// alias — free text, `/` optional — so typing `/e`, `e`, or `editor` all surface
-    /// "Open Editor" the same way. An empty filter returns every enabled Command
-    /// unfiltered; the effective shortcut still fires from `handleKeyDown` in that case.
-    /// Effective aliases/shortcuts apply the Operator's Global Setting overrides
-    /// (ADR 0021 CC.3, ``CommandBindingResolver``) on top of each Command's defaults.
     private func filteredRootItems() -> [CommandModeItem] {
-        let context = CommandContext(agents: agents, overlays: overlays)
+        let context = CommandContext(worktrees: worktrees, overlays: overlays)
         let commands = commandRegistry.availableCommands(context: context)
         let overrides = preferences.preferences.commandBindings
         let query = filterQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -295,10 +288,6 @@ final class CommandModeController: ObservableObject {
         return aliases.contains { $0.lowercased().contains(query) }
     }
 
-    /// Converts a registry `Command` into a palette row. Subtitle is overridden for the
-    /// couple of Overlay Commands whose description depends on live `CommandContext`
-    /// state (ADR 0021 requirement 6) — everything else uses the provider's own subtitle.
-    /// `keybind` is the **effective** shortcut (override ?? default, CC.3).
     private func commandItem(_ command: Command, overrides: [String: CommandBindingOverride]) -> CommandModeItem {
         CommandModeItem(
             id: command.id,
@@ -358,40 +347,40 @@ final class CommandModeController: ObservableObject {
         return list
     }
 
-    private func agentPickerItems() -> [CommandModeItem] {
+    private func worktreePickerItems() -> [CommandModeItem] {
         var list: [CommandModeItem] = [
-            CommandModeItem(id: "ag-back", title: "← Back", action: .back),
+            CommandModeItem(id: "wt-back", title: "← Back", action: .back),
         ]
         if workspaces.current == nil {
             list.append(CommandModeItem(
-                id: "ag-nows",
+                id: "wt-nows",
                 title: "(select a Workspace first)",
                 action: .back
             ))
         } else {
             let current = workspaces.current!
-            let mainFocused = agents.focusedSession?.isMainRepo == true
+            let mainFocused = worktrees.focusedSession?.isMainRepo == true
             list.append(CommandModeItem(
-                id: "ag-main",
+                id: "wt-main",
                 title: "main" + (mainFocused ? " ← focus" : ""),
                 subtitle: SymphoniaPaths.workspaceMainDirectory(in: current.dataDirURL).path,
                 keybind: "⌃M",
                 action: .focusMainRepo
             ))
-            if agents.agents.isEmpty {
+            if worktrees.worktrees.isEmpty {
                 list.append(CommandModeItem(
-                    id: "ag-empty",
+                    id: "wt-empty",
                     title: "(no Worktrees)",
                     action: .back
                 ))
             } else {
-                for agent in agents.agents {
-                    let mark = agents.focused?.id == agent.id ? " ← focus" : ""
+                for wt in worktrees.worktrees {
+                    let mark = worktrees.focused?.id == wt.id ? " ← focus" : ""
                     list.append(CommandModeItem(
-                        id: "ag-\(agent.id)",
-                        title: agent.primaryLabel + mark,
-                        subtitle: agent.secondaryLabel ?? agent.threeWordName,
-                        action: .focusAgent(id: agent.id)
+                        id: "wt-\(wt.id)",
+                        title: wt.primaryLabel + mark,
+                        subtitle: wt.secondaryLabel ?? wt.threeWordName,
+                        action: .focusWorktree(id: wt.id)
                     ))
                 }
             }

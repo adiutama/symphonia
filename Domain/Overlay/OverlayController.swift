@@ -12,11 +12,11 @@ enum StatusCueDefaults {
 /// - One visible Overlay at a time (`visibleOverlayID`); nil = Main CLI.
 /// - Hide does not remove the session → PTY stays alive while the surface stays mounted.
 /// - Editor Overlay is first-class; Background CLIs are many freeform peeks.
-/// - Scoped to the focused session (Main Repo or Agent).
+/// - Scoped to the focused session (Main Repo or Worktree).
 @MainActor
 final class OverlayController: ObservableObject {
     private let preferences: PreferencesController
-    private let agents: AgentController
+    private let agents: WorktreeController
     private let secrets: SecretStoreController
     private var cancellables = Set<AnyCancellable>()
 
@@ -32,7 +32,7 @@ final class OverlayController: ObservableObject {
 
     init(
         preferences: PreferencesController,
-        agents: AgentController,
+        agents: WorktreeController,
         secrets: SecretStoreController
     ) {
         self.preferences = preferences
@@ -218,7 +218,7 @@ final class OverlayController: ObservableObject {
         {
             self.visibleOverlayID = nil
         }
-        // Drop sessions whose owner is gone (removed Agent / closed Workspace).
+        // Drop sessions whose owner is gone (removed Worktree / closed Workspace).
         let liveIDs = agents.liveOverlaySessionIDs
         sessions.removeAll { !liveIDs.contains($0.sessionId) }
         if let visibleOverlayID,

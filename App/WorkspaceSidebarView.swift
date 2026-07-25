@@ -4,7 +4,7 @@ import SwiftUI
 /// Collapsible left sidebar: Workspaces → Main Repo + Worktrees.
 struct WorkspaceSidebarView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
-    @EnvironmentObject private var agents: AgentController
+    @EnvironmentObject private var worktrees: WorktreeController
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var settingsNavigation: SettingsNavigation
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
@@ -16,8 +16,8 @@ struct WorkspaceSidebarView: View {
     @State private var createCloneURL = ""
     @State private var archivedSheetWorkspace: WorkspaceSummary?
     @State private var renameWorkspaceSlug = ""
-    @State private var renameAgentBranch = ""
-    @State private var renameAgentFolder = ""
+    @State private var renameWorktreeBranch = ""
+    @State private var renameWorktreeFolder = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,21 +36,21 @@ struct WorkspaceSidebarView: View {
         .confirmationDialog(
             removeDialogTitle,
             isPresented: Binding(
-                get: { agents.pendingRemove != nil },
-                set: { if !$0 { agents.cancelRemove() } }
+                get: { worktrees.pendingRemove != nil },
+                set: { if !$0 { worktrees.cancelRemove() } }
             ),
             titleVisibility: .visible
         ) {
             Button("Remove worktree (keep branch)", role: .destructive) {
-                agents.pendingRemoveDeleteBranch = false
-                agents.confirmRemove()
+                worktrees.pendingRemoveDeleteBranch = false
+                worktrees.confirmRemove()
             }
             Button("Remove worktree and delete branch", role: .destructive) {
-                agents.pendingRemoveDeleteBranch = true
-                agents.confirmRemove()
+                worktrees.pendingRemoveDeleteBranch = true
+                worktrees.confirmRemove()
             }
             Button("Cancel", role: .cancel) {
-                agents.cancelRemove()
+                worktrees.cancelRemove()
             }
         } message: {
             Text("Default keeps the git branch. Folder + worktree registration are removed.")
@@ -76,12 +76,12 @@ struct WorkspaceSidebarView: View {
             createWorkspaceSheet
         }
         .sheet(isPresented: Binding(
-            get: { agents.pendingCreateWorktree },
+            get: { worktrees.pendingCreateWorktree },
             set: { presented in
-                if !presented { agents.cancelCreateWorktree() }
+                if !presented { worktrees.cancelCreateWorktree() }
             }
         )) {
-            createAgentSheet
+            createWorktreeSheet
         }
         .sheet(item: $archivedSheetWorkspace) { workspace in
             archivedWorktreesSheet(workspace)
@@ -89,8 +89,8 @@ struct WorkspaceSidebarView: View {
         .sheet(item: $workspaces.pendingRenameWorkspace) { workspace in
             renameWorkspaceSheet(workspace)
         }
-        .sheet(item: $agents.pendingRename) { agent in
-            renameAgentSheet(agent)
+        .sheet(item: $worktrees.pendingRename) { agent in
+            renameWorktreeSheet(agent)
         }
         .onAppear {
             if let current = workspaces.current {
@@ -127,7 +127,7 @@ struct WorkspaceSidebarView: View {
             }
             Button("Refresh") {
                 workspaces.refresh()
-                agents.refresh()
+                worktrees.refresh()
             }
             Button("Reveal Workspaces Root") {
                 reveal(preferences.effective.workspacesRootURL)
@@ -156,7 +156,7 @@ struct WorkspaceSidebarView: View {
                         )
                     ) {
                         mainRepoRow(workspace)
-                        ForEach(agents.agents(in: workspace)) { agent in
+                        ForEach(worktrees.worktrees(in: workspace)) { agent in
                             agentRow(agent, workspace: workspace)
                         }
                     } label: {
@@ -189,7 +189,7 @@ struct WorkspaceSidebarView: View {
             if isCurrent {
                 Button {
                     selectWorkspace(workspace)
-                    beginCreateAgent()
+                    beginCreateWorktree()
                 } label: {
                     Image(systemName: "plus")
                         .font(.caption)
@@ -212,7 +212,7 @@ struct WorkspaceSidebarView: View {
         let isFocused = isMainFocused(workspace)
         return Button {
             selectWorkspace(workspace)
-            agents.focusMain(for: workspace)
+            worktrees.focusMain(for: workspace)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "house.fill")
@@ -230,7 +230,7 @@ struct WorkspaceSidebarView: View {
         .contextMenu {
             Button("New Worktree…") {
                 selectWorkspace(workspace)
-                beginCreateAgent()
+                beginCreateWorktree()
             }
             Divider()
             Button("Reveal in Finder") {
@@ -253,8 +253,8 @@ struct WorkspaceSidebarView: View {
         }
     }
 
-    private func agentRow(_ agent: AgentSummary, workspace: WorkspaceSummary) -> some View {
-        let isFocused = agents.focusedSession?.agent?.id == agent.id
+    private func agentRow(_ agent: WorktreeSummary, workspace: WorkspaceSummary) -> some View {
+        let isFocused = worktrees.focusedSession?.worktree?.id == agent.id
             && workspaces.current?.id == workspace.id
         // Branch is the real worktree label; folder is secondary and only shown when it
         // actually differs from the branch (case-insensitive — same name, calm single line).
@@ -263,7 +263,7 @@ struct WorkspaceSidebarView: View {
             : agent.threeWordName
         return Button {
             selectWorkspace(workspace)
-            agents.focus(agent)
+            worktrees.focus(agent)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.triangle.branch")
@@ -290,7 +290,7 @@ struct WorkspaceSidebarView: View {
         .contextMenu {
             Button("Rename Worktree…") {
                 selectWorkspace(workspace)
-                beginRenameAgent(agent)
+                beginRenameWorktree(agent)
             }
             Divider()
             Button("Reveal in Finder") {
@@ -309,11 +309,11 @@ struct WorkspaceSidebarView: View {
             Divider()
             Button("Archive Worktree") {
                 selectWorkspace(workspace)
-                agents.archive(agent)
+                worktrees.archive(agent)
             }
             Button("Remove Worktree…", role: .destructive) {
                 selectWorkspace(workspace)
-                agents.requestRemove(agent)
+                worktrees.requestRemove(agent)
             }
         }
     }
@@ -322,7 +322,7 @@ struct WorkspaceSidebarView: View {
     private func workspaceContextMenu(_ workspace: WorkspaceSummary) -> some View {
         Button("New Worktree…") {
             selectWorkspace(workspace)
-            beginCreateAgent()
+            beginCreateWorktree()
         }
         Button("Rename Workspace…") {
             beginRenameWorkspace(workspace)
@@ -373,7 +373,7 @@ struct WorkspaceSidebarView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            let archived = agents.archivedAgents(in: workspace)
+            let archived = worktrees.archivedWorktrees(in: workspace)
             if archived.isEmpty {
                 Text("No archived Worktrees. Folder + branch stay on disk when archived — this list is empty until you archive one from its context menu.")
                     .font(.caption)
@@ -395,7 +395,7 @@ struct WorkspaceSidebarView: View {
                             reveal(agent.worktreeURL)
                         }
                         Button("Unarchive") {
-                            agents.unarchive(threeWordName: agent.threeWordName, in: workspace)
+                            worktrees.unarchive(threeWordName: agent.threeWordName, in: workspace)
                         }
                     }
                 }
@@ -440,7 +440,7 @@ struct WorkspaceSidebarView: View {
                         showCreateWorkspace = false
                         if let current = workspaces.current {
                             expandedWorkspaceIDs.insert(current.id)
-                            agents.focusMain(for: current)
+                            worktrees.focusMain(for: current)
                         }
                     }
                 }
@@ -512,19 +512,19 @@ struct WorkspaceSidebarView: View {
         }
     }
 
-    private func renameAgentSheet(_ agent: AgentSummary) -> some View {
+    private func renameWorktreeSheet(_ agent: WorktreeSummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Rename Worktree")
                 .font(.headline)
             VStack(alignment: .leading, spacing: 4) {
-                TextField("branch name", text: $renameAgentBranch)
+                TextField("branch name", text: $renameWorktreeBranch)
                     .textFieldStyle(.roundedBorder)
                 Text("Git branch — the primary label in the sidebar.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             VStack(alignment: .leading, spacing: 4) {
-                TextField("folder name", text: $renameAgentFolder)
+                TextField("folder name", text: $renameWorktreeFolder)
                     .textFieldStyle(.roundedBorder)
                 Text("On-disk folder (Three-Word Name). Edit only when you want to move the checkout.")
                     .font(.caption2)
@@ -533,20 +533,20 @@ struct WorkspaceSidebarView: View {
             HStack {
                 Spacer()
                 Button("Cancel") {
-                    agents.cancelRename()
+                    worktrees.cancelRename()
                 }
                 Button("Rename") {
-                    agents.draftRenameBranchName = renameAgentBranch
-                    agents.draftRenameFolderName = renameAgentFolder
-                    agents.renameAgent()
+                    worktrees.draftRenameBranchName = renameWorktreeBranch
+                    worktrees.draftRenameFolderName = renameWorktreeFolder
+                    worktrees.renameWorktree()
                 }
                 .disabled(
-                    renameAgentBranch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || renameAgentFolder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    renameWorktreeBranch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || renameWorktreeFolder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
                 .keyboardShortcut(.defaultAction)
             }
-            if let error = agents.lastError {
+            if let error = worktrees.lastError {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -556,18 +556,18 @@ struct WorkspaceSidebarView: View {
         .padding(20)
         .frame(width: 380)
         .onAppear {
-            renameAgentBranch = agent.branchName ?? agent.threeWordName
-            renameAgentFolder = agent.threeWordName
-            agents.lastError = nil
+            renameWorktreeBranch = agent.branchName ?? agent.threeWordName
+            renameWorktreeFolder = agent.threeWordName
+            worktrees.lastError = nil
         }
     }
 
-    private var createAgentSheet: some View {
+    private var createWorktreeSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("New Worktree")
                 .font(.headline)
             VStack(alignment: .leading, spacing: 4) {
-                TextField("branch name", text: $agents.draftBranchName)
+                TextField("branch name", text: $worktrees.draftBranchName)
                     .textFieldStyle(.roundedBorder)
                 Text("Git branch — the primary label in the sidebar. Empty → folder name below.")
                     .font(.caption2)
@@ -575,12 +575,12 @@ struct WorkspaceSidebarView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    TextField("folder name", text: $agents.draftThreeWordName)
+                    TextField("folder name", text: $worktrees.draftThreeWordName)
                         .textFieldStyle(.roundedBorder)
                     Button {
-                        let name = agents.generateThreeWordName()
-                        agents.draftThreeWordName = name
-                        agents.draftBranchName = name
+                        let name = worktrees.generateThreeWordName()
+                        worktrees.draftThreeWordName = name
+                        worktrees.draftBranchName = name
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
@@ -593,18 +593,18 @@ struct WorkspaceSidebarView: View {
             HStack {
                 Spacer()
                 Button("Cancel") {
-                    agents.cancelCreateWorktree()
+                    worktrees.cancelCreateWorktree()
                 }
                 Button("Create") {
-                    agents.createAgent()
+                    worktrees.createWorktree()
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(
                     workspaces.current == nil
-                        || agents.draftThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || worktrees.draftThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
             }
-            if let error = agents.lastError {
+            if let error = worktrees.lastError {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -623,8 +623,8 @@ struct WorkspaceSidebarView: View {
         showCreateWorkspace = true
     }
 
-    private func beginCreateAgent() {
-        agents.beginCreateWorktree()
+    private func beginCreateWorktree() {
+        worktrees.beginCreateWorktree()
     }
 
     private func beginRenameWorkspace(_ workspace: WorkspaceSummary) {
@@ -632,10 +632,10 @@ struct WorkspaceSidebarView: View {
         workspaces.beginRename(workspace)
     }
 
-    private func beginRenameAgent(_ agent: AgentSummary) {
-        renameAgentBranch = agent.branchName ?? agent.threeWordName
-        renameAgentFolder = agent.threeWordName
-        agents.beginRename(agent)
+    private func beginRenameWorktree(_ agent: WorktreeSummary) {
+        renameWorktreeBranch = agent.branchName ?? agent.threeWordName
+        renameWorktreeFolder = agent.threeWordName
+        worktrees.beginRename(agent)
     }
 
     private func selectWorkspace(_ workspace: WorkspaceSummary) {
@@ -647,7 +647,7 @@ struct WorkspaceSidebarView: View {
 
     private func isMainFocused(_ workspace: WorkspaceSummary) -> Bool {
         guard workspaces.current?.id == workspace.id,
-              let session = agents.focusedSession,
+              let session = worktrees.focusedSession,
               case .mainRepo = session
         else { return false }
         return true
@@ -673,13 +673,13 @@ struct WorkspaceSidebarView: View {
     private func reloadMainCLI(for workspace: WorkspaceSummary) {
         selectWorkspace(workspace)
         let target = workspaces.workspaces.first(where: { $0.id == workspace.id }) ?? workspace
-        agents.reloadMainCLI(for: target)
+        worktrees.reloadMainCLI(for: target)
     }
 
-    private func reloadCLI(for agent: AgentSummary, in workspace: WorkspaceSummary) {
+    private func reloadCLI(for agent: WorktreeSummary, in workspace: WorkspaceSummary) {
         selectWorkspace(workspace)
-        let target = agents.agents(in: workspace).first(where: { $0.id == agent.id }) ?? agent
-        agents.reloadCLI(for: target)
+        let target = worktrees.worktrees(in: workspace).first(where: { $0.id == agent.id }) ?? agent
+        worktrees.reloadCLI(for: target)
     }
 
     /// Re-clone Main from persisted remote when `main/` is missing or not a git repo (P1.5 heal).
@@ -687,9 +687,9 @@ struct WorkspaceSidebarView: View {
         selectWorkspace(workspace)
         workspaces.healMain(for: workspace)
         guard workspaces.lastError == nil else { return }
-        agents.refresh()
+        worktrees.refresh()
         let target = workspaces.workspaces.first(where: { $0.id == workspace.id }) ?? workspace
-        agents.reloadMainCLI(for: target)
+        worktrees.reloadMainCLI(for: target)
     }
 
     private func copyToPasteboard(_ string: String) {
@@ -699,7 +699,7 @@ struct WorkspaceSidebarView: View {
     }
 
     private var removeDialogTitle: String {
-        if let name = agents.pendingRemove?.primaryLabel {
+        if let name = worktrees.pendingRemove?.primaryLabel {
             return "Remove Worktree “\(name)”?"
         }
         return "Remove Worktree?"

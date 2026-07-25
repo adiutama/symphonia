@@ -1,20 +1,20 @@
 import Foundation
 
-/// Focusable terminal session: Main Repo or an Agent Worktree.
+/// Focusable terminal session: Main Repo or a Worktree.
 ///
 /// Owns Main CLI cwd / spawn env and scopes Overlay PTYs (Editor + Background).
 enum FocusedSession: Equatable, Identifiable, Sendable {
-    /// Main Repo at `<workspace>/main/` — same Editor / Background / secrets treatment as an Agent.
+    /// Main Repo at `<workspace>/main/` — same Editor / Background / secrets treatment as a Worktree.
     case mainRepo(workspaceId: String, mainDirectory: URL, slug: String)
-    /// Agent Worktree — a sibling of `main/` under `<workspace>/<three-word>/` (P1.5).
-    case agent(AgentSummary)
+    /// Worktree — a sibling of `main/` under `<workspace>/<three-word>/` (P1.5).
+    case worktree(WorktreeSummary)
 
     var id: String {
         switch self {
         case .mainRepo(let workspaceId, _, _):
             return "main:\(workspaceId)"
-        case .agent(let agent):
-            return "agent:\(agent.id)"
+        case .worktree(let wt):
+            return "worktree:\(wt.id)"
         }
     }
 
@@ -23,8 +23,8 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
         switch self {
         case .mainRepo(_, let mainDirectory, _):
             return mainDirectory.path
-        case .agent(let agent):
-            return agent.worktreeURL.path
+        case .worktree(let wt):
+            return wt.worktreeURL.path
         }
     }
 
@@ -33,8 +33,8 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
         return false
     }
 
-    var agent: AgentSummary? {
-        if case .agent(let agent) = self { return agent }
+    var worktree: WorktreeSummary? {
+        if case .worktree(let wt) = self { return wt }
         return nil
     }
 
@@ -42,7 +42,7 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
         switch self {
         case .mainRepo(let workspaceId, _, _):
             return workspaceId
-        case .agent:
+        case .worktree:
             return nil
         }
     }
@@ -52,8 +52,8 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
         switch self {
         case .mainRepo(_, _, let slug):
             return "Main Repo · \(slug)"
-        case .agent(let agent):
-            return agent.primaryLabel
+        case .worktree(let wt):
+            return wt.primaryLabel
         }
     }
 
@@ -68,8 +68,8 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
         switch self {
         case .mainRepo:
             return "\(slug) · main"
-        case .agent(let agent):
-            return "\(slug) · \(displayLowercased(agent.primaryLabel))"
+        case .worktree(let wt):
+            return "\(slug) · \(displayLowercased(wt.primaryLabel))"
         }
     }
 
@@ -82,7 +82,7 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
     }
 }
 
-extension AgentSummary {
+extension WorktreeSummary {
     /// Branch name primary; Three-Word folder as fallback when branch unknown.
     var primaryLabel: String {
         let branch = branchName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

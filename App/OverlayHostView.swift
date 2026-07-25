@@ -2,10 +2,10 @@ import SwiftUI
 
 /// Main CLI surfaces (one live PTY per opened session) + Overlay peeks.
 ///
-/// Switching Main/Agent **hides** other Main CLI PTYs (opacity 0) instead of destroying them.
-/// Tear-down happens when the session is removed or the Workspace changes (`AgentController`).
+/// Switching Main/Worktree **hides** other Main CLI PTYs (opacity 0) instead of destroying them.
+/// Tear-down happens when the session is removed or the Workspace changes (`WorktreeController`).
 struct OverlayHostView: View {
-    @EnvironmentObject private var agents: AgentController
+    @EnvironmentObject private var worktrees: WorktreeController
     @EnvironmentObject private var overlays: OverlayController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
@@ -14,8 +14,8 @@ struct OverlayHostView: View {
             // Expand the ZStack to the proposed host size so Main CLI surfaces fill it.
             ghosttyTheme.background
 
-            ForEach(agents.openedMainCLISessions) { slot in
-                let isVisible = agents.focusedSession?.id == slot.id && !overlays.isShowingOverlay
+            ForEach(worktrees.openedMainCLISessions) { slot in
+                let isVisible = worktrees.focusedSession?.id == slot.id && !overlays.isShowingOverlay
                 TerminalSurfaceView(
                     workingDirectory: slot.workingDirectory,
                     command: slot.command,
@@ -24,12 +24,12 @@ struct OverlayHostView: View {
                 )
                 .id(slot.viewIdentity)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(agents.focusedSession?.id == slot.id ? 1 : 0)
+                .opacity(worktrees.focusedSession?.id == slot.id ? 1 : 0)
                 .allowsHitTesting(isVisible)
-                .zIndex(agents.focusedSession?.id == slot.id ? 0 : -1)
+                .zIndex(worktrees.focusedSession?.id == slot.id ? 0 : -1)
             }
 
-            if agents.openedMainCLISessions.isEmpty {
+            if worktrees.openedMainCLISessions.isEmpty {
                 Text("Select Main Repo or a Worktree")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -60,7 +60,7 @@ struct OverlayHostView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeOut(duration: 0.15), value: overlays.visibleOverlayID)
-        .animation(.easeOut(duration: 0.12), value: agents.focusedSession?.id)
+        .animation(.easeOut(duration: 0.12), value: worktrees.focusedSession?.id)
     }
 
     private func overlayPane(session: OverlaySession, isVisible: Bool) -> some View {

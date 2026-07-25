@@ -36,10 +36,10 @@
 		C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B08 /* WorkspaceController.swift */; };
 		C1D2E3F405162738495A6B09 /* WorkspaceScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */; };
 		D2E3F405162738495A6B0B01 /* ThreeWordName.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B02 /* ThreeWordName.swift */; };
-		D2E3F405162738495A6B0B03 /* AgentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B04 /* AgentStore.swift */; };
-		D2E3F405162738495A6B0B05 /* AgentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B06 /* AgentController.swift */; };
+		D2E3F405162738495A6B0B03 /* WorktreeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B04 /* WorktreeStore.swift */; };
+		D2E3F405162738495A6B0B05 /* WorktreeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B06 /* WorktreeController.swift */; };
 		B8C405162738495A6B0F010F /* WorktreeBranchWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0110 /* WorktreeBranchWatcher.swift */; };
-		D2E3F405162738495A6B0B07 /* AgentScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B08 /* AgentScaffoldView.swift */; };
+		D2E3F405162738495A6B0B07 /* WorktreeScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B08 /* WorktreeScaffoldView.swift */; };
 		E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0102 /* SecretStoreModels.swift */; };
 		E5F405162738495A6B0C0103 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0104 /* SecretStore.swift */; };
 		E5F405162738495A6B0C0105 /* SecretStoreController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0106 /* SecretStoreController.swift */; };
@@ -96,10 +96,10 @@
 		C1D2E3F405162738495A6B08 /* WorkspaceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceController.swift; sourceTree = "<group>"; };
 		C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceScaffoldView.swift; sourceTree = "<group>"; };
 		D2E3F405162738495A6B0B02 /* ThreeWordName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreeWordName.swift; sourceTree = "<group>"; };
-		D2E3F405162738495A6B0B04 /* AgentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentStore.swift; sourceTree = "<group>"; };
-		D2E3F405162738495A6B0B06 /* AgentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentController.swift; sourceTree = "<group>"; };
+		D2E3F405162738495A6B0B04 /* WorktreeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeStore.swift; sourceTree = "<group>"; };
+		D2E3F405162738495A6B0B06 /* WorktreeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeController.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0110 /* WorktreeBranchWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeBranchWatcher.swift; sourceTree = "<group>"; };
-		D2E3F405162738495A6B0B08 /* AgentScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentScaffoldView.swift; sourceTree = "<group>"; };
+		D2E3F405162738495A6B0B08 /* WorktreeScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeScaffoldView.swift; sourceTree = "<group>"; };
 		E5F405162738495A6B0C0102 /* SecretStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStoreModels.swift; sourceTree = "<group>"; };
 		E5F405162738495A6B0C0104 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
 		E5F405162738495A6B0C0106 /* SecretStoreController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStoreController.swift; sourceTree = "<group>"; };
@@ -172,7 +172,7 @@
 				620CC0292595445B9FD787B4 /* ContentView.swift */,
 				B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */,
 				C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */,
-				D2E3F405162738495A6B0B08 /* AgentScaffoldView.swift */,
+				D2E3F405162738495A6B0B08 /* WorktreeScaffoldView.swift */,
 				E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */,
 				F6A405162738495A6B0D0106 /* OverlayHostView.swift */,
 				F6A405162738495A6B0D0108 /* OverlayStatusCueView.swift */,
@@ -207,7 +207,7 @@
 				E37F70031D6C42AEBC6226D2 /* DomainModule.swift */,
 				C0D1E2F30415263748596A7B /* Preferences */,
 				C1D2E3F405162738495A6B00 /* Workspace */,
-				D2E3F405162738495A6B0B00 /* Agent */,
+				D2E3F405162738495A6B0B00 /* Worktree */,
 				E5F405162738495A6B0C0100 /* Secrets */,
 				F6A405162738495A6B0D0100 /* Overlay */,
 				A7B405162738495A6B0E0100 /* CommandMode */,
@@ -267,17 +267,17 @@
 			path = Workspace;
 			sourceTree = "<group>";
 		};
-		D2E3F405162738495A6B0B00 /* Agent */ = {
+		D2E3F405162738495A6B0B00 /* Worktree */ = {
 			isa = PBXGroup;
 			children = (
 				D2E3F405162738495A6B0B02 /* ThreeWordName.swift */,
-				D2E3F405162738495A6B0B04 /* AgentStore.swift */,
+				D2E3F405162738495A6B0B04 /* WorktreeStore.swift */,
 				B8C405162738495A6B0F0104 /* FocusedSession.swift */,
 				B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */,
-				D2E3F405162738495A6B0B06 /* AgentController.swift */,
+				D2E3F405162738495A6B0B06 /* WorktreeController.swift */,
 				B8C405162738495A6B0F0110 /* WorktreeBranchWatcher.swift */,
 			);
-			path = Agent;
+			path = Worktree;
 			sourceTree = "<group>";
 		};
 		C0D1E2F30415263748596A7B /* Preferences */ = {
@@ -394,13 +394,13 @@
 				C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */,
 				C1D2E3F405162738495A6B09 /* WorkspaceScaffoldView.swift in Sources */,
 				D2E3F405162738495A6B0B01 /* ThreeWordName.swift in Sources */,
-				D2E3F405162738495A6B0B03 /* AgentStore.swift in Sources */,
-				D2E3F405162738495A6B0B05 /* AgentController.swift in Sources */,
+				D2E3F405162738495A6B0B03 /* WorktreeStore.swift in Sources */,
+				D2E3F405162738495A6B0B05 /* WorktreeController.swift in Sources */,
 				B8C405162738495A6B0F010F /* WorktreeBranchWatcher.swift in Sources */,
 				B8C405162738495A6B0F0103 /* FocusedSession.swift in Sources */,
 				B8C405162738495A6B0F0105 /* MainCLISurfaceSlot.swift in Sources */,
 				B8C405162738495A6B0F0107 /* CLISpawnEnvironment.swift in Sources */,
-				D2E3F405162738495A6B0B07 /* AgentScaffoldView.swift in Sources */,
+				D2E3F405162738495A6B0B07 /* WorktreeScaffoldView.swift in Sources */,
 				B8C405162738495A6B0F0101 /* WorkspaceSidebarView.swift in Sources */,
 				E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */,
 				E5F405162738495A6B0C0103 /* SecretStore.swift in Sources */,

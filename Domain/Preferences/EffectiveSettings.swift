@@ -20,7 +20,7 @@ struct EffectiveSettings: Equatable, Sendable {
     /// Resolved Workspaces Root as an absolute directory URL.
     var workspacesRootURL: URL
 
-    /// Resolved Base Ref for new Agent branches (ADR 0019).
+    /// Resolved Base Ref for new Worktree branches (ADR 0019).
     var baseRef: String
 
     /// Resolve Effective Setting from Global Setting + optional Workspace overrides.

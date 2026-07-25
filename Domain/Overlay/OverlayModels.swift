@@ -12,7 +12,7 @@ enum OverlayKind: String, Equatable, Sendable {
 struct OverlaySession: Identifiable, Equatable {
     let id: UUID
     let kind: OverlayKind
-    /// FocusedSession.id this Overlay belongs to (Main Repo or Agent).
+    /// FocusedSession.id this Overlay belongs to (Main Repo or Worktree).
     let sessionId: String
     /// Switcher label.
     let title: String

@@ -1,8 +1,8 @@
 import Foundation
 
-/// One Agent ↔ one Worktree folder, a **sibling of `main/`** under `<workspace>/<three-word>/`
+/// One Worktree ↔ one Worktree folder, a **sibling of `main/`** under `<workspace>/<three-word>/`
 /// (ADR 0003, 0014, 0018 — flattened in P1.5).
-struct AgentSummary: Equatable, Identifiable, Sendable {
+struct WorktreeSummary: Equatable, Identifiable, Sendable {
     /// Stable id = absolute Worktree path (folder is on-disk identity).
     var id: String { worktreeURL.path }
 
@@ -16,8 +16,8 @@ struct AgentSummary: Equatable, Identifiable, Sendable {
     var branchName: String?
 }
 
-/// Create / list / remove Agent Worktrees via `git worktree` (ADR 0003, 0014, 0017–0020).
-struct AgentStore: Sendable {
+/// Create / list / remove Worktrees via `git worktree` (ADR 0003, 0014, 0017–0020).
+struct WorktreeStore: Sendable {
     enum StoreError: LocalizedError, Equatable {
         case noWorkspace
         case mainNotGitRepo(URL)
@@ -60,8 +60,8 @@ struct AgentStore: Sendable {
 
     /// List Worktree folders that are **siblings of `main/`** directly under the Workspace Data
     /// Dir (P1.5 flat layout). Skips `main/` (`SymphoniaPaths.reservedWorkspaceChildNames`) and
-    /// any non-git-checkout directory so stray folders never show up as Agents.
-    func list(workspaceDataDir: URL) throws -> [AgentSummary] {
+    /// any non-git-checkout directory so stray folders never show up as Worktrees.
+    func list(workspaceDataDir: URL) throws -> [WorktreeSummary] {
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: workspaceDataDir.path, isDirectory: &isDir), isDir.boolValue else {
             return []
@@ -73,7 +73,7 @@ struct AgentStore: Sendable {
             options: [.skipsHiddenFiles]
         )
 
-        var agents: [AgentSummary] = []
+        var worktrees: [WorktreeSummary] = []
         for child in contents {
             var childIsDir: ObjCBool = false
             guard fileManager.fileExists(atPath: child.path, isDirectory: &childIsDir),
@@ -83,12 +83,12 @@ struct AgentStore: Sendable {
             let name = child.lastPathComponent
             guard !SymphoniaPaths.reservedWorkspaceChildNames.contains(name.lowercased()) else { continue }
             // A Worktree checkout always has a `.git` file (linking back to Main's git dir);
-            // skip anything else so unrelated sibling folders are never mistaken for Agents.
+            // skip anything else so unrelated sibling folders are never mistaken for Worktrees.
             guard isGitRepository(child) else { continue }
 
             let branch = try? currentBranch(at: child)
-            agents.append(
-                AgentSummary(
+            worktrees.append(
+                WorktreeSummary(
                     threeWordName: name,
                     worktreeURL: child.standardizedFileURL,
                     branchName: branch
@@ -96,7 +96,7 @@ struct AgentStore: Sendable {
             )
         }
 
-        return agents.sorted {
+        return worktrees.sorted {
             $0.threeWordName.localizedCaseInsensitiveCompare($1.threeWordName) == .orderedAscending
         }
     }
@@ -126,7 +126,7 @@ struct AgentStore: Sendable {
 
     // MARK: - Create
 
-    /// Create an Agent: `git worktree add` as a **sibling of `main/`** — `<workspaceDataDir>/<threeWordName>/`.
+    /// Create a Worktree: `git worktree add` as a **sibling of `main/`** — `<workspaceDataDir>/<threeWordName>/`.
     ///
     /// - Parameters:
     ///   - workspaceDataDir: Workspace Data Dir containing `main/` and sibling Worktree folders.
@@ -139,7 +139,7 @@ struct AgentStore: Sendable {
         threeWordName: String,
         branchName: String,
         baseRef: String
-    ) throws -> AgentSummary {
+    ) throws -> WorktreeSummary {
         let mainDir = SymphoniaPaths.workspaceMainDirectory(in: workspaceDataDir)
         let worktreeURL = SymphoniaPaths.workspaceWorktreeDirectory(
             in: workspaceDataDir,
@@ -176,7 +176,7 @@ struct AgentStore: Sendable {
         try runGit(args, in: mainDir)
 
         let resolvedBranch = (try? currentBranch(at: worktreeURL)) ?? branch
-        return AgentSummary(
+        return WorktreeSummary(
             threeWordName: threeWordName,
             worktreeURL: worktreeURL.standardizedFileURL,
             branchName: resolvedBranch
@@ -185,16 +185,16 @@ struct AgentStore: Sendable {
 
     // MARK: - Rename
 
-    /// Rename branch and/or folder for one Agent Worktree (ADR 0018).
+    /// Rename branch and/or folder for one Worktree (ADR 0018).
     ///
     /// Pass the Operator-edited branch and folder names; unchanged values are no-ops.
     /// Branch: `git branch -m` in the checkout. Folder: `git worktree move`.
     func rename(
         workspaceDataDir: URL,
-        agent: AgentSummary,
+        agent: WorktreeSummary,
         newBranchName: String,
         newFolderName: String
-    ) throws -> AgentSummary {
+    ) throws -> WorktreeSummary {
         let mainDir = SymphoniaPaths.workspaceMainDirectory(in: workspaceDataDir)
         guard isGitRepository(mainDir) else {
             throw StoreError.mainNotGitRepo(mainDir)
@@ -261,7 +261,7 @@ struct AgentStore: Sendable {
         }
 
         let resolvedBranch = (try? currentBranch(at: worktreeURL)) ?? (branchChanged ? trimmedBranch : agent.branchName)
-        return AgentSummary(
+        return WorktreeSummary(
             threeWordName: folderChanged ? validatedFolder : agent.threeWordName,
             worktreeURL: worktreeURL,
             branchName: resolvedBranch
@@ -270,14 +270,14 @@ struct AgentStore: Sendable {
 
     // MARK: - Remove
 
-    /// Remove Agent Worktree folder + git registration; **keeps** the branch by default (ADR 0020).
-    /// Refuses `main` even if a caller somehow constructs an `AgentSummary` for it directly —
+    /// Remove Worktree folder + git registration; **keeps** the branch by default (ADR 0020).
+    /// Refuses `main` even if a caller somehow constructs an `WorktreeSummary` for it directly —
     /// Main is protected at every layer, not just the UI (P1.5).
     ///
     /// - Parameter deleteBranch: When true, also `git branch -D` after worktree removal.
     func remove(
         workspaceDataDir: URL,
-        agent: AgentSummary,
+        agent: WorktreeSummary,
         deleteBranch: Bool = false
     ) throws {
         guard !SymphoniaPaths.reservedWorkspaceChildNames.contains(agent.threeWordName.lowercased()) else {
