@@ -78,9 +78,75 @@ Status: `open` · `batch1` · `done` · `defer`
 
 ## Later (out of Settings batches)
 
-- Rename product/code references from **Agent** → **Worktree** in Commands and other call sites (titles, ids/aliases as needed, UI copy). Do not start until Settings batches finish unless prioritized.
-- **Command shortcut vs alias UX:** plain-char shortcuts (e.g. `w`) collide with Command Center search (typing `w` both filters and is a shortcut). Discuss redesign — Raycast’s alias/hotkey recording + filter model is the reference (elegant set flow, clear filter). Not Batch 2/3 unless prioritized.
-- **Secret Store without force-select:** optional follow-up so editing another Workspace’s secrets doesn’t switch Main (needs edit-vs-spawn document split).
+Expanded 2026-07-25 after Settings audit closed. Pick an order and confirm before coding.
+
+### L1 — Agent → Worktree rename
+
+**Goal:** Product noun is Worktree everywhere Operators look; optional Domain type cleanup later.
+
+**Already done:** Sidebar, Command Center titles, most UI copy already say Worktree.
+
+**Still open:**
+- Command ids `agent.*` → `worktree.*` (Settings captions show ids; `commandBindings` in prefs keyed by id).
+- Glossary (`CONTEXT.md` **Agent** / **Remove Agent**); living vision prose.
+- Optional: Domain types `AgentController` / `AgentSummary` / … → Worktree*.
+
+**Do not change:** disk paths, `archivedThreeWordNames`, git worktree paths, “coding agent” (CLI tool sense).
+
+| Phase | Scope | Accept |
+|-------|--------|--------|
+| **A** | Glossary + vision copy only | No product-noun “Agent” in Operator-facing glossary/UI |
+| **B** | Rename Command ids + migrate `commandBindings` old→new on load | Fresh install uses `worktree.*`; existing aliases/shortcuts survive |
+| **C** (optional) | Type/folder rename Domain/Agent → Worktree | No public `Agent*` symbols; behavior unchanged |
+
+**Recommend:** A + B now; C separate cleanup.
+
+---
+
+### L2 — Command shortcut vs alias UX
+
+**Problem:** With empty Command Center filter, bare keys (`w`, `a`, `n`, …) **run** shortcuts immediately and never enter the filter — so search and shortcut fight.
+
+**Today:** Alias = filter substring; Shortcut = single char when filter empty; Settings Shortcut is a plain TextField (Leader already uses Record).
+
+**Recommended (Raycast-like):**
+- Typing always filters (bare letters never instant-run).
+- Shortcut = recorded chord (reuse `KeyChordField` / `LeaderKeyBinding`); prefer modifier chords for defaults (`⌃W`, etc.) or `nil`.
+- Alias stays comma-separated filter keywords.
+
+| Phase | Scope | Accept |
+|-------|--------|--------|
+| **1** | Matcher: bare printable → filter only; chords fire when filter empty | `w` searches; documented chord still runs |
+| **2** | Settings Shortcut column → Record UI; chord conflict normalize | Same Record UX as Leader |
+| **3** | Retarget provider defaults; docs (`CONTEXT`, ADR 0021, footer copy) | No bare-letter defaults that steal search; old single-letter overrides migrate or warn |
+
+**Alternatives rejected for primary path:** keep bare-key shortcuts but delete letter defaults (regress power users); two-phase confirm on bare key (ambiguous).
+
+---
+
+### L3 — Secret Store without force-selecting Main
+
+**Problem:** Opening another Workspace’s Secret Store still `select`s Main (spawn + `SecretStoreController` share one document).
+
+**Recommended:** Mirror Batch 3 Workspace Settings — **local editor** for the target Workspace’s `secrets.toml`; keep app-wide controller as **spawn-only** for current.
+
+| Phase | Scope | Accept |
+|-------|--------|--------|
+| **1** | `SecretStoreScaffoldView(workspace:)`; dataDir-scoped controller; drop `ensureWorkspaceSelectedForSecrets` | Edit B while Main is A: Main/PTYs/Effective Setting unchanged; writes B’s file only |
+| **2** | When editing current, reload global controller after persist | Respawn w/ secrets sees new env |
+| **3** (optional) | Sidebar “Secrets…” / “Settings…” open without pre-select | Nav chrome matches Settings |
+
+**Non-goals:** live env into running shells; keychain; per-Worktree secrets.
+
+---
+
+### Suggested order
+
+1. **L2** — highest Operator pain (Command Center daily).  
+2. **L1 A+B** — naming consistency + id migration.  
+3. **L3** — Settings polish parity with Workspace Settings.  
+4. **L1 C** — mechanical when convenient.
+
 
 ## Batch 1 acceptance
 
