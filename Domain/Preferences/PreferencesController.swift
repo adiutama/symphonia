@@ -15,7 +15,7 @@ final class PreferencesController: ObservableObject {
     @Published var lastError: String?
 
     /// Optional Workspace Setting overrides for Effective Setting.
-    /// Loaded from the selected Workspace’s `config.json` (Phase 3).
+    /// Loaded from the selected Workspace’s `config.toml` (Phase 3).
     @Published var workspaceOverrides: WorkspaceSettingOverrides = .none {
         didSet { refreshEffective() }
     }

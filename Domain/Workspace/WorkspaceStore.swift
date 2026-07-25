@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Create runs `git init` in `main/` by default so dogfooding works immediately, or
 /// `git clone <url>` when a Clone URL is supplied (P1.4) — the remote URL is then persisted
-/// on `config.json` (`mainRemoteURL`) so `open(at:)` can heal `main/` (P1.5) if it ever goes
+/// on `config.toml` (`mainRemoteURL`) so `open(at:)` can heal `main/` (P1.5) if it ever goes
 /// missing or stops being a git repo: re-clone when a remote URL is known, else `git init`.
 /// Clone-later: Operator may also replace `main/` with a CLI clone into that same path.
 /// Opening an externally prepared `main/` is supported — layout ensure does not touch an
@@ -29,7 +29,7 @@ struct WorkspaceStore: Sendable {
             case .alreadyExists(let url):
                 return "Workspace Data Dir already exists: \(url.path)"
             case .missingConfig(let url):
-                return "Missing config.json at \(url.path)"
+                return "Missing config.toml at \(url.path)"
             case .notAWorkspace(let url):
                 return "Not a Workspace Data Dir: \(url.path)"
             case .gitInitFailed(let detail):
@@ -68,7 +68,7 @@ struct WorkspaceStore: Sendable {
     /// Create a Workspace container: layout files/dirs, optional Prefix in config.
     ///
     /// When `cloneURL` is non-empty, `main/` is populated with `git clone <cloneURL>` and the
-    /// remote URL is persisted on `config.json` (`mainRemoteURL`) for future heal-on-open
+    /// remote URL is persisted on `config.toml` (`mainRemoteURL`) for future heal-on-open
     /// (P1.5). Otherwise `main/` is `git init`’d as before.
     @discardableResult
     func create(
@@ -96,7 +96,7 @@ struct WorkspaceStore: Sendable {
         return try summary(for: dataDir, fallbackSlug: slug, fallbackPrefix: prefix)
     }
 
-    /// Ensure `config.json`, `secrets.json` (0600), and `main/` exist (P1.5: no `worktrees/`
+    /// Ensure `config.toml`, `secrets.json` (0600), and `main/` exist (P1.5: no `worktrees/`
     /// parent — Worktree checkouts are created lazily as siblings of `main/` by `AgentStore`).
     /// When `main/` is not yet a git repo: clone `cloneRemoteURL` if given, else `git init` when
     /// `initializeMainRepo` is true.
@@ -167,16 +167,18 @@ struct WorkspaceStore: Sendable {
         guard fileManager.fileExists(atPath: url.path) else {
             throw StoreError.missingConfig(url)
         }
-        let data = try Data(contentsOf: url)
-        return try JSONDecoder().decode(WorkspaceConfig.self, from: data)
+        let text = try String(contentsOf: url, encoding: .utf8)
+        return try PreferencesToml.decodeWorkspaceConfig(from: text)
     }
 
     func writeConfig(_ config: WorkspaceConfig, to dataDir: URL) throws {
         try fileManager.createDirectory(at: dataDir, withIntermediateDirectories: true)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(config)
-        try data.write(to: SymphoniaPaths.workspaceConfigFile(in: dataDir), options: .atomic)
+        let text = PreferencesToml.encode(config)
+        try text.write(
+            to: SymphoniaPaths.workspaceConfigFile(in: dataDir),
+            atomically: true,
+            encoding: .utf8
+        )
     }
 
     // MARK: - List
@@ -228,7 +230,7 @@ struct WorkspaceStore: Sendable {
     // MARK: - Rename
 
     /// Rename Workspace slug and move the Workspace Data Dir on disk (ADR 0013, 0015).
-    /// Updates `config.json`, the session index, and `lastSelectedSlug` when it matched the old slug.
+    /// Updates `config.toml`, the session index, and `lastSelectedSlug` when it matched the old slug.
     func rename(
         summary: WorkspaceSummary,
         newSlug rawNewSlug: String,

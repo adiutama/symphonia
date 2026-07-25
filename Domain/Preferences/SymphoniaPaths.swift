@@ -29,9 +29,9 @@ enum SymphoniaPaths {
         prefix.appendingPathComponent(slug, isDirectory: true)
     }
 
-    /// Workspace config: `<data-dir>/config.json`.
+    /// Workspace config: `<data-dir>/config.toml` (T.2). Legacy `config.json` ignored.
     static func workspaceConfigFile(in dataDir: URL) -> URL {
-        dataDir.appendingPathComponent("config.json", isDirectory: false)
+        dataDir.appendingPathComponent("config.toml", isDirectory: false)
     }
 
     /// Secret Store (canonical): `<data-dir>/secrets.json` (mode 0600; ADR 0001, 0012).

@@ -2,7 +2,7 @@ import Foundation
 
 /// Optional Workspace Setting values that override Global Setting (ADR 0016).
 ///
-/// Persisted on the selected Workspace as `config.json` fields (Phase 3).
+/// Persisted on the selected Workspace as `config.toml` fields (T.2).
 /// `workspacesRoot` here is the product **Prefix** override (ADR 0015).
 struct WorkspaceSettingOverrides: Equatable, Sendable {
     /// Workspace override for Main CLI command (ADR 0005). Empty string is a valid

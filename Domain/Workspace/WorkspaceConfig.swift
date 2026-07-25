@@ -1,6 +1,6 @@
 import Foundation
 
-/// Persisted Workspace Setting at `<workspace-data-dir>/config.json` (ADR 0012, 0015, 0016).
+/// Persisted Workspace Setting at `<workspace-data-dir>/config.toml` (T.2).
 struct WorkspaceConfig: Codable, Equatable, Sendable {
     /// Operator-picked Slug (folder name under Prefix).
     var slug: String
@@ -23,7 +23,7 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     /// Three-Word folder names of Worktrees soft-archived under this Workspace (P1.3, ADR 0020
     /// spirit: remove still exists; archive is softer). Archived Worktrees keep their folder and
     /// git worktree registration on disk — only the flag lives here. `nil`/missing (legacy
-    /// `config.json` written before this field existed) means none archived.
+    /// `config.toml` written before this field existed) means none archived.
     var archivedThreeWordNames: [String]?
 
     /// Remote URL `main/` was cloned from at Workspace create time (P1.4). Persisted so a future

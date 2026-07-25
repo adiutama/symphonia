@@ -109,7 +109,7 @@ struct AgentStore: Sendable {
 
     /// Every top-level name (file or directory) already present in the Workspace Data Dir — used
     /// for Three-Word Name collision checks so a fresh/Operator-edited name can never collide with
-    /// `main/`, `config.json`, another Worktree, or anything else already there (P1.5 flat siblings).
+    /// `main/`, `config.toml`, another Worktree, or anything else already there (P1.5 flat siblings).
     func existingFolderNames(workspaceDataDir: URL) throws -> Set<String> {
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: workspaceDataDir.path, isDirectory: &isDir), isDir.boolValue else {

@@ -49,19 +49,70 @@ enum PreferencesToml {
         if let bindingTables = table.tables["commandBindings"] {
             for (id, fields) in bindingTables {
                 bindings[id] = CommandBindingOverride(
-                    aliases: fields["aliases"],
-                    shortcut: fields["shortcut"]
+                    aliases: fields.strings["aliases"],
+                    shortcut: fields.strings["shortcut"]
                 )
             }
         }
 
         return GlobalPreferences(
-            mainCLICommand: root["mainCLICommand"] ?? "",
-            editorCommand: root["editorCommand"] ?? "",
-            leaderKey: root["leaderKey"] ?? GlobalPreferences.default.leaderKey,
-            workspacesRoot: root["workspacesRoot"] ?? GlobalPreferences.default.workspacesRoot,
-            baseRef: root["baseRef"] ?? GlobalPreferences.default.baseRef,
+            mainCLICommand: root.strings["mainCLICommand"] ?? "",
+            editorCommand: root.strings["editorCommand"] ?? "",
+            leaderKey: root.strings["leaderKey"] ?? GlobalPreferences.default.leaderKey,
+            workspacesRoot: root.strings["workspacesRoot"] ?? GlobalPreferences.default.workspacesRoot,
+            baseRef: root.strings["baseRef"] ?? GlobalPreferences.default.baseRef,
             commandBindings: bindings
+        )
+    }
+
+    /// Encode Workspace Setting to hand-editable TOML (T.2).
+    static func encode(_ config: WorkspaceConfig) -> String {
+        var lines: [String] = [
+            "# Symphonia workspace config — hand-editable.",
+            "# Legacy config.json is ignored (no migration).",
+            "",
+            "slug = \(stringLiteral(config.slug))",
+        ]
+        if let prefix = config.prefix {
+            lines.append("prefix = \(stringLiteral(prefix))")
+        }
+        if let mainCLICommand = config.mainCLICommand {
+            lines.append("mainCLICommand = \(stringLiteral(mainCLICommand))")
+        }
+        if let editorCommand = config.editorCommand {
+            lines.append("editorCommand = \(stringLiteral(editorCommand))")
+        }
+        if let leaderKey = config.leaderKey {
+            lines.append("leaderKey = \(stringLiteral(leaderKey))")
+        }
+        if let baseRef = config.baseRef {
+            lines.append("baseRef = \(stringLiteral(baseRef))")
+        }
+        if let archived = config.archivedThreeWordNames, !archived.isEmpty {
+            lines.append("archivedThreeWordNames = \(stringArrayLiteral(archived))")
+        }
+        if let mainRemoteURL = config.mainRemoteURL {
+            lines.append("mainRemoteURL = \(stringLiteral(mainRemoteURL))")
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// Decode Workspace Setting from TOML.
+    static func decodeWorkspaceConfig(from text: String) throws -> WorkspaceConfig {
+        let table = try parse(text)
+        let root = table.root
+        guard let slug = root.strings["slug"], !slug.isEmpty else {
+            throw PreferencesTomlError.missingRequired("slug")
+        }
+        return WorkspaceConfig(
+            slug: slug,
+            prefix: root.strings["prefix"],
+            mainCLICommand: root.strings["mainCLICommand"],
+            editorCommand: root.strings["editorCommand"],
+            leaderKey: root.strings["leaderKey"],
+            baseRef: root.strings["baseRef"],
+            archivedThreeWordNames: root.arrays["archivedThreeWordNames"],
+            mainRemoteURL: root.strings["mainRemoteURL"]
         )
     }
 
@@ -76,6 +127,10 @@ enum PreferencesToml {
         return "\"\(escaped)\""
     }
 
+    private static func stringArrayLiteral(_ values: [String]) -> String {
+        "[" + values.map(stringLiteral).joined(separator: ", ") + "]"
+    }
+
     /// Bare keys when safe; otherwise `"dotted.id"`.
     private static func quotedKey(_ key: String) -> String {
         let bare = key.unicodeScalars.allSatisfy { scalar in
@@ -87,15 +142,19 @@ enum PreferencesToml {
 
     // MARK: - Parse
 
+    private struct FieldMap {
+        var strings: [String: String] = [:]
+        var arrays: [String: [String]] = [:]
+    }
+
     private struct ParsedTable {
-        var root: [String: String] = [:]
+        var root = FieldMap()
         /// `[commandBindings."id"]` → field map
-        var tables: [String: [String: [String: String]]] = [:]
+        var tables: [String: [String: FieldMap]] = [:]
     }
 
     private static func parse(_ text: String) throws -> ParsedTable {
         var result = ParsedTable()
-        /// Current table path: nil = root; `("commandBindings", "overlay.openEditor")` = nested.
         var currentGroup: String?
         var currentKey: String?
 
@@ -103,7 +162,6 @@ enum PreferencesToml {
             let lineNumber = lineIndex + 1
             var line = String(rawLine)
             if let hash = line.firstIndex(of: "#") {
-                // Only treat # as comment when outside quotes — good enough for our files.
                 if !line[..<hash].contains("\"") {
                     line = String(line[..<hash])
                 }
@@ -123,7 +181,7 @@ enum PreferencesToml {
                     result.tables[parts[0]] = [:]
                 }
                 if result.tables[parts[0]]?[parts[1]] == nil {
-                    result.tables[parts[0]]?[parts[1]] = [:]
+                    result.tables[parts[0]]?[parts[1]] = FieldMap()
                 }
                 continue
             }
@@ -131,14 +189,23 @@ enum PreferencesToml {
             guard let eq = line.firstIndex(of: "=") else {
                 throw PreferencesTomlError.invalidLine(line, line: lineNumber)
             }
-            let key = line[..<eq].trimmingCharacters(in: .whitespaces)
+            let key = String(line[..<eq]).trimmingCharacters(in: .whitespaces)
             let valueRaw = line[line.index(after: eq)...].trimmingCharacters(in: .whitespaces)
-            let value = try parseStringValue(valueRaw, line: lineNumber)
 
-            if let group = currentGroup, let nested = currentKey {
-                result.tables[group]?[nested]?[key] = value
+            if valueRaw.hasPrefix("[") {
+                let array = try parseStringArray(valueRaw, line: lineNumber)
+                if let group = currentGroup, let nested = currentKey {
+                    result.tables[group]?[nested]?.arrays[key] = array
+                } else {
+                    result.root.arrays[key] = array
+                }
             } else {
-                result.root[key] = value
+                let value = try parseStringValue(valueRaw, line: lineNumber)
+                if let group = currentGroup, let nested = currentKey {
+                    result.tables[group]?[nested]?.strings[key] = value
+                } else {
+                    result.root.strings[key] = value
+                }
             }
         }
 
@@ -174,7 +241,6 @@ enum PreferencesToml {
 
     private static func parseStringValue(_ raw: String, line: Int) throws -> String {
         guard raw.hasPrefix("\""), raw.hasSuffix("\""), raw.count >= 2 else {
-            // Bare strings / numbers not used in our schema — require quoted strings.
             throw PreferencesTomlError.expectedString(raw, line: line)
         }
         let inner = String(raw.dropFirst().dropLast())
@@ -203,21 +269,68 @@ enum PreferencesToml {
         }
         return out
     }
+
+    private static func parseStringArray(_ raw: String, line: Int) throws -> [String] {
+        guard raw.hasPrefix("["), raw.hasSuffix("]") else {
+            throw PreferencesTomlError.invalidLine(raw, line: line)
+        }
+        let inner = String(raw.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+        if inner.isEmpty { return [] }
+
+        var values: [String] = []
+        var i = inner.startIndex
+        while i < inner.endIndex {
+            while i < inner.endIndex, inner[i].isWhitespace || inner[i] == "," {
+                i = inner.index(after: i)
+            }
+            guard i < inner.endIndex else { break }
+            guard inner[i] == "\"" else {
+                throw PreferencesTomlError.expectedString(raw, line: line)
+            }
+            let start = i
+            i = inner.index(after: i)
+            var escaped = false
+            while i < inner.endIndex {
+                let ch = inner[i]
+                if escaped {
+                    escaped = false
+                    i = inner.index(after: i)
+                    continue
+                }
+                if ch == "\\" {
+                    escaped = true
+                    i = inner.index(after: i)
+                    continue
+                }
+                if ch == "\"" {
+                    let end = inner.index(after: i)
+                    values.append(try parseStringValue(String(inner[start..<end]), line: line))
+                    i = end
+                    break
+                }
+                i = inner.index(after: i)
+            }
+        }
+        return values
+    }
 }
 
 enum PreferencesTomlError: LocalizedError {
     case invalidLine(String, line: Int)
     case expectedString(String, line: Int)
     case unsupportedTable(String, line: Int)
+    case missingRequired(String)
 
     var errorDescription: String? {
         switch self {
         case .invalidLine(let text, let line):
-            return "preferences.toml:\(line): invalid line: \(text)"
+            return "toml:\(line): invalid line: \(text)"
         case .expectedString(let text, let line):
-            return "preferences.toml:\(line): expected quoted string, got: \(text)"
+            return "toml:\(line): expected quoted string, got: \(text)"
         case .unsupportedTable(let header, let line):
-            return "preferences.toml:\(line): unsupported table [\(header)] (only [commandBindings.\"id\"] nested tables)"
+            return "toml:\(line): unsupported table [\(header)] (only [commandBindings.\"id\"] nested tables)"
+        case .missingRequired(let key):
+            return "toml: missing required key \(key)"
         }
     }
 }

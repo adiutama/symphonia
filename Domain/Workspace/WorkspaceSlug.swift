@@ -29,7 +29,11 @@ enum WorkspaceSlug {
         // truth in `SymphoniaPaths.reservedWorkspaceChildNames` (ADR 0014) — folded in here so
         // this validator (reused for both Workspace slugs and, in `AgentController.createAgent()`,
         // Operator-edited Worktree folder names) refuses it case-insensitively either way.
-        let reserved = Set(["config.json", "secrets.json", "secrets.env", "worktrees"])
+        let reserved = Set([
+            "config.toml", "config.json",
+            "secrets.toml", "secrets.json", "secrets.env",
+            "worktrees",
+        ])
             .union(SymphoniaPaths.reservedWorkspaceChildNames)
         if slug == "." || slug == ".." || reserved.contains(slug.lowercased()) {
             return .failure(.reservedName(slug))

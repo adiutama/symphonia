@@ -87,7 +87,7 @@ final class WorkspaceController: ObservableObject {
         }
     }
 
-    /// Switch current Workspace; loads `config.json` into Effective Setting overrides. Opening
+    /// Switch current Workspace; loads `config.toml` into Effective Setting overrides. Opening
     /// also heals `main/` (P1.5) via `WorkspaceStore.open(at:)` when it's missing or not a git repo.
     func select(_ summary: WorkspaceSummary) {
         do {
@@ -112,7 +112,7 @@ final class WorkspaceController: ObservableObject {
         try? store.setLastSelectedSlug(nil)
     }
 
-    /// Persist chrome Workspace Setting edits into the selected Workspace’s `config.json`.
+    /// Persist chrome Workspace Setting edits into the selected Workspace’s `config.toml`.
     func saveCurrentWorkspaceSettings() {
         guard let current else { return }
         do {
@@ -200,7 +200,7 @@ final class WorkspaceController: ObservableObject {
 
     // MARK: - Archive (P1.3)
 
-    /// Three-Word names archived under `workspace` (soft flag in `config.json`; ADR 0020 spirit).
+    /// Three-Word names archived under `workspace` (soft flag in `config.toml`; ADR 0020 spirit).
     func archivedWorktreeNames(for workspace: WorkspaceSummary) -> Set<String> {
         let config = workspace.id == current?.id
             ? currentConfig
@@ -208,7 +208,7 @@ final class WorkspaceController: ObservableObject {
         return Set(config?.archivedThreeWordNames ?? [])
     }
 
-    /// Flip the archived flag for one Worktree folder name; persists to `config.json` only —
+    /// Flip the archived flag for one Worktree folder name; persists to `config.toml` only —
     /// never touches the Worktree folder or git registration.
     func setWorktreeArchived(_ threeWordName: String, archived: Bool, in workspace: WorkspaceSummary) {
         do {
