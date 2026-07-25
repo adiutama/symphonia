@@ -8,9 +8,10 @@ enum SymphoniaPaths {
             .appendingPathComponent(".symphonia", isDirectory: true)
     }
 
-    /// Global preferences file: `~/.symphonia/preferences.json` (ADR 0012).
+    /// Global preferences file: `~/.symphonia/preferences.toml` (T.1).
+    /// Legacy `preferences.json` is ignored (no migration).
     static var preferencesFile: URL {
-        homeDirectory.appendingPathComponent("preferences.json", isDirectory: false)
+        homeDirectory.appendingPathComponent("preferences.toml", isDirectory: false)
     }
 
     /// Default Workspaces Root: `~/.symphonia/workspaces` (ADR 0015).

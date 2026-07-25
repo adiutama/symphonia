@@ -1,6 +1,9 @@
 import Foundation
 
-/// Loads and saves Global Setting at `~/.symphonia/preferences.json` (ADR 0012).
+/// Loads and saves Global Setting at `~/.symphonia/preferences.toml` (T.1).
+///
+/// Missing file → ``GlobalPreferences/default``. Corrupt TOML throws so the Operator
+/// can fix or delete. Legacy `preferences.json` is **not** migrated — ignore or remove it.
 struct PreferencesStore: Sendable {
     var fileURL: URL
 
@@ -9,27 +12,23 @@ struct PreferencesStore: Sendable {
     }
 
     /// Load Global Setting. Missing file → ``GlobalPreferences/default``.
-    /// Corrupt JSON throws so the Operator can fix or reset.
     func load() throws -> GlobalPreferences {
         let fm = FileManager.default
         guard fm.fileExists(atPath: fileURL.path) else {
             return .default
         }
 
-        let data = try Data(contentsOf: fileURL)
-        let decoder = JSONDecoder()
-        return try decoder.decode(GlobalPreferences.self, from: data)
+        let text = try String(contentsOf: fileURL, encoding: .utf8)
+        return try PreferencesToml.decodeGlobalPreferences(from: text)
     }
 
-    /// Persist Global Setting. Creates `~/.symphonia` (and parents) as needed.
+    /// Persist Global Setting as TOML. Creates `~/.symphonia` (and parents) as needed.
     func save(_ preferences: GlobalPreferences) throws {
         let fm = FileManager.default
         let directory = fileURL.deletingLastPathComponent()
         try fm.createDirectory(at: directory, withIntermediateDirectories: true)
 
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(preferences)
-        try data.write(to: fileURL, options: .atomic)
+        let text = PreferencesToml.encode(preferences)
+        try text.write(to: fileURL, atomically: true, encoding: .utf8)
     }
 }

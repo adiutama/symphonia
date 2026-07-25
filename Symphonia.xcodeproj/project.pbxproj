@@ -21,6 +21,7 @@
 		B0C1D2E3F405162738495A6F /* WorkspaceSettingOverrides.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A70 /* WorkspaceSettingOverrides.swift */; };
 		B0C1D2E3F405162738495A71 /* EffectiveSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A72 /* EffectiveSettings.swift */; };
 		B0C1D2E3F405162738495A73 /* PreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A74 /* PreferencesStore.swift */; };
+		B0C1D2E3F405162738495A7B /* PreferencesToml.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A7C /* PreferencesToml.swift */; };
 		B0C1D2E3F405162738495A75 /* PreferencesController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A76 /* PreferencesController.swift */; };
 		B0C1D2E3F405162738495A77 /* EditorCommandResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A78 /* EditorCommandResolver.swift */; };
 		B0C1D2E3F405162738495A79 /* LoginShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C1D2E3F405162738495A7A /* LoginShellEnvironment.swift */; };
@@ -75,6 +76,7 @@
 		B0C1D2E3F405162738495A70 /* WorkspaceSettingOverrides.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSettingOverrides.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A72 /* EffectiveSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectiveSettings.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A74 /* PreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesStore.swift; sourceTree = "<group>"; };
+		B0C1D2E3F405162738495A7C /* PreferencesToml.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesToml.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A76 /* PreferencesController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesController.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A78 /* EditorCommandResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorCommandResolver.swift; sourceTree = "<group>"; };
 		B0C1D2E3F405162738495A7A /* LoginShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginShellEnvironment.swift; sourceTree = "<group>"; };
@@ -274,6 +276,7 @@
 				B0C1D2E3F405162738495A70 /* WorkspaceSettingOverrides.swift */,
 				B0C1D2E3F405162738495A72 /* EffectiveSettings.swift */,
 				B0C1D2E3F405162738495A74 /* PreferencesStore.swift */,
+				B0C1D2E3F405162738495A7C /* PreferencesToml.swift */,
 				B0C1D2E3F405162738495A76 /* PreferencesController.swift */,
 			);
 			path = Preferences;
@@ -363,6 +366,7 @@
 				B0C1D2E3F405162738495A6F /* WorkspaceSettingOverrides.swift in Sources */,
 				B0C1D2E3F405162738495A71 /* EffectiveSettings.swift in Sources */,
 				B0C1D2E3F405162738495A73 /* PreferencesStore.swift in Sources */,
+				B0C1D2E3F405162738495A7B /* PreferencesToml.swift in Sources */,
 				B0C1D2E3F405162738495A75 /* PreferencesController.swift in Sources */,
 				C1D2E3F405162738495A6B01 /* WorkspaceSlug.swift in Sources */,
 				C1D2E3F405162738495A6B03 /* WorkspaceConfig.swift in Sources */,

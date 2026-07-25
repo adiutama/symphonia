@@ -1,6 +1,6 @@
 import Foundation
 
-/// Operator-wide Global Setting persisted at `~/.symphonia/preferences.json` (ADR 0012).
+/// Operator-wide Global Setting persisted at `~/.symphonia/preferences.toml` (T.1).
 ///
 /// Workspace Setting may override these per project; see ``EffectiveSettings`` (ADR 0016).
 struct GlobalPreferences: Codable, Equatable, Sendable {
@@ -29,7 +29,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// ``CommandBindingResolver``. Global only — no Workspace override in this slice.
     var commandBindings: [String: CommandBindingOverride]
 
-    /// Sensible Global Setting defaults when `preferences.json` is missing.
+    /// Sensible Global Setting defaults when `preferences.toml` is missing.
     static let `default` = GlobalPreferences(
         mainCLICommand: "",
         editorCommand: "",
