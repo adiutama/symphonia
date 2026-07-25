@@ -5,6 +5,7 @@ struct SymphoniaApp: App {
     @StateObject private var preferences: PreferencesController
     @StateObject private var workspaces: WorkspaceController
     @StateObject private var secrets: SecretStoreController
+    @StateObject private var settingsNavigation: SettingsNavigation
     @StateObject private var agents: AgentController
     @StateObject private var overlays: OverlayController
     @StateObject private var commandMode: CommandModeController
@@ -18,6 +19,7 @@ struct SymphoniaApp: App {
         let preferences = PreferencesController()
         let workspaces = WorkspaceController(preferences: preferences)
         let secrets = SecretStoreController(workspaces: workspaces)
+        let settingsNavigation = SettingsNavigation()
         let agents = AgentController(
             preferences: preferences,
             workspaces: workspaces,
@@ -43,6 +45,7 @@ struct SymphoniaApp: App {
         _preferences = StateObject(wrappedValue: preferences)
         _workspaces = StateObject(wrappedValue: workspaces)
         _secrets = StateObject(wrappedValue: secrets)
+        _settingsNavigation = StateObject(wrappedValue: settingsNavigation)
         _agents = StateObject(wrappedValue: agents)
         _overlays = StateObject(wrappedValue: overlays)
         _commandMode = StateObject(wrappedValue: commandMode)
@@ -57,6 +60,7 @@ struct SymphoniaApp: App {
                 .environmentObject(workspaces)
                 .environmentObject(agents)
                 .environmentObject(secrets)
+                .environmentObject(settingsNavigation)
                 .environmentObject(overlays)
                 .environmentObject(commandMode)
                 .environmentObject(commandRegistry)
@@ -76,6 +80,7 @@ struct SymphoniaApp: App {
                 .environmentObject(preferences)
                 .environmentObject(workspaces)
                 .environmentObject(secrets)
+                .environmentObject(settingsNavigation)
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)

@@ -1,20 +1,24 @@
 import SwiftUI
 
-/// Settings (⌘,) — Global section + Workspace section with nested Secret Store (Supacode-style).
+/// Settings (⌘,) — Global + per-Workspace settings and Secret Store (T.5).
 struct PreferencesSettingsView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var secrets: SecretStoreController
+    @EnvironmentObject private var settingsNavigation: SettingsNavigation
 
     @State private var selection: SettingsNavItem? = .globalMainCLI
+    @State private var searchText = ""
 
     var body: some View {
         NavigationSplitView {
             List(selection: $selection) {
-                Section("Global") {
-                    ForEach(SettingsNavItem.globalItems) { item in
-                        Label(item.title, systemImage: item.systemImage)
-                            .tag(item)
+                if !filteredGlobalItems.isEmpty {
+                    Section("Global") {
+                        ForEach(filteredGlobalItems) { item in
+                            Label(item.title, systemImage: item.systemImage)
+                                .tag(item)
+                        }
                     }
                 }
 
@@ -23,22 +27,30 @@ struct PreferencesSettingsView: View {
                         Text("No Workspaces")
                             .foregroundStyle(.secondary)
                             .font(.caption)
+                    } else if filteredWorkspaces.isEmpty {
+                        Text("No matches")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
                     } else {
-                        ForEach(workspaces.workspaces) { workspace in
-                            DisclosureGroup {
-                                NavigationLink(value: SettingsNavItem.workspaceOverrides(workspace.id)) {
-                                    Label("Effective overrides", systemImage: "slider.horizontal.3")
+                        ForEach(filteredWorkspaces) { workspace in
+                            if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                DisclosureGroup {
+                                    workspaceNavLinks(workspace)
+                                } label: {
+                                    Label(workspace.slug, systemImage: "folder")
                                 }
-                                NavigationLink(value: SettingsNavItem.workspaceSecrets(workspace.id)) {
-                                    Label("Secret Store", systemImage: "key.fill")
+                            } else {
+                                DisclosureGroup(isExpanded: .constant(true)) {
+                                    workspaceNavLinks(workspace)
+                                } label: {
+                                    Label(workspace.slug, systemImage: "folder")
                                 }
-                            } label: {
-                                Label(workspace.slug, systemImage: "folder")
                             }
                         }
                     }
                 }
             }
+            .searchable(text: $searchText, prompt: "Search settings")
             .navigationSplitViewColumnWidth(min: 180, ideal: 220)
             .navigationTitle("Settings")
         } detail: {
@@ -46,8 +58,41 @@ struct PreferencesSettingsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(minWidth: 720, minHeight: 480)
+        .onAppear { applyPendingNavigation() }
+        .onChange(of: settingsNavigation.pending) { _, _ in
+            applyPendingNavigation()
+        }
         .onChange(of: selection) { _, newValue in
             ensureWorkspaceSelected(for: newValue)
+        }
+    }
+
+    @ViewBuilder
+    private func workspaceNavLinks(_ workspace: WorkspaceSummary) -> some View {
+        NavigationLink(value: SettingsNavItem.workspaceSettings(workspace.id)) {
+            Label("Settings", systemImage: "slider.horizontal.3")
+        }
+        NavigationLink(value: SettingsNavItem.workspaceSecrets(workspace.id)) {
+            Label("Secret Store", systemImage: "key.fill")
+        }
+    }
+
+    private var filteredGlobalItems: [SettingsNavItem] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return SettingsNavItem.globalItems }
+        return SettingsNavItem.globalItems.filter { $0.title.lowercased().contains(q) }
+    }
+
+    private var filteredWorkspaces: [WorkspaceSummary] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return workspaces.workspaces }
+        return workspaces.workspaces.filter { workspace in
+            if workspace.slug.lowercased().contains(q) { return true }
+            // Typing "set…" / "sec…" surfaces every Workspace so Settings / Secret Store links show.
+            if "settings".hasPrefix(q) || "secret".hasPrefix(q) || "secrets".hasPrefix(q) {
+                return true
+            }
+            return false
         }
     }
 
@@ -75,8 +120,8 @@ struct PreferencesSettingsView: View {
         case .globalCommands:
             globalForm { CommandBindingsSettingsView() }
                 .navigationTitle("Commands")
-        case .workspaceOverrides(let id):
-            workspaceOverridesDetail(id)
+        case .workspaceSettings(let id):
+            workspaceSettingsDetail(id)
         case .workspaceSecrets(let id):
             workspaceSecretsDetail(id)
         case .none:
@@ -91,7 +136,7 @@ struct PreferencesSettingsView: View {
     private func globalForm<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         Form {
             content()
-            saveSection
+            saveSection(showResetGlobal: true)
         }
         .formStyle(.grouped)
         .padding()
@@ -104,7 +149,7 @@ struct PreferencesSettingsView: View {
                 text: $preferences.preferences.mainCLICommand,
                 prompt: Text("empty = bare shell")
             )
-            Text("Empty runs a normal login shell until the Operator sets a coding-agent command.")
+            Text("Empty runs a login shell. Set a command when you want a specific CLI on spawn.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -129,6 +174,11 @@ struct PreferencesSettingsView: View {
             Text("Opens Command Center. Example: ctrl+p")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if preferences.preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Leader key should not be empty.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
     }
 
@@ -164,11 +214,14 @@ struct PreferencesSettingsView: View {
             LabeledContent("Workspaces Root / Prefix", value: preferences.effective.workspacesRoot)
             LabeledContent("Expanded parent", value: preferences.effective.workspacesRootURL.path)
             LabeledContent("Base Ref", value: preferences.effective.baseRef)
+            Text("Workspace values win when set; otherwise Global.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
     @ViewBuilder
-    private func workspaceOverridesDetail(_ workspaceId: String) -> some View {
+    private func workspaceSettingsDetail(_ workspaceId: String) -> some View {
         if let workspace = workspaces.workspaces.first(where: { $0.id == workspaceId }) {
             Form {
                 Section {
@@ -176,54 +229,76 @@ struct PreferencesSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
+                    Text("Empty fields inherit Global. Saved to config.toml.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 } header: {
                     Text(workspace.slug)
                 }
 
-                Section("Workspace Setting overrides") {
+                Section("Main CLI") {
                     TextField(
-                        "Main CLI override",
+                        "Command",
                         text: Binding(
                             get: { preferences.workspaceOverrides.mainCLICommand ?? "" },
                             set: { preferences.workspaceOverrides.mainCLICommand = $0.isEmpty ? nil : $0 }
-                        )
+                        ),
+                        prompt: Text("inherit Global")
                     )
+                }
+
+                Section("Editor") {
                     TextField(
-                        "Editor override",
+                        "Command",
                         text: Binding(
                             get: { preferences.workspaceOverrides.editorCommand ?? "" },
                             set: { preferences.workspaceOverrides.editorCommand = $0.isEmpty ? nil : $0 }
-                        )
+                        ),
+                        prompt: Text("inherit Global")
                     )
+                }
+
+                Section("Leader") {
                     TextField(
-                        "Leader override",
+                        "Leader key",
                         text: Binding(
                             get: { preferences.workspaceOverrides.leaderKey ?? "" },
                             set: { preferences.workspaceOverrides.leaderKey = $0.isEmpty ? nil : $0 }
-                        )
+                        ),
+                        prompt: Text("inherit Global")
                     )
+                }
+
+                Section("Prefix") {
                     TextField(
-                        "Prefix override",
+                        "Path",
                         text: Binding(
                             get: { preferences.workspaceOverrides.workspacesRoot ?? "" },
                             set: { preferences.workspaceOverrides.workspacesRoot = $0.isEmpty ? nil : $0 }
                         ),
                         prompt: Text("empty = Global Workspaces Root")
                     )
+                    Text("Parent directory for this Workspace’s Data Dir.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Base Ref") {
                     TextField(
-                        "Base Ref override",
+                        "Base Ref",
                         text: Binding(
                             get: { preferences.workspaceOverrides.baseRef ?? "" },
                             set: { preferences.workspaceOverrides.baseRef = $0.isEmpty ? nil : $0 }
-                        )
+                        ),
+                        prompt: Text("inherit Global")
                     )
                 }
 
-                saveSection
+                saveSection(showResetGlobal: false)
             }
             .formStyle(.grouped)
             .padding()
-            .navigationTitle(workspace.slug)
+            .navigationTitle("Workspace Settings")
         } else {
             ContentUnavailableView("Workspace not found", systemImage: "folder.badge.questionmark")
         }
@@ -247,7 +322,7 @@ struct PreferencesSettingsView: View {
         }
     }
 
-    private var saveSection: some View {
+    private func saveSection(showResetGlobal: Bool) -> some View {
         Section {
             HStack {
                 Button("Save") {
@@ -262,15 +337,24 @@ struct PreferencesSettingsView: View {
                         workspaces.select(current)
                     }
                 }
-                Button("Reset Global to defaults") { preferences.resetToDefaults() }
+                if showResetGlobal {
+                    Button("Reset Global to defaults") { preferences.resetToDefaults() }
+                }
             }
 
             if let lastError = preferences.lastError ?? workspaces.lastError {
                 Text(lastError)
                     .foregroundStyle(.red)
                     .font(.caption)
+            } else if case .workspaceSettings = selection {
+                if let current = workspaces.current {
+                    Text(SymphoniaPaths.workspaceConfigFile(in: current.dataDirURL).path)
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .textSelection(.enabled)
+                }
             } else {
-                Text("Global: \(SymphoniaPaths.preferencesFile.path)")
+                Text(SymphoniaPaths.preferencesFile.path)
                     .foregroundStyle(.secondary)
                     .font(.caption)
                     .textSelection(.enabled)
@@ -278,9 +362,23 @@ struct PreferencesSettingsView: View {
         }
     }
 
+    private func applyPendingNavigation() {
+        guard let destination = settingsNavigation.consume() else { return }
+        switch destination {
+        case .globalMainCLI:
+            selection = .globalMainCLI
+        case .workspaceSettings(let workspaceId):
+            selection = .workspaceSettings(workspaceId)
+            ensureWorkspaceSelected(for: selection)
+        case .workspaceSecrets(let workspaceId):
+            selection = .workspaceSecrets(workspaceId)
+            ensureWorkspaceSelected(for: selection)
+        }
+    }
+
     private func ensureWorkspaceSelected(for item: SettingsNavItem?) {
         switch item {
-        case .workspaceOverrides(let id), .workspaceSecrets(let id):
+        case .workspaceSettings(let id), .workspaceSecrets(let id):
             if let workspace = workspaces.workspaces.first(where: { $0.id == id }),
                workspaces.current?.id != id
             {
@@ -300,7 +398,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
     case globalBaseRef
     case globalCommands
     case globalEffective
-    case workspaceOverrides(String)
+    case workspaceSettings(String)
     case workspaceSecrets(String)
 
     var id: String {
@@ -312,7 +410,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
         case .globalBaseRef: return "g-base"
         case .globalCommands: return "g-commands"
         case .globalEffective: return "g-effective"
-        case .workspaceOverrides(let id): return "wo-\(id)"
+        case .workspaceSettings(let id): return "wo-\(id)"
         case .workspaceSecrets(let id): return "ws-\(id)"
         }
     }
@@ -326,7 +424,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
         case .globalBaseRef: return "Base Ref"
         case .globalCommands: return "Commands"
         case .globalEffective: return "Effective Setting"
-        case .workspaceOverrides: return "Overrides"
+        case .workspaceSettings: return "Settings"
         case .workspaceSecrets: return "Secret Store"
         }
     }
@@ -340,7 +438,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
         case .globalBaseRef: return "arrow.triangle.branch"
         case .globalCommands: return "command"
         case .globalEffective: return "checkmark.seal"
-        case .workspaceOverrides: return "slider.horizontal.3"
+        case .workspaceSettings: return "slider.horizontal.3"
         case .workspaceSecrets: return "key.fill"
         }
     }

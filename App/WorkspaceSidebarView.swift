@@ -6,6 +6,7 @@ struct WorkspaceSidebarView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var agents: AgentController
     @EnvironmentObject private var preferences: PreferencesController
+    @EnvironmentObject private var settingsNavigation: SettingsNavigation
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     @State private var expandedWorkspaceIDs: Set<String> = []
@@ -323,10 +324,12 @@ struct WorkspaceSidebarView: View {
         }
         Divider()
         Button("Secrets…") {
-            openSettings()
+            selectWorkspace(workspace)
+            settingsNavigation.open(.workspaceSecrets(workspaceId: workspace.id))
         }
         Button("Workspace Settings…") {
-            openSettings()
+            selectWorkspace(workspace)
+            settingsNavigation.open(.workspaceSettings(workspaceId: workspace.id))
         }
         Divider()
         Button("Reveal in Finder") {
@@ -649,10 +652,6 @@ struct WorkspaceSidebarView: View {
 
     private func reveal(_ url: URL) {
         NSWorkspace.shared.activateFileViewerSelecting([url])
-    }
-
-    private func openSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
     private func workspaceConfig(for workspace: WorkspaceSummary) -> WorkspaceConfig? {
