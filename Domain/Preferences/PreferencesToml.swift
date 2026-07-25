@@ -267,6 +267,32 @@ enum PreferencesToml {
 
     // MARK: - Parse
 
+    /// Strip `#` comments only when `#` is outside quoted strings (respects `\"` escapes).
+    /// Full-line `#` comments become empty after trim.
+    private static func stripInlineComment(_ line: String) -> String {
+        var result = ""
+        result.reserveCapacity(line.count)
+        var inString = false
+        var escaped = false
+        for ch in line {
+            if inString {
+                result.append(ch)
+                if escaped {
+                    escaped = false
+                } else if ch == "\\" {
+                    escaped = true
+                } else if ch == "\"" {
+                    inString = false
+                }
+                continue
+            }
+            if ch == "#" { break }
+            if ch == "\"" { inString = true }
+            result.append(ch)
+        }
+        return result
+    }
+
     private struct FieldMap {
         var strings: [String: String] = [:]
         var arrays: [String: [String]] = [:]
@@ -287,12 +313,7 @@ enum PreferencesToml {
 
         for (lineIndex, rawLine) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
             let lineNumber = lineIndex + 1
-            var line = String(rawLine)
-            if let hash = line.firstIndex(of: "#") {
-                if !line[..<hash].contains("\"") {
-                    line = String(line[..<hash])
-                }
-            }
+            var line = stripInlineComment(String(rawLine))
             line = line.trimmingCharacters(in: .whitespaces)
             if line.isEmpty { continue }
 

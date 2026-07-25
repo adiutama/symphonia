@@ -5,6 +5,7 @@ import Combine
 @MainActor
 final class PreferencesController: ObservableObject {
     private let store: PreferencesStore
+    private var pendingSave: DispatchWorkItem?
 
     /// Current Global Setting (editable in Settings UI).
     @Published var preferences: GlobalPreferences {
@@ -58,6 +59,16 @@ final class PreferencesController: ObservableObject {
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    /// Debounced persist of Global Setting only (`preferences.toml`). Does not touch Workspace config.
+    func scheduleSave(after seconds: TimeInterval = 0.35) {
+        pendingSave?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.save()
+        }
+        pendingSave = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
     }
 
     func resetToDefaults() {

@@ -35,20 +35,16 @@ struct LeaderKeyBinding: Equatable {
             case "shift", "⇧":
                 modifiers.insert(.shift)
             default:
-                // Symbol-only tokens (⌃p without separator) already handled via lowercased split;
-                // otherwise last non-modifier token is the key.
                 if token.count == 1 {
                     keyToken = token
                 } else if Self.modifierNames.contains(token) {
                     continue
                 } else if token.count > 1 {
-                    // e.g. "ctrlp" without separator — take last character as key if prefixed.
                     keyToken = String(token.last!)
                 }
             }
         }
 
-        // Compact forms: "⌃p", "⌘k" (no separator) — characters may arrive as one token after lowercasing.
         if keyToken == nil, tokens.count == 1, let only = tokens.first, only.count >= 2 {
             let symbols: [(Character, NSEvent.ModifierFlags)] = [
                 ("⌃", .control), ("⌘", .command), ("⌥", .option), ("⇧", .shift),
@@ -79,15 +75,49 @@ struct LeaderKeyBinding: Equatable {
     func matches(_ event: NSEvent) -> Bool {
         guard event.type == .keyDown else { return false }
 
-        let relevant: NSEvent.ModifierFlags = [.control, .option, .command, .shift]
-        let eventMods = event.modifierFlags.intersection(relevant)
-        let expected = modifiers.intersection(relevant)
+        let eventMods = event.modifierFlags.intersection([.control, .option, .command, .shift])
+        let expected = modifiers.intersection([.control, .option, .command, .shift])
         guard eventMods == expected else { return false }
 
         guard let chars = event.charactersIgnoringModifiers?.lowercased(),
               chars.count == 1
         else { return false }
         return chars == key
+    }
+
+    /// Build a binding from a keyDown event. Modifier-only presses return `nil`.
+    static func from(event: NSEvent) -> LeaderKeyBinding? {
+        guard event.type == .keyDown else { return nil }
+        let mods = event.modifierFlags.intersection([.control, .option, .command, .shift])
+        guard let chars = event.charactersIgnoringModifiers?.lowercased(),
+              chars.count == 1,
+              let first = chars.first,
+              !first.isNewline
+        else { return nil }
+        if event.keyCode == 53 { return nil }
+        return LeaderKeyBinding(key: chars, modifiers: mods)
+    }
+
+    /// Persist form: `ctrl+p`, `cmd+shift+k` (parse-compatible).
+    var storageString: String {
+        var parts: [String] = []
+        if modifiers.contains(.control) { parts.append("ctrl") }
+        if modifiers.contains(.option) { parts.append("alt") }
+        if modifiers.contains(.shift) { parts.append("shift") }
+        if modifiers.contains(.command) { parts.append("cmd") }
+        parts.append(key)
+        return parts.joined(separator: "+")
+    }
+
+    /// Compact UI form: `⌃P`.
+    var displaySymbolString: String {
+        var s = ""
+        if modifiers.contains(.control) { s += "⌃" }
+        if modifiers.contains(.option) { s += "⌥" }
+        if modifiers.contains(.shift) { s += "⇧" }
+        if modifiers.contains(.command) { s += "⌘" }
+        s += key.uppercased()
+        return s
     }
 
     private static let modifierNames: Set<String> = [

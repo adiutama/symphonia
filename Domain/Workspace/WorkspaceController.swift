@@ -25,6 +25,11 @@ final class WorkspaceController: ObservableObject {
     @Published var pendingRenameWorkspace: WorkspaceSummary?
     @Published var draftRenameSlug: String = ""
 
+    /// When Prefix relocate changes the Workspace Data Dir path, Settings remounts selection.
+    @Published private(set) var lastWorkspaceIdRemap: WorkspaceIdRemap?
+
+    private var pendingWorkspaceSettingsSave: DispatchWorkItem?
+
     init(
         preferences: PreferencesController,
         store: WorkspaceStore = WorkspaceStore()
@@ -113,23 +118,42 @@ final class WorkspaceController: ObservableObject {
     }
 
     /// Persist chrome Workspace Setting edits into the selected Workspace’s `config.toml`.
+    /// Relocates the Data Dir + session index when Prefix parent changes.
     func saveCurrentWorkspaceSettings() {
         guard let current else { return }
+        let oldId = current.id
         do {
-            var config = try store.loadConfig(from: current.dataDirURL)
-            config.apply(overrides: preferences.workspaceOverrides)
-            config.slug = current.slug
-            try store.writeConfig(config, to: current.dataDirURL)
-            currentConfig = config
-            // Refresh list so Prefix shown in rows matches config.
-            refresh()
-            if let updated = workspaces.first(where: { $0.id == current.id }) {
-                self.current = updated
-            }
+            let updated = try store.persistSettings(
+                summary: current,
+                overrides: preferences.workspaceOverrides,
+                workspacesRoot: workspacesRoot
+            )
             lastError = nil
+            refresh()
+            if updated.id != oldId {
+                lastWorkspaceIdRemap = WorkspaceIdRemap(from: oldId, to: updated.id)
+                select(updated)
+            } else if let refreshed = workspaces.first(where: { $0.id == updated.id }) {
+                self.current = refreshed
+                if let config = try? store.loadConfig(from: refreshed.dataDirURL) {
+                    currentConfig = config
+                }
+            } else {
+                select(updated)
+            }
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    /// Debounced persist of the selected Workspace’s `config.toml` only. Does not write Global prefs.
+    func scheduleSaveCurrentWorkspaceSettings(after seconds: TimeInterval = 0.35) {
+        pendingWorkspaceSettingsSave?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.saveCurrentWorkspaceSettings()
+        }
+        pendingWorkspaceSettingsSave = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
     }
 
     // MARK: - Rename Workspace
@@ -279,4 +303,10 @@ final class WorkspaceController: ObservableObject {
             select(match)
         }
     }
+}
+
+/// Published when Prefix relocate changes a Workspace’s Data Dir path (`id`).
+struct WorkspaceIdRemap: Equatable, Sendable {
+    let from: String
+    let to: String
 }

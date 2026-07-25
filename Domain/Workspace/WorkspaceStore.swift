@@ -21,6 +21,7 @@ struct WorkspaceStore: Sendable {
         case gitCloneFailed(String)
         case removeFailed(String)
         case renameFailed(String)
+        case relocateFailed(String)
 
         var errorDescription: String? {
             switch self {
@@ -40,6 +41,8 @@ struct WorkspaceStore: Sendable {
                 return "Could not remove Workspace: \(detail)"
             case .renameFailed(let detail):
                 return "Could not rename Workspace: \(detail)"
+            case .relocateFailed(let detail):
+                return "Could not move Workspace Data Dir: \(detail)"
             }
         }
     }
@@ -268,6 +271,87 @@ struct WorkspaceStore: Sendable {
         )
 
         return try self.summary(for: newDataDir, fallbackSlug: newSlug, fallbackPrefix: prefix)
+    }
+
+    // MARK: - Persist Settings / Prefix relocate
+
+    /// Write Workspace Setting overrides into `config.toml`. When the resolved Prefix parent
+    /// changes, moves `<oldPrefix>/<slug>` → `<newPrefix>/<slug>` and updates the session index
+    /// (same pattern as `rename`). No-op move when normalized parent paths are equal.
+    @discardableResult
+    func persistSettings(
+        summary: WorkspaceSummary,
+        overrides: WorkspaceSettingOverrides,
+        workspacesRoot: String
+    ) throws -> WorkspaceSummary {
+        let newPrefix = normalizedOptionalPath(overrides.workspacesRoot)
+        let oldParent = SymphoniaPaths.expandingTildeInPath(summary.prefix ?? workspacesRoot)
+            .standardizedFileURL
+        let newParent = SymphoniaPaths.expandingTildeInPath(newPrefix ?? workspacesRoot)
+            .standardizedFileURL
+        let oldDataDir = summary.dataDirURL.standardizedFileURL
+
+        guard oldParent.path != newParent.path else {
+            var config = try loadConfig(from: oldDataDir)
+            config.apply(overrides: overrides)
+            config.slug = summary.slug
+            try writeConfig(config, to: oldDataDir)
+            if summary.prefix != newPrefix {
+                try updateIndexAfterRename(
+                    from: summary,
+                    newSlug: summary.slug,
+                    prefix: newPrefix,
+                    workspacesRoot: workspacesRoot
+                )
+            }
+            return try self.summary(
+                for: oldDataDir,
+                fallbackSlug: summary.slug,
+                fallbackPrefix: newPrefix
+            )
+        }
+
+        let newDataDir = dataDirURL(
+            slug: summary.slug,
+            prefix: newPrefix,
+            workspacesRoot: workspacesRoot
+        ).standardizedFileURL
+
+        if fileManager.fileExists(atPath: newDataDir.path) {
+            throw StoreError.alreadyExists(newDataDir)
+        }
+
+        try fileManager.createDirectory(at: newParent, withIntermediateDirectories: true)
+
+        do {
+            try fileManager.moveItem(at: oldDataDir, to: newDataDir)
+        } catch {
+            throw StoreError.relocateFailed(error.localizedDescription)
+        }
+
+        var config = try loadConfig(from: newDataDir)
+        config.apply(overrides: overrides)
+        config.slug = summary.slug
+        do {
+            try writeConfig(config, to: newDataDir)
+        } catch {
+            // Heal: attempt to move back so disk stays consistent with the old index entry.
+            try? fileManager.moveItem(at: newDataDir, to: oldDataDir)
+            throw StoreError.relocateFailed(error.localizedDescription)
+        }
+
+        try updateIndexAfterRename(
+            from: summary,
+            newSlug: summary.slug,
+            prefix: newPrefix,
+            workspacesRoot: workspacesRoot
+        )
+
+        return try self.summary(
+            for: newDataDir,
+            fallbackSlug: summary.slug,
+            fallbackPrefix: newPrefix
+        )
     }
 
     // MARK: - Remove
