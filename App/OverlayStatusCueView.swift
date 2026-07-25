@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Toggleable calm Status Cue: Editor + Background count → open/resume Overlay (C.7).
 ///
-/// Lives in the status strip only — never a third column. Does not list every PTY.
+/// Lives in the status strip only — never a third column / switcher (nest is).
 struct OverlayStatusCueView: View {
     @EnvironmentObject private var overlays: OverlayController
     @AppStorage(StatusCueDefaults.listVisibleKey) private var listVisible = false
@@ -36,12 +36,12 @@ struct OverlayStatusCueView: View {
                 backgroundRow(count: bgCount)
             }
 
-            if overlays.isShowingOverlay {
-                Circle()
-                    .fill(Color.secondary.opacity(0.4))
-                    .frame(width: 4, height: 4)
-                    .help("Overlay visible — hide returns to Main CLI")
-                    .accessibilityLabel("Overlay visible")
+            if overlays.isShowingOverlay, let visible = overlays.visibleSession {
+                Text(visible.kind == .editor ? "peek · EDITOR" : "peek · BG")
+                    .font(.caption2.weight(.medium).monospaced())
+                    .foregroundStyle(.secondary)
+                    .help("Overlay visible — Back / nest hide returns to Main CLI")
+                    .accessibilityLabel("Peeking \(visible.kind == .editor ? "editor" : "background")")
             }
         }
     }
@@ -88,7 +88,7 @@ struct OverlayStatusCueView: View {
         .buttonStyle(.plain)
         .help(count == 1
             ? "Peek Background CLI"
-            : "Peek latest Background CLI (\(count) running) — Command Center to pick")
+            : "Peek latest Background CLI (\(count) running) — Command Center nest to pick")
         .accessibilityLabel("\(count) background CLIs")
     }
 }

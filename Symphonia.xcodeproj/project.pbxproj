@@ -307,6 +307,7 @@
 				2A72F089057E40A49CBAC6A3 /* Sources */,
 				0BB284DF2D6F4A50A0F1644A /* Frameworks */,
 				6A59CCFBAA5045A5B1E97F7E /* Resources */,
+				C0P7GH05T7YRE50URCE50001 /* Copy Ghostty Resources */,
 			);
 			buildRules = (
 			);
@@ -360,6 +361,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C0P7GH05T7YRE50URCE50001 /* Copy Ghostty Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Ghostty Resources";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "\"${SRCROOT}/Terminal/scripts/copy-ghostty-resources.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2A72F089057E40A49CBAC6A3 /* Sources */ = {

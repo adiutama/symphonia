@@ -1,9 +1,7 @@
 import SwiftUI
 
-/// Settings → Global → Commands: edit per-Command alias/shortcut overrides and surface
-/// duplicate-binding conflicts across the whole registry (ADR 0021 CC.4).
-///
-/// Uses Settings chrome cards. Autosave is owned by the parent via Global preferences debounce.
+/// Settings → Global → Commands: edit per-Command alias/sequence overrides and surface
+/// duplicate-binding conflicts across the whole registry (ADR 0021 CC.4 / Path B).
 struct CommandBindingsSettingsView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var commandRegistry: CommandRegistry
@@ -11,10 +9,9 @@ struct CommandBindingsSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text(
-                "Aliases are comma-separated filter keywords (title or alias match). " +
-                "Shortcuts are recorded chords (⌃/⌥/⌘ required) and fire when the Command " +
-                "Center filter is empty — bare letters always type-to-filter. " +
-                "Clear or Reset falls back to defaults."
+                "Aliases are comma-separated filter keywords (Input mode). " +
+                "Sequences are Normal-mode chords (min 2 letters; j/k reserved). " +
+                "Empty Sequence uses the title-derived default. Clear or Reset falls back to defaults."
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -87,11 +84,18 @@ struct CommandBindingsSettingsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Shortcut")
+                    Text("Sequence")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize()
-                    KeyChordField(chord: shortcutBinding(for: command), requireModifier: true)
+                    TextField(
+                        "Sequence",
+                        text: sequenceBinding(for: command),
+                        prompt: Text(defaultSequencePrompt(for: command))
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 72, idealWidth: 96)
+                    .frame(maxWidth: 120)
                 }
             }
         }
@@ -99,11 +103,15 @@ struct CommandBindingsSettingsView: View {
         .padding(.vertical, 12)
     }
 
+    private func defaultSequencePrompt(for command: Command) -> String {
+        CommandBindingResolver.sequence(for: command, overrides: [:]) ?? "none"
+    }
+
     private func hasChangedOverride(for command: Command) -> Bool {
         guard let override = preferences.preferences.commandBindings[command.id] else {
             return false
         }
-        return override.aliases != nil || override.shortcut != nil
+        return override.aliases != nil || override.sequence != nil || override.shortcut != nil
     }
 
     private func aliasesBinding(for command: Command) -> Binding<String> {
@@ -120,29 +128,29 @@ struct CommandBindingsSettingsView: View {
         )
     }
 
-    private func shortcutBinding(for command: Command) -> Binding<String> {
+    private func sequenceBinding(for command: Command) -> Binding<String> {
         Binding(
             get: {
                 let overrides = preferences.preferences.commandBindings
-                if let raw = overrides[command.id]?.shortcut {
-                    return raw.isEmpty ? "" : CommandBindingResolver.normalizeShortcut(raw)
+                if let raw = overrides[command.id]?.sequence {
+                    return raw
                 }
-                return command.defaultShortcut.map(CommandBindingResolver.normalizeShortcut) ?? ""
+                return CommandBindingResolver.sequence(for: command, overrides: [:]) ?? ""
             },
             set: { newValue in
-                let normalized = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                let defaultNormalized = command.defaultShortcut.map(CommandBindingResolver.normalizeShortcut)
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let defaultSeq = CommandBindingResolver.sequence(for: command, overrides: [:])
                 var override = preferences.preferences.commandBindings[command.id] ?? CommandBindingOverride()
 
-                if normalized.isEmpty {
-                    override.shortcut = ""
-                } else if normalized == defaultNormalized {
-                    override.shortcut = nil
+                if trimmed.isEmpty {
+                    override.sequence = ""
+                } else if trimmed == defaultSeq {
+                    override.sequence = nil
                 } else {
-                    override.shortcut = CommandBindingResolver.normalizeShortcut(normalized)
+                    override.sequence = CommandSequence.sanitize(trimmed)
                 }
 
-                if override.aliases == nil, override.shortcut == nil {
+                if override.aliases == nil, override.sequence == nil, override.shortcut == nil {
                     preferences.preferences.commandBindings.removeValue(forKey: command.id)
                 } else {
                     preferences.preferences.commandBindings[command.id] = override
@@ -176,17 +184,17 @@ struct CommandBindingsSettingsView: View {
         let all = commandRegistry.allCommands
 
         var aliasMap: [String: [String]] = [:]
-        var shortcutMap: [String: [String]] = [:]
+        var sequenceMap: [String: [String]] = [:]
         for command in all {
             for alias in CommandBindingResolver.aliases(for: command, overrides: overrides) {
                 let key = alias.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                 guard !key.isEmpty else { continue }
                 aliasMap[key, default: []].append(command.title)
             }
-            if let shortcut = CommandBindingResolver.shortcut(for: command, overrides: overrides),
-               let key = CommandBindingResolver.shortcutConflictKey(shortcut)
+            if let sequence = CommandBindingResolver.sequence(for: command, overrides: overrides),
+               let key = CommandBindingResolver.sequenceConflictKey(sequence)
             {
-                shortcutMap[key, default: []].append(command.title)
+                sequenceMap[key, default: []].append(command.title)
             }
         }
 
@@ -194,9 +202,8 @@ struct CommandBindingsSettingsView: View {
         for (alias, titles) in aliasMap where titles.count > 1 {
             result.append(Conflict(id: "alias-\(alias)", label: "Alias \"\(alias)\"", commandTitles: titles))
         }
-        for (shortcut, titles) in shortcutMap where titles.count > 1 {
-            let label = LeaderKeyBinding.parse(shortcut)?.displaySymbolString ?? shortcut
-            result.append(Conflict(id: "shortcut-\(shortcut)", label: "Shortcut \"\(label)\"", commandTitles: titles))
+        for (sequence, titles) in sequenceMap where titles.count > 1 {
+            result.append(Conflict(id: "seq-\(sequence)", label: "Sequence \"\(sequence)\"", commandTitles: titles))
         }
         return result.sorted { $0.label < $1.label }
     }

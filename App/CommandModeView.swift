@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Floating Command Center palette — a Raycast-like, input-first prompt with results below.
+/// Command Center chrome — Path B **D · Minimal strip**, Peek nest **E · Nest bar**.
 struct CommandModeView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var preferences: PreferencesController
@@ -8,100 +8,124 @@ struct CommandModeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if commandMode.phase == .pickBackground {
+                nestBar
+            } else {
+                modeStrip
+            }
             promptBar
-            statusBar
-            Divider()
+            Divider().opacity(0.35)
             itemList
-            Divider()
+            Divider().opacity(0.35)
             footer
         }
-        .frame(width: 480)
+        .frame(width: 440)
         .background(ghosttyTheme.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+        .shadow(color: .black.opacity(0.28), radius: 18, y: 8)
     }
 
-    /// The hero: a large, input-first prompt line. Backed by `filterQuery` (not a
-    /// real `TextField`) because keystrokes are intercepted by `CommandModeController`'s
-    /// local key monitor before they'd reach any first responder.
-    private var promptBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 17, weight: .medium))
+    // MARK: - D · Minimal strip
+
+    private var modeStrip: some View {
+        HStack(spacing: 6) {
+            Text(stripLabel)
+                .font(.caption2.weight(.semibold).monospaced())
                 .foregroundStyle(.secondary)
-            HStack(spacing: 2) {
-                Text(commandMode.filterQuery.isEmpty ? placeholder : commandMode.filterQuery)
-                    .font(.system(size: 19, weight: .regular, design: .rounded))
-                    .foregroundStyle(commandMode.filterQuery.isEmpty ? .tertiary : .primary)
-                    .lineLimit(1)
-                if !commandMode.filterQuery.isEmpty {
-                    Rectangle()
-                        .fill(Color.accentColor)
-                        .frame(width: 2, height: 20)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if !commandMode.filterQuery.isEmpty {
-                Text("⌫")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 16)
-    }
-
-    private var placeholder: String {
-        switch commandMode.phase {
-        case .root: return "Type a command or /verb…"
-        case .pickWorkspace: return "Search Workspaces…"
-        case .pickWorktree: return "Search Worktrees…"
-        case .pickBackground: return "Search Overlays…"
-        }
-    }
-
-    /// Small, secondary breadcrumb row — demoted so it never competes with `promptBar`.
-    private var statusBar: some View {
-        HStack {
-            Text(phaseTitle)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-            Spacer()
+                .tracking(0.6)
+            Spacer(minLength: 8)
             Text(
                 LeaderKeyBinding.parse(preferences.effective.leaderKey)?.displaySymbolString
                     ?? preferences.effective.leaderKey
             )
-                .font(.caption2.monospaced())
-                .foregroundStyle(.tertiary)
-            Button("Esc") {
-                if !commandMode.filterQuery.isEmpty {
-                    commandMode.setFilter("")
-                } else if commandMode.phase == .root {
-                    commandMode.dismiss()
-                } else {
-                    commandMode.run(.back)
-                }
-            }
-            .buttonStyle(.borderless)
-            .font(.caption2)
-            .help("Dismiss Command Center")
+            .font(.caption2.monospaced())
+            .foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+        .padding(.bottom, 2)
     }
 
-    private var phaseTitle: String {
-        switch commandMode.phase {
-        case .root: return "Command Center"
-        case .pickWorkspace: return "Switch Workspace"
-        case .pickWorktree: return "Focus Worktree"
-        case .pickBackground: return "Peek Overlay"
+    private var stripLabel: String {
+        let mode = commandMode.mode.stripLabel
+        if let phase = commandMode.phase.phaseTitle {
+            return "\(mode) · \(phase)"
+        }
+        return mode
+    }
+
+    // MARK: - E · Nest bar (Peek Overlay)
+
+    private var nestBar: some View {
+        HStack(spacing: 8) {
+            Button {
+                commandMode.leaveNestToRoot()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Back to main list (Esc)")
+
+            Text("Peek Overlay")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary.opacity(0.85))
+
+            Spacer(minLength: 8)
+
+            Text("Esc")
+                .font(.caption2.monospaced())
+                .foregroundStyle(.tertiary)
+                .help("Leave nest to main list")
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
+    }
+
+    // MARK: - Prompt
+
+    private var promptBar: some View {
+        HStack(spacing: 8) {
+            Text(commandMode.filterQuery.isEmpty ? placeholder : commandMode.filterQuery)
+                .font(.system(size: 15, weight: .regular, design: .monospaced))
+                .foregroundStyle(commandMode.filterQuery.isEmpty ? .tertiary : .primary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if !commandMode.filterQuery.isEmpty {
+                Text("⌫")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            } else {
+                Rectangle()
+                    .fill(Color.accentColor.opacity(0.7))
+                    .frame(width: 1.5, height: 14)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    private var placeholder: String {
+        switch (commandMode.phase, commandMode.mode) {
+        case (.root, .normal): return "Sequence…"
+        case (.root, .input): return "Filter commands…"
+        case (.pickWorkspace, .normal): return "Sequence…"
+        case (.pickWorkspace, .input): return "Search Workspaces…"
+        case (.pickWorktree, .normal): return "Sequence…"
+        case (.pickWorktree, .input): return "Search Worktrees…"
+        case (.pickBackground, .normal): return "Sequence…"
+        case (.pickBackground, .input): return "Search Overlays…"
         }
     }
+
+    // MARK: - List
 
     private var itemList: some View {
         ScrollViewReader { proxy in
@@ -126,7 +150,7 @@ struct CommandModeView: View {
                     }
                 }
             }
-            .frame(maxHeight: 320)
+            .frame(maxHeight: 300)
             .onChange(of: commandMode.selectedIndex) {
                 let newValue = commandMode.selectedIndex
                 guard commandMode.items.indices.contains(newValue) else { return }
@@ -138,10 +162,10 @@ struct CommandModeView: View {
     }
 
     private func row(item: CommandModeItem, selected: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
-                    .font(.body.weight(selected ? .semibold : .regular))
+                    .font(.callout.weight(selected ? .semibold : .regular))
                 if let subtitle = item.subtitle {
                     Text(subtitle)
                         .font(.caption2)
@@ -151,29 +175,27 @@ struct CommandModeView: View {
                 }
             }
             Spacer(minLength: 8)
-            if let keybind = item.keybind {
-                Text(CommandBindingResolver.shortcutDisplay(keybind) ?? keybind)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            if let sequence = item.sequence {
+                Text(sequence)
+                    .font(.caption.monospaced().weight(.medium))
+                    .foregroundStyle(selected ? Color.primary.opacity(0.7) : Color.secondary)
             } else if selected {
                 Text("↩")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(selected ? Color.accentColor.opacity(0.22) : Color.clear)
+        .background(selected ? Color.accentColor.opacity(0.18) : Color.clear)
     }
+
+    // MARK: - Footer
 
     private var footer: some View {
         HStack {
-            Text("↑↓ · ↩ · type to filter · / for verbs · chords when empty")
+            Text(footerHints)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
             Spacer()
@@ -184,7 +206,12 @@ struct CommandModeView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
         .padding(.vertical, 7)
+    }
+
+    private var footerHints: String {
+        let move = commandMode.mode == .normal ? "j/k" : "↑↓"
+        return "⇧Tab · \(move) · ↩ · Esc"
     }
 }

@@ -2,8 +2,7 @@ import SwiftUI
 
 /// Main CLI surfaces (one live PTY per opened session) + Overlay peeks.
 ///
-/// Switching Main/Worktree **hides** other Main CLI PTYs (opacity 0) instead of destroying them.
-/// Tear-down happens when the session is removed or the Workspace changes (`WorktreeController`).
+/// Pane chrome (Peek requirements): kind + title + Back. No tabs; kill only via CC nest.
 struct OverlayHostView: View {
     @EnvironmentObject private var worktrees: WorktreeController
     @EnvironmentObject private var overlays: OverlayController
@@ -11,7 +10,6 @@ struct OverlayHostView: View {
 
     var body: some View {
         ZStack {
-            // Expand the ZStack to the proposed host size so Main CLI surfaces fill it.
             ghosttyTheme.background
 
             ForEach(worktrees.openedMainCLISessions) { slot in
@@ -45,8 +43,6 @@ struct OverlayHostView: View {
 
             ForEach(overlays.focusedSessions) { session in
                 let isVisible = overlays.visibleOverlayID == session.id
-                // Tracks the parent window: sized as a fraction of the host, not fixed
-                // points, so the peek stays roomy on large windows and shrinks with them.
                 GeometryReader { proxy in
                     overlayPane(session: session, isVisible: isVisible)
                         .padding(24)
@@ -84,86 +80,28 @@ struct OverlayHostView: View {
     }
 
     private func sheetHeader(_ session: OverlaySession) -> some View {
-        HStack(spacing: 6) {
-            // Sibling switcher inside the Overlay (C.7) — not a third column.
-            if overlays.focusedSessions.count > 1 {
-                overlayTabs(active: session)
-            } else {
-                Image(systemName: session.kind == .editor ? "pencil" : "arrow.triangle.2.circlepath")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .accessibilityLabel(session.kind == .editor ? "Editor" : "Background")
+        HStack(spacing: 8) {
+            Text(session.kind == .editor ? "EDITOR" : "BG")
+                .font(.caption2.weight(.semibold).monospaced())
+                .foregroundStyle(.secondary)
+                .tracking(0.4)
 
-                Text(session.title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+            Text(session.title)
+                .font(.subheadline)
+                .foregroundStyle(.primary.opacity(0.85))
+                .lineLimit(1)
 
             Spacer(minLength: 8)
 
-            if session.kind == .background {
-                Button("close") {
-                    overlays.close(session.id)
-                }
-                .font(.caption2)
-                .buttonStyle(.plain)
-                .foregroundStyle(.tertiary)
-                .help("Quit this Overlay PTY (unlike Hide)")
-            }
-
-            // Demoted: primary hide path is Command Center `/hide` `/x` (or backdrop tap).
-            Button {
+            Button("Back") {
                 overlays.hide()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption2)
-                    .fontWeight(.medium)
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.tertiary)
-            .help("Hide Overlay (also: /hide in Command Center); process stays alive")
+            .font(.caption.weight(.medium))
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Hide Overlay (process stays alive); kill via Command Center nest")
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-    }
-
-    private func overlayTabs(active: OverlaySession) -> some View {
-        HStack(spacing: 2) {
-            ForEach(overlays.focusedSessions) { peer in
-                let isSelected = peer.id == active.id
-                Button {
-                    overlays.peek(peer.id)
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: peer.kind == .editor ? "pencil" : "arrow.triangle.2.circlepath")
-                            .font(.caption2)
-                        Text(tabLabel(peer))
-                            .font(.caption)
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .foregroundStyle(isSelected ? Color.primary.opacity(0.85) : Color.secondary.opacity(0.55))
-                    .background(
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .fill(isSelected ? Color.primary.opacity(0.08) : Color.clear)
-                    )
-                }
-                .buttonStyle(.plain)
-                .help(peer.title)
-            }
-        }
-    }
-
-    private func tabLabel(_ session: OverlaySession) -> String {
-        switch session.kind {
-        case .editor:
-            return "editor"
-        case .background:
-            // Keep short — full title in help.
-            let raw = session.title.replacingOccurrences(of: "BG: ", with: "")
-            return raw.count > 14 ? String(raw.prefix(12)) + "…" : raw.lowercased()
-        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
     }
 }

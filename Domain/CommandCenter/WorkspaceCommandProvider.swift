@@ -1,11 +1,8 @@
 import Foundation
 
-/// Exports Workspace / Worktree Commands into the `CommandRegistry` (ADR 0021 §2).
+/// Exports Workspace / Worktree Commands into the `CommandRegistry` (ADR 0021 §2 / Path B).
 ///
-/// Matches today's hardcoded Command Mode root items for switching Workspaces and
-/// focusing Worktrees (`CommandModeController.rootItems()`). Subtitles are computed live
-/// from the injected controllers each time `commands` is read, so they track current
-/// selection the same way the old private root list did.
+/// Titles are the keymap — distinct verbs/nouns so default sequences do not collide.
 struct WorkspaceCommandProvider: CommandProvider {
     let workspaces: WorkspaceController
     let worktrees: WorktreeController
@@ -24,48 +21,43 @@ struct WorkspaceCommandProvider: CommandProvider {
         return [
             Command(
                 id: "workspace.switch",
-                title: "Switch Workspace…",
+                title: "Switch Workspace",
                 subtitle: workspaces.current.map { "current: \($0.slug)" } ?? "none selected",
                 group: "Workspace",
                 defaultAliases: ["/workspace", "/w"],
-                defaultShortcut: "cmd+o",
                 action: .showWorkspacePicker
             ),
             Command(
                 id: "workspace.rename",
-                title: "Rename Workspace…",
+                title: "Rename Slug",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Workspace",
-                defaultAliases: ["/renameworkspace"],
-                defaultShortcut: nil,
+                defaultAliases: ["/renameworkspace", "Rename Workspace"],
                 action: .renameWorkspace,
                 isEnabled: { _ in workspaces.current != nil }
             ),
             Command(
                 id: "worktree.focusPicker",
-                title: "Focus Worktree…",
+                title: "Focus Worktree",
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
                 defaultAliases: ["/focus"],
-                defaultShortcut: "cmd+shift+a",
                 action: .showWorktreePicker
             ),
             Command(
                 id: "worktree.focusMain",
-                title: "Focus Main…",
+                title: "Focus Main",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Worktree",
                 defaultAliases: ["/main"],
-                defaultShortcut: "cmd+shift+m",
                 action: .focusMainRepo
             ),
             Command(
                 id: "worktree.renameFocused",
-                title: "Rename Worktree…",
+                title: "Rename Tree",
                 subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
-                defaultAliases: ["/renameworktree"],
-                defaultShortcut: "cmd+shift+r",
+                defaultAliases: ["/renameworktree", "Rename Worktree"],
                 action: .renameFocusedWorktree,
                 isEnabled: { _ in worktrees.focused != nil }
             ),
@@ -75,7 +67,6 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
                 defaultAliases: ["/reload"],
-                defaultShortcut: "cmd+r",
                 action: .reloadFocusedCLI,
                 isEnabled: { $0.hasFocusedSession }
             ),
@@ -85,25 +76,22 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: workspaces.current == nil ? "needs Workspace" : "opens create sheet",
                 group: "Worktree",
                 defaultAliases: ["/new"],
-                defaultShortcut: "cmd+n",
                 action: .newWorktree
             ),
             Command(
                 id: "worktree.removeFocused",
-                title: "Remove Worktree…",
+                title: "Discard Tree",
                 subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
-                defaultAliases: ["/remove"],
-                defaultShortcut: "cmd+shift+x",
+                defaultAliases: ["/remove", "Remove Worktree"],
                 action: .removeFocusedWorktree
             ),
             Command(
                 id: "workspace.remove",
-                title: "Remove Workspace…",
+                title: "Discard Workspace",
                 subtitle: workspaces.current.map { "delete \u{201C}\($0.slug)\u{201D} from disk" } ?? "needs Workspace",
                 group: "Workspace",
-                defaultAliases: ["/rmworkspace", "/rw"],
-                defaultShortcut: nil,
+                defaultAliases: ["/rmworkspace", "/rw", "Remove Workspace"],
                 action: .removeCurrentWorkspace,
                 isEnabled: { _ in workspaces.current != nil }
             ),
@@ -111,35 +99,32 @@ struct WorkspaceCommandProvider: CommandProvider {
     }
 }
 
-/// Exports chrome-level Commands that don't belong to a specific app area (ADR 0021 §2)
-/// — Settings and dismissing Command Center itself. No context gating: both are always
-/// available while Command Center is open.
+/// Exports chrome-level Commands that don't belong to a specific app area (ADR 0021 §2).
 struct ChromeCommandProvider: CommandProvider {
     var commands: [Command] {
         [
             Command(
                 id: "chrome.openSettings",
-                title: "Open Settings…",
+                title: "Settings",
                 subtitle: "Opens the Settings window",
                 group: "App",
-                defaultAliases: ["/settings"],
-                defaultShortcut: "cmd+,",
+                defaultAliases: ["/settings", "Open Settings"],
                 action: .openSettings
             ),
             Command(
                 id: "chrome.toggleStatusCue",
-                title: "Toggle Status Cue",
+                title: "Status Cue",
                 subtitle: "Show or hide the calm Overlay info list",
                 group: "View",
-                defaultAliases: ["/cue", "/status"],
-                defaultShortcut: nil,
+                defaultAliases: ["/cue", "/status", "Toggle Status Cue"],
                 action: .toggleStatusCue
             ),
             Command(
                 id: "chrome.dismiss",
-                title: "Dismiss Command Center",
+                title: "Dismiss",
                 subtitle: "Esc",
                 group: "App",
+                defaultAliases: ["Dismiss Command Center"],
                 action: .dismiss
             ),
         ]

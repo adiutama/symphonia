@@ -1,39 +1,35 @@
 import Foundation
 
-/// Exports Overlay-related Commands (Open Editor / Hide / Background) into the
-/// `CommandRegistry` (ADR 0021 §2).
+/// Exports Overlay-related Commands into the `CommandRegistry` (ADR 0021 §2 / Path B).
 ///
-/// Read by `CommandModeController.filteredRootItems()` (CC.2) to drive the root palette.
+/// Titles are the keymap: keep them tight and collision-free so default sequences stay unique.
 struct OverlayCommandProvider: CommandProvider {
     var commands: [Command] {
         [
             Command(
                 id: "overlay.openEditor",
-                title: "Open Editor",
+                title: "Edit",
                 subtitle: "Open the Editor Overlay for the focused Worktree or Main",
                 group: "Overlay",
-                defaultAliases: ["/editor", "/e"],
-                defaultShortcut: "cmd+e",
+                defaultAliases: ["/editor", "/e", "Open Editor"],
                 action: .openEditor,
                 isEnabled: { $0.hasFocusedSession }
             ),
             Command(
                 id: "overlay.hide",
-                title: "Hide Overlay",
+                title: "Hide",
                 subtitle: "Return to Main CLI without quitting the Overlay process",
                 group: "Overlay",
-                defaultAliases: ["/hide", "/x", "/exit"],
-                defaultShortcut: "cmd+shift+h",
+                defaultAliases: ["/hide", "/x", "/exit", "Hide Overlay"],
                 action: .hideOverlay,
                 isEnabled: { $0.hasFocusedSession && $0.overlayVisible }
             ),
             Command(
                 id: "overlay.createBackground",
-                title: "Create Background CLI",
+                title: "Background",
                 subtitle: "Peek a new Background Overlay (empty command = shell)",
                 group: "Overlay",
-                defaultAliases: ["/background", "/bg"],
-                defaultShortcut: "cmd+shift+b",
+                defaultAliases: ["/background", "/bg", "Create Background CLI"],
                 action: .createBackground,
                 isEnabled: { $0.hasFocusedSession }
             ),
@@ -43,7 +39,6 @@ struct OverlayCommandProvider: CommandProvider {
                 subtitle: "Pick from live Editor / Background Overlays",
                 group: "Overlay",
                 defaultAliases: ["/pick", "/p"],
-                defaultShortcut: "cmd+shift+o",
                 action: .showBackgroundPicker,
                 isEnabled: { $0.hasFocusedSession }
             ),

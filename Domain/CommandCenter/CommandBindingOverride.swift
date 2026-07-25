@@ -1,32 +1,31 @@
 import Foundation
 
-/// Operator override for one Command's alias/shortcut binding, persisted by Command
-/// `id` in Global Setting (`GlobalPreferences.commandBindings`, ADR 0021 CC.3).
+/// Operator override for one Command's alias/sequence binding, persisted by Command
+/// `id` in Global Setting (`GlobalPreferences.commandBindings`, ADR 0021 CC.3 / Path B).
 ///
-/// Both fields are independently optional so "use the Command's default" and
+/// Fields are independently optional so "use the Command's default" and
 /// "explicitly override with an empty value" are distinguishable:
 /// - `aliases == nil` → use `Command.defaultAliases`. `aliases == ""` → no aliases.
-///   Any other string is split on `,` (CONTEXT.md "Command Alias" free-text form).
-/// - `shortcut == nil` → use `Command.defaultShortcut`. `shortcut == ""` → explicitly
-///   no shortcut. Any other string is the override shortcut key.
+/// - `sequence == nil` → derive from title (or `Command.defaultSequence`). `sequence == ""` → none.
+/// - `shortcut` is legacy (empty-filter modifier chords); ignored by Path B Normal mode.
 struct CommandBindingOverride: Codable, Equatable, Sendable {
     var aliases: String?
+    /// Optional Normal-mode sequence override (min 2, no `j`/`k`).
+    var sequence: String?
+    /// Legacy empty-filter modifier chord. Kept for TOML compatibility; not the primary power path.
     var shortcut: String?
 
-    init(aliases: String? = nil, shortcut: String? = nil) {
+    init(aliases: String? = nil, sequence: String? = nil, shortcut: String? = nil) {
         self.aliases = aliases
+        self.sequence = sequence
         self.shortcut = shortcut
     }
 }
 
-/// Resolves **effective** Command aliases/shortcuts: Operator override (Global Setting)
-/// if present, otherwise the Command's own default (ADR 0021 CC.3).
-///
-/// No Workspace-level override in this slice (ADR 0021 non-goal); conflict validation
-/// across Commands is CC.4.
+/// Resolves **effective** Command aliases/sequences: Operator override (Global Setting)
+/// if present, otherwise the Command's own default (ADR 0021 CC.3 / Path B).
 enum CommandBindingResolver {
-    /// Effective aliases for `command` given the Operator's `overrides` map
-    /// (`GlobalPreferences.commandBindings`, keyed by `Command.id`).
+    /// Effective aliases for `command` given the Operator's `overrides` map.
     static func aliases(
         for command: Command,
         overrides: [String: CommandBindingOverride]
@@ -37,9 +36,22 @@ enum CommandBindingResolver {
         return parseAliases(raw)
     }
 
-    /// Effective Command Center shortcut for `command` given the Operator's `overrides`.
-    /// `nil` means no shortcut; an override of `""` explicitly clears the default.
-    /// Bare single-character legacy values are treated as `ctrl+<char>` (L2 migration).
+    /// Effective Normal-mode sequence. `nil` means no sequence.
+    static func sequence(
+        for command: Command,
+        overrides: [String: CommandBindingOverride]
+    ) -> String? {
+        if let override = overrides[command.id]?.sequence {
+            if override.isEmpty { return nil }
+            return CommandSequence.sanitize(override)
+        }
+        if let explicit = command.defaultSequence {
+            return CommandSequence.sanitize(explicit)
+        }
+        return CommandSequence.defaultFromTitle(command.title)
+    }
+
+    /// Legacy Command Center shortcut (modifier chord). Kept for Settings migration display.
     static func shortcut(
         for command: Command,
         overrides: [String: CommandBindingOverride]
@@ -82,6 +94,13 @@ enum CommandBindingResolver {
               !binding.modifiers.intersection([.control, .option, .command]).isEmpty
         else { return nil }
         return binding.storageString
+    }
+
+    /// Canonical sequence key for conflict checks.
+    static func sequenceConflictKey(_ raw: String) -> String? {
+        let sanitized = CommandSequence.sanitize(raw)
+        guard CommandSequence.isValid(sanitized) else { return nil }
+        return sanitized
     }
 
     /// Splits Operator-facing comma-separated alias text into trimmed, non-empty aliases.

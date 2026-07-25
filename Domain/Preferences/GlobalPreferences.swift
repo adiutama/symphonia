@@ -17,6 +17,9 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// (VS Code / Cursor Command Palette). Parsed by ``LeaderKeyBinding``.
     var leaderKey: String
 
+    /// Mode applied when Leader opens Command Center (`normal` | `input`). Path B.
+    var commandCenterPreferredMode: CommandCenterMode
+
     /// Global Workspaces Root (default parent for Workspace containers). ADR 0015.
     /// May use `~` for the Operator home directory.
     var workspacesRoot: String
@@ -24,9 +27,8 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// Default Base Ref for new Worktree branches (ADR 0019).
     var baseRef: String
 
-    /// Operator overrides for Command aliases/shortcuts, keyed by stable Command `id`
-    /// (e.g. `"overlay.openEditor"`, ADR 0021 CC.3). Missing id → Command defaults; see
-    /// ``CommandBindingResolver``. Global only — no Workspace override in this slice.
+    /// Operator overrides for Command aliases/sequences, keyed by stable Command `id`
+    /// (e.g. `"overlay.openEditor"`, ADR 0021 CC.3 / Path B). Missing id → Command defaults.
     var commandBindings: [String: CommandBindingOverride]
 
     /// Sensible Global Setting defaults when `preferences.toml` is missing.
@@ -34,19 +36,22 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         mainCLICommand: "",
         editorCommand: "",
         leaderKey: "cmd+shift+p",
+        commandCenterPreferredMode: .input,
         workspacesRoot: "~/.symphonia/workspaces",
         baseRef: "main",
         commandBindings: [:]
     )
 
     enum CodingKeys: String, CodingKey {
-        case mainCLICommand, editorCommand, leaderKey, workspacesRoot, baseRef, commandBindings
+        case mainCLICommand, editorCommand, leaderKey, commandCenterPreferredMode
+        case workspacesRoot, baseRef, commandBindings
     }
 
     init(
         mainCLICommand: String,
         editorCommand: String,
         leaderKey: String,
+        commandCenterPreferredMode: CommandCenterMode = .input,
         workspacesRoot: String,
         baseRef: String,
         commandBindings: [String: CommandBindingOverride] = [:]
@@ -54,6 +59,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         self.mainCLICommand = mainCLICommand
         self.editorCommand = editorCommand
         self.leaderKey = leaderKey
+        self.commandCenterPreferredMode = commandCenterPreferredMode
         self.workspacesRoot = workspacesRoot
         self.baseRef = baseRef
         self.commandBindings = commandBindings
@@ -64,6 +70,10 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         mainCLICommand = try container.decodeIfPresent(String.self, forKey: .mainCLICommand) ?? ""
         editorCommand = try container.decodeIfPresent(String.self, forKey: .editorCommand) ?? ""
         leaderKey = try container.decodeIfPresent(String.self, forKey: .leaderKey) ?? Self.default.leaderKey
+        commandCenterPreferredMode = try container.decodeIfPresent(
+            CommandCenterMode.self,
+            forKey: .commandCenterPreferredMode
+        ) ?? Self.default.commandCenterPreferredMode
         workspacesRoot = try container.decodeIfPresent(String.self, forKey: .workspacesRoot)
             ?? Self.default.workspacesRoot
         baseRef = try container.decodeIfPresent(String.self, forKey: .baseRef) ?? Self.default.baseRef

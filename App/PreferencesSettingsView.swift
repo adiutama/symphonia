@@ -189,6 +189,22 @@ struct PreferencesSettingsView: View {
                     ) {
                         KeyChordField(chord: $preferences.preferences.leaderKey)
                     }
+                    SettingsRowDivider()
+                    SettingsRow(
+                        title: "Command Center mode",
+                        description: "Applied when Leader opens Command Center. ⇧Tab toggles while open."
+                    ) {
+                        Picker(
+                            "",
+                            selection: $preferences.preferences.commandCenterPreferredMode
+                        ) {
+                            Text("Input").tag(CommandCenterMode.input)
+                            Text("Normal").tag(CommandCenterMode.normal)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: 160)
+                    }
                 }
             }
 

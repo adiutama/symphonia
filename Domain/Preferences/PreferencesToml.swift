@@ -16,6 +16,7 @@ enum PreferencesToml {
             "mainCLICommand = \(stringLiteral(preferences.mainCLICommand))",
             "editorCommand = \(stringLiteral(preferences.editorCommand))",
             "leaderKey = \(stringLiteral(preferences.leaderKey))",
+            "commandCenterPreferredMode = \(stringLiteral(preferences.commandCenterPreferredMode.rawValue))",
             "workspacesRoot = \(stringLiteral(preferences.workspacesRoot))",
             "baseRef = \(stringLiteral(preferences.baseRef))",
         ]
@@ -23,13 +24,16 @@ enum PreferencesToml {
         let bindingKeys = preferences.commandBindings.keys.sorted()
         if !bindingKeys.isEmpty {
             lines.append("")
-            lines.append("# Command aliases / shortcuts keyed by Command id (ADR 0021).")
+            lines.append("# Command aliases / sequences keyed by Command id (ADR 0021 / Path B).")
             for id in bindingKeys {
                 guard let override = preferences.commandBindings[id] else { continue }
                 lines.append("")
                 lines.append("[commandBindings.\(quotedKey(id))]")
                 if let aliases = override.aliases {
                     lines.append("aliases = \(stringLiteral(aliases))")
+                }
+                if let sequence = override.sequence {
+                    lines.append("sequence = \(stringLiteral(sequence))")
                 }
                 if let shortcut = override.shortcut {
                     lines.append("shortcut = \(stringLiteral(shortcut))")
@@ -50,15 +54,21 @@ enum PreferencesToml {
             for (id, fields) in bindingTables {
                 bindings[id] = CommandBindingOverride(
                     aliases: fields.strings["aliases"],
+                    sequence: fields.strings["sequence"],
                     shortcut: fields.strings["shortcut"]
                 )
             }
         }
 
+        let preferredModeRaw = root.strings["commandCenterPreferredMode"] ?? ""
+        let preferredMode = CommandCenterMode(rawValue: preferredModeRaw)
+            ?? GlobalPreferences.default.commandCenterPreferredMode
+
         return GlobalPreferences(
             mainCLICommand: root.strings["mainCLICommand"] ?? "",
             editorCommand: root.strings["editorCommand"] ?? "",
             leaderKey: root.strings["leaderKey"] ?? GlobalPreferences.default.leaderKey,
+            commandCenterPreferredMode: preferredMode,
             workspacesRoot: root.strings["workspacesRoot"] ?? GlobalPreferences.default.workspacesRoot,
             baseRef: root.strings["baseRef"] ?? GlobalPreferences.default.baseRef,
             commandBindings: bindings
