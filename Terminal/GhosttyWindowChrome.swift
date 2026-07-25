@@ -28,14 +28,18 @@ struct GhosttyWindowChrome: NSViewRepresentable {
         guard let window else { return }
         window.backgroundColor = background
         window.isOpaque = true
-        // Full-size content + transparent titlebar: titlebar paints with the same
-        // Ghostty background as the terminal (Ghostty-style blend).
+        // Full-size content + transparent titlebar: content (sidebar) paints under the
+        // traffic lights — Xcode / Raycast / Supacode pattern.
         if !window.styleMask.contains(.fullSizeContentView) {
             window.styleMask.insert(.fullSizeContentView)
         }
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.titlebarSeparatorStyle = .none
+        window.toolbarStyle = .unified
+        if let toolbar = window.toolbar {
+            toolbar.isVisible = false
+        }
         // Never move the window from terminal / list hits — chrome drag regions only.
         window.isMovableByWindowBackground = false
         window.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
@@ -76,5 +80,52 @@ extension View {
     /// Mark empty chrome as a window-drag surface (not for terminal / controls).
     func windowDragRegion() -> some View {
         background(WindowDragRegion())
+    }
+
+    /// Let content paint under traffic lights (macOS 15+ SwiftUI toolbar chrome).
+    /// Pair with `.windowStyle(.hiddenTitleBar)` on the Scene and top safe-area ignore.
+    @ViewBuilder
+    func symphoniaTitlebarChrome() -> some View {
+        if #available(macOS 15.0, *) {
+            self
+                .toolbar(removing: .title)
+                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        } else {
+            self
+        }
+    }
+}
+
+/// Forces Settings / preference windows into the Raycast–Supacode chrome:
+/// transparent titlebar + full-size content so traffic lights sit over the sidebar.
+struct SettingsWindowChrome: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            Self.apply(to: view.window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            Self.apply(to: nsView.window)
+        }
+    }
+
+    private static func apply(to window: NSWindow?) {
+        guard let window else { return }
+        if !window.styleMask.contains(.fullSizeContentView) {
+            window.styleMask.insert(.fullSizeContentView)
+        }
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.titlebarSeparatorStyle = .none
+        window.toolbarStyle = .unified
+        window.isMovableByWindowBackground = false
+        // Settings scenes sometimes restore a visible toolbar; keep it empty/hidden.
+        if let toolbar = window.toolbar {
+            toolbar.isVisible = false
+        }
     }
 }

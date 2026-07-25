@@ -21,6 +21,12 @@ struct WorkspaceSidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Clearance under traffic lights; drag strip (Xcode / Raycast).
+            Color.clear
+                .frame(height: 28)
+                .frame(maxWidth: .infinity)
+                .windowDragRegion()
+
             header
             Divider()
             workspaceList
@@ -115,8 +121,6 @@ struct WorkspaceSidebarView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        // Clear traffic lights under fullSizeContentView (leading titlebar).
-        .padding(.top, 18)
         .contextMenu {
             Button("New Workspace…") {
                 beginCreateWorkspace()
@@ -165,6 +169,7 @@ struct WorkspaceSidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
     }
 
     private func workspaceLabel(_ workspace: WorkspaceSummary) -> some View {

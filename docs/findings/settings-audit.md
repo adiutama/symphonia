@@ -1,6 +1,6 @@
 # Settings audit findings
 
-Confirmed 2026-07-25. Fix in batches; verify between batches. Raycast Settings is the UI reference (topic categories, sidebar search, no footer Save chrome, auto-apply).
+Confirmed 2026-07-25. Fix in batches; verify between batches. Raycast/Supacode Settings is the UI reference (topic categories, no footer Save chrome, auto-apply). Product decision (2026-07-25): Settings has no sidebar search; main window sidebar is not collapsible.
 
 Status: `open` · `batch1` · `done` · `defer`
 
@@ -45,7 +45,7 @@ Status: `open` · `batch1` · `done` · `defer`
 | 18 | Leader empty warned but not blocked on save | open |
 | 19 | Prefix labeled “Path” while model/TOML use `prefix` ↔ `workspacesRoot` | open |
 | 20 | Opening workspace Settings/Secrets force-selects that workspace | open |
-| 21 | Search always prominent on panes where it doesn’t match content (e.g. Secret Store) | open |
+| 21 | Search always prominent on panes where it doesn’t match content (e.g. Secret Store) | done |
 
 ## Low
 
@@ -64,8 +64,8 @@ Status: `open` · `batch1` · `done` · `defer`
 - **Batch 1** (#1–12): TOML comment parse + Settings UI/IA polish. Stop for verify.
 - **Batch 1 polish** (verify feedback): ⌘, from terminal; input focus shift; Reset only on real change; sidebar search spacing.
 - **Batch 2** (#13–15): behavior / deep-links.
-- **Batch 2 polish — Supacode chrome** (2026-07-25): page title → section → multi-row cards; label+description|control rows; `DirectoryPathField`; Leader `KeyChordField`; Commands + **Secret Store** on same chrome.
-- **Batch 3** (#16–25): medium / low.
+- **Batch 2 polish — Supacode chrome** (2026-07-25): page title → section → multi-row cards; label+description|control rows; `DirectoryPathField`; Leader `KeyChordField`; Commands + **Secret Store** on same chrome; custom Settings `Window` with traffic lights in sidebar; elevated sidebar color; **no Settings search**; main sidebar **not collapsible**.
+- **Batch 3** (#16–20, #22–25): medium / low. (#21 closed — Settings search removed.)
 
 ## Later (out of Settings batches)
 
@@ -75,9 +75,8 @@ Status: `open` · `batch1` · `done` · `defer`
 ## Batch 1 acceptance
 
 - Global sidebar: topic pages (e.g. General + Commands), not one row per field; no Effective Setting nav item.
-- Search lives in the sidebar, aligned with category list; no fat centered detail search.
 - No awkward centered sidebar toggle (or hidden).
 - Fields clearly editable; captions under labels, not fake values in the field.
 - No Save / Reload / Reset Global footer; changes auto-persist (scoped: Global edits → prefs only; Workspace edits → that workspace only).
-- Commands: single search path; Shortcut label doesn’t wrap as “Short-cut”.
+- Commands: Shortcut label doesn’t wrap as “Short-cut”.
 - `key = "value" # comment` parses successfully.
