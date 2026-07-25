@@ -37,16 +37,51 @@ enum CommandBindingResolver {
         return parseAliases(raw)
     }
 
-    /// Effective empty-filter shortcut for `command` given the Operator's `overrides`.
+    /// Effective Command Center shortcut for `command` given the Operator's `overrides`.
     /// `nil` means no shortcut; an override of `""` explicitly clears the default.
+    /// Bare single-character legacy values are treated as `ctrl+<char>` (L2 migration).
     static func shortcut(
         for command: Command,
         overrides: [String: CommandBindingOverride]
     ) -> String? {
-        guard let raw = overrides[command.id]?.shortcut else {
-            return command.defaultShortcut
+        let raw: String?
+        if let override = overrides[command.id]?.shortcut {
+            raw = override.isEmpty ? nil : override
+        } else {
+            raw = command.defaultShortcut
         }
-        return raw.isEmpty ? nil : raw
+        guard let raw else { return nil }
+        return normalizeShortcut(raw)
+    }
+
+    /// Display form for a shortcut storage string (`⌃W`).
+    static func shortcutDisplay(_ raw: String?) -> String? {
+        guard let raw, let binding = LeaderKeyBinding.parse(raw) else { return raw }
+        return binding.displaySymbolString
+    }
+
+    /// Normalize storage: bare `w` / `,` → `ctrl+w` / `ctrl+,` (legacy empty-filter keys).
+    static func normalizeShortcut(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+        if let binding = LeaderKeyBinding.parse(trimmed),
+           !binding.modifiers.isEmpty
+        {
+            return binding.storageString
+        }
+        if trimmed.count == 1 {
+            return "ctrl+\(trimmed.lowercased())"
+        }
+        return trimmed
+    }
+
+    /// Canonical key for conflict checks (normalized chord storage).
+    static func shortcutConflictKey(_ raw: String) -> String? {
+        let normalized = normalizeShortcut(raw)
+        guard let binding = LeaderKeyBinding.parse(normalized),
+              !binding.modifiers.intersection([.control, .option, .command]).isEmpty
+        else { return nil }
+        return binding.storageString
     }
 
     /// Splits Operator-facing comma-separated alias text into trimmed, non-empty aliases.

@@ -170,7 +170,7 @@ struct CommandModeView: View {
 
     private var footer: some View {
         HStack {
-            Text("↑↓ · ↩ · type to filter · / for verbs · keybinds when empty")
+            Text("↑↓ · ↩ · type to filter · / for verbs · chords when empty")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
             Spacer()

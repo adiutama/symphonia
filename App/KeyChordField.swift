@@ -4,6 +4,8 @@ import SwiftUI
 /// Record a Leader-style key combination into a binding string (`ctrl+p`).
 struct KeyChordField: View {
     @Binding var chord: String
+    /// When true, recorded chords must include ctrl, opt, or cmd (Command Center shortcuts).
+    var requireModifier: Bool = false
 
     @State private var isRecording = false
     @State private var monitor: Any?
@@ -27,6 +29,15 @@ struct KeyChordField: View {
                 }
             }
             .buttonStyle(.bordered)
+
+            if !chord.isEmpty {
+                Button("Clear") {
+                    chord = ""
+                    stopRecording()
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+            }
         }
         .onDisappear { stopRecording() }
     }
@@ -48,6 +59,10 @@ struct KeyChordField: View {
                 return nil
             }
             if let binding = LeaderKeyBinding.from(event: event) {
+                if requireModifier {
+                    let mods = binding.modifiers.intersection([.control, .option, .command])
+                    guard !mods.isEmpty else { return nil }
+                }
                 let stored = binding.storageString
                 Task { @MainActor in
                     chord = stored

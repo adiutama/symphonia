@@ -304,7 +304,9 @@ final class CommandModeController: ObservableObject {
             id: command.id,
             title: command.title,
             subtitle: liveSubtitle(for: command),
-            keybind: CommandBindingResolver.shortcut(for: command, overrides: overrides),
+            keybind: CommandBindingResolver.shortcutDisplay(
+                CommandBindingResolver.shortcut(for: command, overrides: overrides)
+            ),
             action: command.action
         )
     }
@@ -373,7 +375,7 @@ final class CommandModeController: ObservableObject {
                 id: "ag-main",
                 title: "main" + (mainFocused ? " ← focus" : ""),
                 subtitle: SymphoniaPaths.workspaceMainDirectory(in: current.dataDirURL).path,
-                keybind: "m",
+                keybind: "⌃M",
                 action: .focusMainRepo
             ))
             if agents.agents.isEmpty {
@@ -480,20 +482,23 @@ final class CommandModeController: ObservableObject {
             break
         }
 
-        // Root keybinds when filter empty and no modifiers (except shift for symbols).
-        let mods = event.modifierFlags.intersection([.control, .option, .command])
-        if mods.isEmpty,
-           filterQuery.isEmpty,
-           let chars = event.charactersIgnoringModifiers?.lowercased(),
-           chars.count == 1,
-           let match = items.first(where: { $0.keybind?.lowercased() == chars })
+        // Chord shortcuts when filter empty (Raycast-like: bare letters always filter).
+        if filterQuery.isEmpty,
+           let match = items.first(where: { item in
+               guard let raw = item.keybind,
+                     let binding = LeaderKeyBinding.parse(raw),
+                     !binding.modifiers.intersection([.control, .option, .command]).isEmpty
+               else { return false }
+               return binding.matches(event)
+           })
         {
             run(match.action)
             return nil
         }
 
-        // Type-to-filter: append printable characters.
-        if mods.intersection([.control, .option, .command]).isEmpty,
+        // Type-to-filter: append printable characters (including bare former shortcut letters).
+        let mods = event.modifierFlags.intersection([.control, .option, .command])
+        if mods.isEmpty,
            let chars = event.charactersIgnoringModifiers,
            chars.count == 1,
            let ch = chars.first,

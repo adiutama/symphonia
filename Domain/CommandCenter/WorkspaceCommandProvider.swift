@@ -28,7 +28,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: workspaces.current.map { "current: \($0.slug)" } ?? "none selected",
                 group: "Workspace",
                 defaultAliases: ["/workspace", "/w"],
-                defaultShortcut: "w",
+                defaultShortcut: "ctrl+w",
                 action: .showWorkspacePicker
             ),
             Command(
@@ -47,7 +47,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
                 defaultAliases: ["/focus"],
-                defaultShortcut: "a",
+                defaultShortcut: "ctrl+a",
                 action: .showAgentPicker
             ),
             Command(
@@ -56,7 +56,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Worktree",
                 defaultAliases: ["/main"],
-                defaultShortcut: "m",
+                defaultShortcut: "ctrl+m",
                 action: .focusMainRepo
             ),
             Command(
@@ -65,7 +65,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
                 defaultAliases: ["/renameworktree"],
-                defaultShortcut: "r",
+                defaultShortcut: "ctrl+r",
                 action: .renameFocusedWorktree,
                 isEnabled: { _ in agents.focused != nil }
             ),
@@ -75,7 +75,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: focusedTargetSubtitle,
                 group: "Worktree",
                 defaultAliases: ["/reload"],
-                defaultShortcut: "l",
+                defaultShortcut: "ctrl+l",
                 action: .reloadFocusedCLI,
                 isEnabled: { $0.hasFocusedSession }
             ),
@@ -85,7 +85,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: workspaces.current == nil ? "needs Workspace" : "opens create sheet",
                 group: "Worktree",
                 defaultAliases: ["/new"],
-                defaultShortcut: "n",
+                defaultShortcut: "ctrl+n",
                 action: .newAgent
             ),
             Command(
@@ -94,7 +94,7 @@ struct WorkspaceCommandProvider: CommandProvider {
                 subtitle: agents.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
                 defaultAliases: ["/remove"],
-                defaultShortcut: "x",
+                defaultShortcut: "ctrl+x",
                 action: .removeFocusedAgent
             ),
             Command(
@@ -123,7 +123,7 @@ struct ChromeCommandProvider: CommandProvider {
                 subtitle: "Opens the Settings window",
                 group: "App",
                 defaultAliases: ["/settings"],
-                defaultShortcut: ",",
+                defaultShortcut: "ctrl+,",
                 action: .openSettings
             ),
             Command(

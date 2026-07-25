@@ -11,9 +11,10 @@ struct CommandBindingsSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text(
-                "Aliases are comma-separated free text (Command Center matches title or any " +
-                "alias). Shortcut fires when Command Center's filter is empty. An emptied " +
-                "field is saved as an explicit override — use Reset to fall back to defaults."
+                "Aliases are comma-separated filter keywords (title or alias match). " +
+                "Shortcuts are recorded chords (⌃/⌥/⌘ required) and fire when the Command " +
+                "Center filter is empty — bare letters always type-to-filter. " +
+                "Clear or Reset falls back to defaults."
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -35,7 +36,6 @@ struct CommandBindingsSettingsView: View {
             ForEach(groupedCommands, id: \.group) { entry in
                 SettingsSection(title: entry.group) {
                     SettingsCard {
-
                         ForEach(Array(entry.commands.enumerated()), id: \.element.id) { index, command in
                             if index > 0 { SettingsRowDivider() }
                             commandRow(command)
@@ -91,13 +91,7 @@ struct CommandBindingsSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize()
-                    TextField(
-                        "Shortcut",
-                        text: shortcutBinding(for: command),
-                        prompt: Text(command.defaultShortcut ?? "none")
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 120)
+                    KeyChordField(chord: shortcutBinding(for: command), requireModifier: true)
                 }
             }
         }
@@ -128,14 +122,31 @@ struct CommandBindingsSettingsView: View {
 
     private func shortcutBinding(for command: Command) -> Binding<String> {
         Binding(
-            get: { preferences.preferences.commandBindings[command.id]?.shortcut ?? "" },
+            get: {
+                let overrides = preferences.preferences.commandBindings
+                if let raw = overrides[command.id]?.shortcut {
+                    return raw.isEmpty ? "" : CommandBindingResolver.normalizeShortcut(raw)
+                }
+                return command.defaultShortcut.map(CommandBindingResolver.normalizeShortcut) ?? ""
+            },
             set: { newValue in
-                let existing = preferences.preferences.commandBindings[command.id]
-                if existing == nil, newValue.isEmpty { return }
-                if existing?.shortcut == nil, newValue.isEmpty { return }
-                var override = existing ?? CommandBindingOverride()
-                override.shortcut = newValue
-                preferences.preferences.commandBindings[command.id] = override
+                let normalized = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                let defaultNormalized = command.defaultShortcut.map(CommandBindingResolver.normalizeShortcut)
+                var override = preferences.preferences.commandBindings[command.id] ?? CommandBindingOverride()
+
+                if normalized.isEmpty {
+                    override.shortcut = ""
+                } else if normalized == defaultNormalized {
+                    override.shortcut = nil
+                } else {
+                    override.shortcut = CommandBindingResolver.normalizeShortcut(normalized)
+                }
+
+                if override.aliases == nil, override.shortcut == nil {
+                    preferences.preferences.commandBindings.removeValue(forKey: command.id)
+                } else {
+                    preferences.preferences.commandBindings[command.id] = override
+                }
             }
         )
     }
@@ -172,9 +183,9 @@ struct CommandBindingsSettingsView: View {
                 guard !key.isEmpty else { continue }
                 aliasMap[key, default: []].append(command.title)
             }
-            if let shortcut = CommandBindingResolver.shortcut(for: command, overrides: overrides) {
-                let key = shortcut.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                guard !key.isEmpty else { continue }
+            if let shortcut = CommandBindingResolver.shortcut(for: command, overrides: overrides),
+               let key = CommandBindingResolver.shortcutConflictKey(shortcut)
+            {
                 shortcutMap[key, default: []].append(command.title)
             }
         }
@@ -184,7 +195,8 @@ struct CommandBindingsSettingsView: View {
             result.append(Conflict(id: "alias-\(alias)", label: "Alias \"\(alias)\"", commandTitles: titles))
         }
         for (shortcut, titles) in shortcutMap where titles.count > 1 {
-            result.append(Conflict(id: "shortcut-\(shortcut)", label: "Shortcut \"\(shortcut)\"", commandTitles: titles))
+            let label = LeaderKeyBinding.parse(shortcut)?.displaySymbolString ?? shortcut
+            result.append(Conflict(id: "shortcut-\(shortcut)", label: "Shortcut \"\(label)\"", commandTitles: titles))
         }
         return result.sorted { $0.label < $1.label }
     }

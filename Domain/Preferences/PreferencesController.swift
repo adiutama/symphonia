@@ -27,7 +27,7 @@ final class PreferencesController: ObservableObject {
 
     init(store: PreferencesStore = PreferencesStore()) {
         self.store = store
-        let loaded: GlobalPreferences
+        var loaded: GlobalPreferences
         do {
             loaded = try store.load()
             self.lastError = nil
@@ -35,8 +35,33 @@ final class PreferencesController: ObservableObject {
             loaded = .default
             self.lastError = error.localizedDescription
         }
+        let didMigrate = Self.migrateBareCommandShortcuts(in: &loaded)
         self.preferences = loaded
         self.effective = EffectiveSettings.resolve(global: loaded, workspace: .none)
+        if didMigrate {
+            do {
+                try store.save(loaded)
+                lastError = nil
+            } catch {
+                lastError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Rewrite legacy bare-letter Command shortcuts (`w`, `,`) to `ctrl+…` chords (L2).
+    @discardableResult
+    private static func migrateBareCommandShortcuts(in preferences: inout GlobalPreferences) -> Bool {
+        var changed = false
+        for (id, override) in preferences.commandBindings {
+            guard let raw = override.shortcut, !raw.isEmpty else { continue }
+            let normalized = CommandBindingResolver.normalizeShortcut(raw)
+            guard normalized != raw else { continue }
+            var next = override
+            next.shortcut = normalized
+            preferences.commandBindings[id] = next
+            changed = true
+        }
+        return changed
     }
 
     private func refreshEffective() {
