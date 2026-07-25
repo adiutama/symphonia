@@ -1,8 +1,9 @@
 import Foundation
 
-/// On-disk Secret Store document (Workspace Data Dir `secrets.json`, mode 0600).
+/// On-disk Secret Store document (Workspace Data Dir `secrets.toml`, mode 0600, T.3).
 ///
 /// Format version 1 — see Domain README. Values are plaintext (ADR 0012).
+/// Still `Codable` for tests/fixtures; on-disk I/O is TOML via `PreferencesToml`.
 struct SecretStoreDocument: Codable, Equatable, Sendable {
     var version: Int
     var groups: [SecretGroup]

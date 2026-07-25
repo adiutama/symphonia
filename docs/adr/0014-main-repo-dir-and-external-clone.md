@@ -6,8 +6,8 @@ P1.5; see below).
 
 ```
 <prefix>/<slug>/
-  config.json
-  secrets.json
+  config.toml
+  secrets.toml
   main/                 # Main Repo — protected
   <three-word>/         # Worktree checkout (sibling)
   <another-three-word>/

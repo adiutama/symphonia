@@ -1,10 +1,10 @@
 import Foundation
 
-/// Minimal TOML codec for Symphonia config files (T.1+).
+/// Minimal TOML codec for Symphonia config files (T.1–T.3).
 ///
-/// Scoped to our known shapes (string keys, nested tables for maps) so Global /
-/// Workspace / Secret Store TOML stays hand-editable without a C++ SPM dep.
-/// Not a full TOML 1.0 implementation — extend as T.2–T.3 need new shapes.
+/// Scoped to our known shapes (string / bool / int keys, nested tables for maps) so Global /
+/// Workspace / Secret Store / workspace-index TOML stays hand-editable without a C++ SPM dep.
+/// Not a full TOML 1.0 implementation — extend as needed.
 enum PreferencesToml {
     /// Encode Global Setting to hand-editable TOML.
     static func encode(_ preferences: GlobalPreferences) -> String {
@@ -116,6 +116,121 @@ enum PreferencesToml {
         )
     }
 
+    /// Encode Secret Store to hand-editable TOML (T.3). Mode 0600 is the caller's job.
+    static func encode(_ document: SecretStoreDocument) -> String {
+        var lines: [String] = [
+            "# Symphonia Secret Store — hand-editable. Keep mode 0600.",
+            "# Legacy secrets.json is ignored (no migration).",
+            "",
+            "version = \(document.version)",
+        ]
+
+        for group in document.groups {
+            lines.append("")
+            lines.append("[groups.\(quotedKey(group.id))]")
+            lines.append("name = \(stringLiteral(group.name))")
+            lines.append("enabled = \(boolLiteral(group.enabled))")
+        }
+
+        for envVar in document.vars {
+            lines.append("")
+            lines.append("[vars.\(quotedKey(envVar.id))]")
+            lines.append("key = \(stringLiteral(envVar.key))")
+            lines.append("value = \(stringLiteral(envVar.value))")
+            lines.append("enabled = \(boolLiteral(envVar.enabled))")
+            if let groupId = envVar.groupId {
+                lines.append("groupId = \(stringLiteral(groupId))")
+            }
+        }
+
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// Decode Secret Store from TOML.
+    static func decodeSecretStore(from text: String) throws -> SecretStoreDocument {
+        let table = try parse(text)
+        let version = table.root.ints["version"] ?? SecretStoreDocument.currentVersion
+
+        var groups: [SecretGroup] = []
+        if let groupTables = table.tables["groups"] {
+            for id in orderedTableKeys(groupTables) {
+                guard let fields = groupTables[id] else { continue }
+                let name = fields.strings["name"] ?? ""
+                let enabled = fields.bools["enabled"] ?? true
+                groups.append(SecretGroup(id: id, name: name, enabled: enabled))
+            }
+        }
+
+        var vars: [EnvVar] = []
+        if let varTables = table.tables["vars"] {
+            for id in orderedTableKeys(varTables) {
+                guard let fields = varTables[id] else { continue }
+                guard let key = fields.strings["key"] else { continue }
+                vars.append(
+                    EnvVar(
+                        id: id,
+                        key: key,
+                        value: fields.strings["value"] ?? "",
+                        enabled: fields.bools["enabled"] ?? true,
+                        groupId: fields.strings["groupId"]
+                    )
+                )
+            }
+        }
+
+        return SecretStoreDocument(version: version, groups: groups, vars: vars)
+    }
+
+    /// Encode workspace session index to hand-editable TOML (T.3).
+    static func encode(_ index: WorkspaceIndexDocument) -> String {
+        var lines: [String] = [
+            "# Symphonia workspace index — known slugs + last selection.",
+            "# Legacy workspace-index.json is ignored (no migration).",
+            "",
+        ]
+        if let last = index.lastSelectedSlug {
+            lines.append("lastSelectedSlug = \(stringLiteral(last))")
+        } else {
+            lines.append("# lastSelectedSlug = \"…\"")
+        }
+
+        for (offset, entry) in index.entries.enumerated() {
+            lines.append("")
+            lines.append("[entries.\(quotedKey(String(offset)))]")
+            lines.append("slug = \(stringLiteral(entry.slug))")
+            if let prefix = entry.prefix {
+                lines.append("prefix = \(stringLiteral(prefix))")
+            }
+        }
+
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// Decode workspace session index from TOML.
+    static func decodeWorkspaceIndex(from text: String) throws -> WorkspaceIndexDocument {
+        let table = try parse(text)
+        let lastSelectedSlug = table.root.strings["lastSelectedSlug"]
+
+        var entries: [WorkspaceIndexDocument.Entry] = []
+        if let entryTables = table.tables["entries"] {
+            let keys = orderedTableKeys(entryTables).sorted { lhs, rhs in
+                switch (Int(lhs), Int(rhs)) {
+                case let (l?, r?): return l < r
+                case (_?, nil): return true
+                case (nil, _?): return false
+                default: return lhs < rhs
+                }
+            }
+            for key in keys {
+                guard let fields = entryTables[key] else { continue }
+                guard let slug = fields.strings["slug"], !slug.isEmpty else { continue }
+                entries.append(.init(slug: slug, prefix: fields.strings["prefix"]))
+            }
+        }
+
+        return WorkspaceIndexDocument(lastSelectedSlug: lastSelectedSlug, entries: entries)
+    }
+
     // MARK: - Encode helpers
 
     private static func stringLiteral(_ value: String) -> String {
@@ -131,6 +246,10 @@ enum PreferencesToml {
         "[" + values.map(stringLiteral).joined(separator: ", ") + "]"
     }
 
+    private static func boolLiteral(_ value: Bool) -> String {
+        value ? "true" : "false"
+    }
+
     /// Bare keys when safe; otherwise `"dotted.id"`.
     private static func quotedKey(_ key: String) -> String {
         let bare = key.unicodeScalars.allSatisfy { scalar in
@@ -140,16 +259,24 @@ enum PreferencesToml {
         return stringLiteral(key)
     }
 
+    /// Prefer insertion order recorded during parse; fall back to sorted keys.
+    private static func orderedTableKeys(_ tables: [String: FieldMap]) -> [String] {
+        // Dictionary iteration order is insertion-ordered in practice for our parse path.
+        Array(tables.keys)
+    }
+
     // MARK: - Parse
 
     private struct FieldMap {
         var strings: [String: String] = [:]
         var arrays: [String: [String]] = [:]
+        var bools: [String: Bool] = [:]
+        var ints: [String: Int] = [:]
     }
 
     private struct ParsedTable {
         var root = FieldMap()
-        /// `[commandBindings."id"]` → field map
+        /// `[group."id"]` → field map
         var tables: [String: [String: FieldMap]] = [:]
     }
 
@@ -198,6 +325,19 @@ enum PreferencesToml {
                     result.tables[group]?[nested]?.arrays[key] = array
                 } else {
                     result.root.arrays[key] = array
+                }
+            } else if valueRaw == "true" || valueRaw == "false" {
+                let value = valueRaw == "true"
+                if let group = currentGroup, let nested = currentKey {
+                    result.tables[group]?[nested]?.bools[key] = value
+                } else {
+                    result.root.bools[key] = value
+                }
+            } else if let intValue = Int(valueRaw), !valueRaw.hasPrefix("\""), !valueRaw.contains(".") {
+                if let group = currentGroup, let nested = currentKey {
+                    result.tables[group]?[nested]?.ints[key] = intValue
+                } else {
+                    result.root.ints[key] = intValue
                 }
             } else {
                 let value = try parseStringValue(valueRaw, line: lineNumber)
@@ -315,6 +455,19 @@ enum PreferencesToml {
     }
 }
 
+/// On-disk workspace session index (`~/.symphonia/workspace-index.toml`, T.3).
+struct WorkspaceIndexDocument: Equatable, Sendable {
+    struct Entry: Equatable, Sendable {
+        var slug: String
+        var prefix: String?
+    }
+
+    var lastSelectedSlug: String?
+    var entries: [Entry]
+
+    static let empty = WorkspaceIndexDocument(lastSelectedSlug: nil, entries: [])
+}
+
 enum PreferencesTomlError: LocalizedError {
     case invalidLine(String, line: Int)
     case expectedString(String, line: Int)
@@ -328,7 +481,7 @@ enum PreferencesTomlError: LocalizedError {
         case .expectedString(let text, let line):
             return "toml:\(line): expected quoted string, got: \(text)"
         case .unsupportedTable(let header, let line):
-            return "toml:\(line): unsupported table [\(header)] (only [commandBindings.\"id\"] nested tables)"
+            return "toml:\(line): unsupported table [\(header)] (expected [group.\"id\"] two-part headers)"
         case .missingRequired(let key):
             return "toml: missing required key \(key)"
         }

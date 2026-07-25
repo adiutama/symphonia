@@ -21,7 +21,7 @@ struct SecretStoreScaffoldView: View {
             }
 
             if let current = workspaces.current {
-                Text("File: \(SymphoniaPaths.workspaceSecretsJSONFile(in: current.dataDirURL).path)")
+                Text("File: \(SymphoniaPaths.workspaceSecretsFile(in: current.dataDirURL).path)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)

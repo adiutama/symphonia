@@ -96,7 +96,7 @@ struct WorkspaceStore: Sendable {
         return try summary(for: dataDir, fallbackSlug: slug, fallbackPrefix: prefix)
     }
 
-    /// Ensure `config.toml`, `secrets.json` (0600), and `main/` exist (P1.5: no `worktrees/`
+    /// Ensure `config.toml`, `secrets.toml` (0600), and `main/` exist (P1.5: no `worktrees/`
     /// parent — Worktree checkouts are created lazily as siblings of `main/` by `AgentStore`).
     /// When `main/` is not yet a git repo: clone `cloneRemoteURL` if given, else `git init` when
     /// `initializeMainRepo` is true.
@@ -414,37 +414,23 @@ struct WorkspaceStore: Sendable {
         )
     }
 
-    private struct WorkspaceIndex: Codable, Equatable {
-        struct Entry: Codable, Equatable {
-            var slug: String
-            var prefix: String?
-        }
-
-        var lastSelectedSlug: String?
-        var entries: [Entry]
-
-        static let empty = WorkspaceIndex(lastSelectedSlug: nil, entries: [])
-    }
-
-    private func loadIndex() -> WorkspaceIndex {
+    private func loadIndex() -> WorkspaceIndexDocument {
         guard fileManager.fileExists(atPath: indexURL.path) else {
             return .empty
         }
         do {
-            let data = try Data(contentsOf: indexURL)
-            return try JSONDecoder().decode(WorkspaceIndex.self, from: data)
+            let text = try String(contentsOf: indexURL, encoding: .utf8)
+            return try PreferencesToml.decodeWorkspaceIndex(from: text)
         } catch {
             return .empty
         }
     }
 
-    private func writeIndex(_ index: WorkspaceIndex) throws {
+    private func writeIndex(_ index: WorkspaceIndexDocument) throws {
         let directory = indexURL.deletingLastPathComponent()
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(index)
-        try data.write(to: indexURL, options: .atomic)
+        let text = PreferencesToml.encode(index)
+        try text.write(to: indexURL, atomically: true, encoding: .utf8)
     }
 
     private func registerInIndex(slug: String, prefix: String?) throws {

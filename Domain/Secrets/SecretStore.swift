@@ -1,10 +1,11 @@
 import Foundation
 
-/// Persist / load Workspace Secret Store under the Workspace Data Dir (ADR 0001, 0012).
+/// Persist / load Workspace Secret Store under the Workspace Data Dir (ADR 0001, 0012, T.3).
 ///
-/// Canonical file: `<data-dir>/secrets.json` (mode 0600). Never written into `main/` or a
+/// Canonical file: `<data-dir>/secrets.toml` (mode 0600). Never written into `main/` or a
 /// Worktree checkout — both are git repos/checkouts that sit as siblings under the Workspace
 /// Data Dir (ADR 0014, P1.5); the Workspace Data Dir itself never is.
+/// Legacy `secrets.json` / non-empty `secrets.env` are ignored (no migration).
 struct SecretStore: Sendable {
     enum StoreError: LocalizedError, Equatable {
         case missingWorkspace
@@ -32,13 +33,13 @@ struct SecretStore: Sendable {
         self.fileManager = fileManager
     }
 
-    /// Ensure `secrets.json` exists with mode 0600. Migrates empty legacy `secrets.env` placeholder.
+    /// Ensure `secrets.toml` exists with mode 0600. Removes empty legacy `secrets.env` only.
     func ensureStoreFile(in dataDir: URL) throws {
-        let jsonURL = SymphoniaPaths.workspaceSecretsJSONFile(in: dataDir)
-        if !fileManager.fileExists(atPath: jsonURL.path) {
+        let tomlURL = SymphoniaPaths.workspaceSecretsFile(in: dataDir)
+        if !fileManager.fileExists(atPath: tomlURL.path) {
             try write(SecretStoreDocument.empty, to: dataDir)
         } else {
-            try applyTightPermissions(at: jsonURL)
+            try applyTightPermissions(at: tomlURL)
         }
 
         // Legacy placeholder from Phase 3 — remove only if empty so we do not destroy Operator data.
@@ -49,8 +50,7 @@ struct SecretStore: Sendable {
             if size == 0 {
                 try? fileManager.removeItem(at: legacyURL)
             } else {
-                // Non-empty legacy file: keep it (Operator may still have content) but do not
-                // auto-import in v1; Secret Store UI uses secrets.json only.
+                // Non-empty legacy file: keep it but do not auto-import; Secret Store uses TOML only.
                 try? applyTightPermissions(at: legacyURL)
             }
         }
@@ -58,18 +58,18 @@ struct SecretStore: Sendable {
 
     func load(from dataDir: URL) throws -> SecretStoreDocument {
         try ensureStoreFile(in: dataDir)
-        let url = SymphoniaPaths.workspaceSecretsJSONFile(in: dataDir)
+        let url = SymphoniaPaths.workspaceSecretsFile(in: dataDir)
         do {
-            let data = try Data(contentsOf: url)
-            if data.isEmpty {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return .empty
             }
-            var document = try JSONDecoder().decode(SecretStoreDocument.self, from: data)
+            var document = try PreferencesToml.decodeSecretStore(from: text)
             if document.version < SecretStoreDocument.currentVersion {
                 document.version = SecretStoreDocument.currentVersion
             }
             return document
-        } catch let error as DecodingError {
+        } catch let error as PreferencesTomlError {
             throw StoreError.readFailed(error.localizedDescription)
         } catch let error as StoreError {
             throw error
@@ -92,16 +92,12 @@ struct SecretStore: Sendable {
         var toWrite = document
         toWrite.version = SecretStoreDocument.currentVersion
 
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data: Data
-        do {
-            data = try encoder.encode(toWrite)
-        } catch {
-            throw StoreError.writeFailed(error.localizedDescription)
+        let text = PreferencesToml.encode(toWrite)
+        guard let data = text.data(using: .utf8) else {
+            throw StoreError.writeFailed("UTF-8 encode failed")
         }
 
-        let url = SymphoniaPaths.workspaceSecretsJSONFile(in: dataDir)
+        let url = SymphoniaPaths.workspaceSecretsFile(in: dataDir)
         let tempURL = url.appendingPathExtension("tmp")
         do {
             try data.write(to: tempURL, options: .atomic)

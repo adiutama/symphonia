@@ -19,9 +19,10 @@ enum SymphoniaPaths {
         homeDirectory.appendingPathComponent("workspaces", isDirectory: true)
     }
 
-    /// Index of known Workspace slugs / Prefixes + last selection: `~/.symphonia/workspace-index.json`.
+    /// Index of known Workspace slugs / Prefixes + last selection: `~/.symphonia/workspace-index.toml` (T.3).
+    /// Legacy `workspace-index.json` is ignored (no migration).
     static var workspaceIndexFile: URL {
-        homeDirectory.appendingPathComponent("workspace-index.json", isDirectory: false)
+        homeDirectory.appendingPathComponent("workspace-index.toml", isDirectory: false)
     }
 
     /// Workspace Data Dir: `<prefix>/<slug>/` (ADR 0015).
@@ -34,19 +35,20 @@ enum SymphoniaPaths {
         dataDir.appendingPathComponent("config.toml", isDirectory: false)
     }
 
-    /// Secret Store (canonical): `<data-dir>/secrets.json` (mode 0600; ADR 0001, 0012).
+    /// Secret Store (canonical): `<data-dir>/secrets.toml` (mode 0600; ADR 0001, 0012, T.3).
+    /// Legacy `secrets.json` is ignored (no migration).
+    static func workspaceSecretsFile(in dataDir: URL) -> URL {
+        dataDir.appendingPathComponent("secrets.toml", isDirectory: false)
+    }
+
+    /// Legacy Phase 5 JSON path — ignored; kept for reserved-name / docs clarity only.
     static func workspaceSecretsJSONFile(in dataDir: URL) -> URL {
         dataDir.appendingPathComponent("secrets.json", isDirectory: false)
     }
 
-    /// Legacy Phase 3 placeholder: `<data-dir>/secrets.env` (migrated away when empty).
+    /// Legacy Phase 3 placeholder: `<data-dir>/secrets.env` (removed when empty; never imported).
     static func workspaceSecretsEnvFile(in dataDir: URL) -> URL {
         dataDir.appendingPathComponent("secrets.env", isDirectory: false)
-    }
-
-    /// Alias for callers that still say “secrets file” — points at `secrets.json`.
-    static func workspaceSecretsFile(in dataDir: URL) -> URL {
-        workspaceSecretsJSONFile(in: dataDir)
     }
 
     /// Main Repo directory: `<data-dir>/main/` — protected; never removable/archivable, and
