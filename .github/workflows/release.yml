@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build unsigned zip
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Download Metal Toolchain
+        run: |
+          xcodebuild -downloadComponent MetalToolchain || true
+          xcrun -sdk macosx metal --version
+
+      - name: Install Zig 0.16
+        run: ./scripts/install-zig.sh
+
+      - name: Resolve version
+        id: ver
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building Symphonia $VERSION (build ${{ github.run_number }})"
+
+      - name: Build (GhosttyKit + Symphonia Release)
+        id: build
+        env:
+          MARKETING_VERSION: ${{ steps.ver.outputs.version }}
+          CURRENT_PROJECT_VERSION: ${{ github.run_number }}
+        run: ./scripts/ci-build.sh
+
+      - name: Package zip
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.ver.outputs.version }}"
+          ZIP="Symphonia-${VERSION}.zip"
+          APP_PATH="${{ steps.build.outputs.APP_PATH }}"
+          ditto -c -k --keepParent "$APP_PATH" "$ZIP"
+          ls -lh "$ZIP"
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          NOTES="$(mktemp)"
+          {
+            echo "Symphonia **${{ steps.ver.outputs.version }}** (open-source MVP)."
+            echo
+            echo "**Unsigned build.** macOS may warn when opening. Right-click → Open, or build from source (see README)."
+            echo
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${TAG}/CHANGELOG.md) for details."
+          } > "$NOTES"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+            gh release edit "$TAG" --notes-file "$NOTES" || true
+          else
+            gh release create "$TAG" "$ZIP" \
+              --title "Symphonia ${{ steps.ver.outputs.version }}" \
+              --notes-file "$NOTES"
+          fi
