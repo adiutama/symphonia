@@ -19,9 +19,10 @@ Release zips are **unsigned** (no paid Apple Developer ID). macOS may show a war
 | What | When | Version bump? | Download? |
 |------|------|---------------|-----------|
 | Everyday check (CI) | Every PR / push to `main` | No | No |
-| Ship (release) | You merge the **Release PR** | Yes | Yes (zip on GitHub Releases) |
+| Draft Release PR | **You** run the “Release Please” workflow (Actions → Run workflow) | Only on that draft PR | No |
+| Ship | **You** merge the Release PR | Yes (lands on `main` + tag) | Yes (zip on GitHub Releases) |
 
-You press one button (merge the Release PR). Automation then picks the version, updates the changelog, tags, builds, and uploads.
+Everyday pushes never open a Release PR. Shipping is always intentional: run the workflow → review the PR → merge.
 
 ## Version numbers (0.x MVP)
 
@@ -62,9 +63,9 @@ That creates the first GitHub Release (unsigned zip once the release workflow fi
 ## Day to day
 
 1. Commit with `feat` / `fix` / … and merge to `main`.
-2. CI compiles (no new version).
-3. Release Please opens or updates a **Release PR** (proposed version + changelog + Xcode marketing version).
-4. When you want to ship: review that PR → **merge**.
+2. CI compiles (no new version, no Release PR).
+3. When you want to ship: **Actions → Release Please → Run workflow**.
+4. Review the Release PR (version + changelog + Xcode marketing version) → **merge**.
 5. Automation tags `vX.Y.Z`, builds, uploads the zip to GitHub Releases.
 
 ## Workflows
@@ -72,7 +73,7 @@ That creates the first GitHub Release (unsigned zip once the release workflow fi
 | File | Role |
 |------|------|
 | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Compile check on PR / `main` |
-| [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) | Draft / merge Release PR; create tag |
+| [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) | Manual: draft Release PR / tag (workflow_dispatch only) |
 | [`.github/workflows/release.yml`](../.github/workflows/release.yml) | On `v*` tag: build zip and attach to the Release |
 
 Shared build script: [`scripts/ci-build.sh`](../scripts/ci-build.sh). Zig install helper for CI: [`scripts/install-zig.sh`](../scripts/install-zig.sh).
