@@ -11,7 +11,7 @@ Release Please updates this file when you merge a Release PR. See [docs/release.
 
 ## [0.1.0] - 2026-07-26
 
-Initial public MVP (early access). Build from source is first-class; Release zips are unsigned.
+Initial public MVP (early access). Build from source is first-class; Release DMGs are unsigned.
 
 ### Added
 
