@@ -41,8 +41,11 @@ struct OverlayHostView: View {
                     .zIndex(1)
             }
 
-            ForEach(overlays.focusedSessions) { session in
-                let isVisible = overlays.visibleOverlayID == session.id
+            // Keep every Overlay surface mounted (like Main CLI slots). Opacity-hide when
+            // not peeked or when its Worktree is not focused — never unmount until Close.
+            ForEach(overlays.sessions) { session in
+                let belongsToFocus = worktrees.focusedSession?.id == session.sessionId
+                let isVisible = belongsToFocus && overlays.visibleOverlayID == session.id
                 GeometryReader { proxy in
                     overlayPane(session: session, isVisible: isVisible)
                         .padding(24)
@@ -51,7 +54,7 @@ struct OverlayHostView: View {
                 }
                 .opacity(isVisible ? 1 : 0)
                 .allowsHitTesting(isVisible)
-                .zIndex(isVisible ? 2 : 1)
+                .zIndex(isVisible ? 2 : -1)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -111,7 +114,7 @@ struct OverlayHostView: View {
             .font(.caption.weight(.medium))
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("Hide Overlay (process stays alive); kill via Overlay Switcher")
+            .help("Toggle Overlay (process stays alive); kill via Overlay Switcher")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)

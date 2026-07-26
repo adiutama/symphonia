@@ -5,9 +5,9 @@ import Foundation
 /// Overlay peek/hide host lifecycle (Phase 6 / ADR 0006–0008).
 ///
 /// - One visible Overlay at a time (`visibleOverlayID`); nil = Main CLI.
-/// - Hide does not remove the session → PTY stays alive while the surface stays mounted.
+/// - Hide / Switch Worktree does not remove the session → PTY stays alive until Close.
 /// - Editor Overlay is first-class; Background CLIs are many freeform peeks.
-/// - Scoped to the focused session (Main Repo or Worktree).
+/// - Peek UI is scoped to the focused session; processes may span sessions.
 @MainActor
 final class OverlayController: ObservableObject {
     private let preferences: PreferencesController
@@ -15,11 +15,11 @@ final class OverlayController: ObservableObject {
     private let secrets: SecretStoreController
     private var cancellables = Set<AnyCancellable>()
 
-    /// All live Overlay PTYs (may span sessions; host filters by focused session).
+    /// All live Overlay PTYs (may span Worktrees). Host keeps surfaces mounted until Close.
     @Published private(set) var sessions: [OverlaySession] = []
     /// Currently peeked Overlay; nil shows Main CLI.
     @Published private(set) var visibleOverlayID: UUID?
-    /// Last peeked Overlay for the focused session (Toggle Overlay restore).
+    /// Last peeked Overlay (Toggle Overlay restore); must belong to focused session to restore.
     private var lastPeekedOverlayID: UUID?
     @Published var lastError: String?
 
@@ -43,7 +43,7 @@ final class OverlayController: ObservableObject {
             .store(in: &cancellables)
     }
 
-    /// Overlay PTYs for the focused session (switcher + host).
+    /// Overlay PTYs for the focused session (Switcher / Toggle restore).
     var focusedSessions: [OverlaySession] {
         guard let focused = agents.focusedSession else { return [] }
         return sessions.filter { $0.sessionId == focused.id }
@@ -195,7 +195,7 @@ final class OverlayController: ObservableObject {
     // MARK: - Internals
 
     private func onFocusedSessionChanged(_ focused: FocusedSession?) {
-        // Hide when leaving a session; keep other sessions' Overlay PTYs alive for return.
+        // Leaving a Worktree only hides the peek; surfaces stay mounted until Close / owner gone.
         if let visibleOverlayID,
            let overlay = sessions.first(where: { $0.id == visibleOverlayID }),
            overlay.sessionId != focused?.id
@@ -203,7 +203,7 @@ final class OverlayController: ObservableObject {
             lastPeekedOverlayID = visibleOverlayID
             self.visibleOverlayID = nil
         }
-        // Drop sessions whose owner is gone (removed Worktree / closed Workspace).
+        // Tear down only when the owning Main / Worktree is gone (remove / Workspace switch).
         let liveIDs = agents.liveOverlaySessionIDs
         sessions.removeAll { !liveIDs.contains($0.sessionId) }
         if let lastPeekedOverlayID,
