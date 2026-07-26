@@ -123,7 +123,7 @@ enum CommandSequence {
     }
 }
 
-/// One row in the Command Mode palette.
+/// One row in the Command Center palette.
 struct CommandModeItem: Identifiable, Equatable {
     let id: String
     let title: String
@@ -147,7 +147,7 @@ struct CommandModeItem: Identifiable, Equatable {
     }
 }
 
-/// Actions runnable from Command Mode (ADR 0009 / 0022).
+/// Actions runnable from Command Center (ADR 0009 / 0022).
 enum CommandModeAction: Equatable {
     case dismiss
     case back

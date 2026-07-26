@@ -13,7 +13,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// GUI editors need external launch (see ``EditorPresentation``).
     var editorCommand: String
 
-    /// Leader key binding that enters Command Mode. Default `cmd+shift+p`
+    /// Leader key binding that enters Command Center. Default `cmd+shift+p`
     /// (VS Code / Cursor Command Palette). Parsed by ``LeaderKeyBinding``.
     var leaderKey: String
 

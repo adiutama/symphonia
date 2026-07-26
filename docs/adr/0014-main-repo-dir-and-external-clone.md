@@ -32,16 +32,17 @@ Symphonia moving folders on disk.
 **Reserved names.** `main` is the one name a Worktree folder can never take, checked
 case-insensitively. It is the single source of truth at
 `SymphoniaPaths.reservedWorkspaceChildNames`, folded into `WorkspaceSlug.validate` (reused by
-`AgentController.createAgent()` for Operator-edited Worktree folder names) and re-checked directly
-in `AgentStore.create()` / `AgentStore.remove()` so the guard holds even if a caller bypasses that
-validator. `AgentStore.list()` also excludes it (plus any sibling folder that isn't itself a git
-checkout — i.e. has no `.git` file/dir) so stray non-Worktree folders never show up as Agents.
+`WorktreeController.createWorktree()` for Operator-edited Worktree folder names) and re-checked
+directly in `WorktreeStore.create()` / `WorktreeStore.remove()` so the guard holds even if a
+caller bypasses that validator. `WorktreeStore.list()` also excludes it (plus any sibling folder
+that isn't itself a git checkout — i.e. has no `.git` file/dir) so stray non-Worktree folders
+never show up as Worktrees.
 
 **Main is protected.** Main cannot be removed or archived — not just because the UI never offers
-that action, but because both `AgentController.requestRemove(_:)` / `archive(_:)` and
-`AgentStore.remove(...)` take an `AgentSummary`, and `AgentStore.list()` never produces one for
-`main/`. `AgentStore.remove()` additionally refuses a reserved name outright as defense in depth.
-Creating a Worktree named `main` (any case) is refused for the same reason.
+that action, but because both `WorktreeController.requestRemove(_:)` / `archive(_:)` and
+`WorktreeStore.remove(...)` take a `WorktreeSummary`, and `WorktreeStore.list()` never produces
+one for `main/`. `WorktreeStore.remove()` additionally refuses a reserved name outright as
+defense in depth. Creating a Worktree named `main` (any case) is refused for the same reason.
 
 **Heal on open.** `WorkspaceStore.open(at:)` calls `healMainIfNeeded(at:config:)`: if `main/` is
 missing or not a git repository, it re-clones from `config.mainRemoteURL` when that's non-empty

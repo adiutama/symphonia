@@ -20,7 +20,7 @@ If code and docs disagree, **stop and reconcile** before adding features.
 2. **Pick one task** — Smallest `todo` that unblocks the phase exit criteria (see tasks template). Prefer finishing a phase spike over starting three features.
 3. **Mark `doing`** — Only one `doing` row at a time when possible.
 4. **Implement** — Keep diffs aligned to that task ID (e.g. `P1.2`).
-5. **Check language** — New UI copy or types should use `CONTEXT.md` terms (Workspace, Agent, Overlay, …).
+5. **Check language** — New UI copy or types should use `CONTEXT.md` terms (Workspace, Worktree, Overlay, Command Center, …).
 6. **Decide** — If you hit a fork not covered by an ADR, either (a) choose the reversible default and note it in `progress.md`, or (b) write an ADR before building the irreversible path.
 7. **Close the loop** — Mark task `done` or `blocked` + reason. Update `progress.md` with: done today, next up, blockers.
 8. **Commit** — When the task (or a coherent slice) is shippable. Prefer unsigned only if signing is broken and you explicitly allow it.
@@ -32,11 +32,11 @@ If code and docs disagree, **stop and reconcile** before adding features.
 | 0 → 1 | App builds; libghostty linked or stubbed with a clear spike plan |
 | 1 → 2 | Interactive shell works in-app (Phase 1 exit) |
 | 2 → 3 | Global prefs + Effective Setting readable/writable |
-| 3 → 4 | Can create a Workspace Data Dir with `main/` + `worktrees/` |
-| 4 → 5 | Can create/focus/remove an Agent with Main CLI in the Worktree |
+| 3 → 4 | Can create a Workspace Data Dir with `main/` + Worktree siblings |
+| 4 → 5 | Can create/Switch/Remove a Worktree with Main CLI in the checkout |
 | 5 → 6 | Enabled secrets appear in a newly spawned CLI env |
-| 6 → 7 | Editor + one Background peek/hide without killing processes |
-| 7 → 8 | Leader Command Mode drives the main Operator actions |
+| 6 → 7 | Editor + one Background peek/hide (Toggle Overlay) without killing processes |
+| 7 → 8 | Leader Command Center drives the main Operator actions |
 
 ## Spike rules
 
