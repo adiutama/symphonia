@@ -1,8 +1,9 @@
 name: Release Please
 
+# Intentional only — does not run on every push.
+# Actions → Release Please → Run workflow when you want a Release PR.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
