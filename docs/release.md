@@ -10,9 +10,9 @@ Plain-English guide to versions, builds, and GitHub Releases. Product language l
 ## How people get the app
 
 1. **Preferred:** clone and build (see root [`README.md`](../README.md)).
-2. **Optional:** download `Symphonia-<version>.zip` from GitHub **Releases**.
+2. **Optional:** download `Symphonia-<version>.dmg` from GitHub **Releases**.
 
-Release zips are **unsigned** (no paid Apple Developer ID). macOS may show a warning. That is expected for this open-source MVP. Tell downloaders: Right‑click the app → **Open**, or build from source.
+Release DMGs are **unsigned** (no paid Apple Developer ID). Open the disk image and drag Symphonia to Applications. macOS may show a warning — Right‑click the app → **Open**, or build from source.
 
 ## Check ≠ ship
 
@@ -20,7 +20,7 @@ Release zips are **unsigned** (no paid Apple Developer ID). macOS may show a war
 |------|------|---------------|-----------|
 | Everyday check (CI) | Every PR / push to `main` | No | No |
 | Draft Release PR | **You** run the “Release Please” workflow (Actions → Run workflow) | Only on that draft PR | No |
-| Ship | **You** merge the Release PR | Yes (lands on `main` + tag) | Yes (zip on GitHub Releases) |
+| Ship | **You** merge the Release PR | Yes (lands on `main` + tag) | Yes (DMG on GitHub Releases) |
 
 Everyday pushes never open a Release PR. Shipping is always intentional: run the workflow → review the PR → merge.
 
@@ -58,7 +58,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-That creates the first GitHub Release (unsigned zip once the release workflow finishes). Later versions come from merging Release PRs only.
+That creates the first GitHub Release (unsigned DMG once the release workflow finishes). Later versions come from merging Release PRs only.
 
 ## Day to day
 
@@ -66,7 +66,7 @@ That creates the first GitHub Release (unsigned zip once the release workflow fi
 2. CI compiles (no new version, no Release PR).
 3. When you want to ship: **Actions → Release Please → Run workflow**.
 4. Review the Release PR (version + changelog + Xcode marketing version) → **merge**.
-5. Automation tags `vX.Y.Z`, builds, uploads the zip to GitHub Releases.
+5. Automation tags `vX.Y.Z`, builds, uploads the DMG to GitHub Releases.
 
 ## Workflows
 
@@ -74,12 +74,13 @@ That creates the first GitHub Release (unsigned zip once the release workflow fi
 |------|------|
 | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Compile check on PR / `main` |
 | [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) | Manual: draft Release PR / tag (workflow_dispatch only) |
-| [`.github/workflows/release.yml`](../.github/workflows/release.yml) | On `v*` tag: build zip and attach to the Release |
+| [`.github/workflows/release.yml`](../.github/workflows/release.yml) | On `v*` tag: build DMG and attach to the Release |
 
-Shared build script: [`scripts/ci-build.sh`](../scripts/ci-build.sh). Zig install helper for CI: [`scripts/install-zig.sh`](../scripts/install-zig.sh).
+Shared build script: [`scripts/ci-build.sh`](../scripts/ci-build.sh). Zig install helper for CI: [`scripts/install-zig.sh`](../scripts/install-zig.sh). DMG helper: [`scripts/package-dmg.sh`](../scripts/package-dmg.sh).
 
-## What Release zips are today
+## What Release DMGs are today
 
 - **Unsigned** (no Apple Developer ID signing or notarization)
+- Open the DMG → drag Symphonia to Applications
 - macOS may warn on open — Right‑click → **Open**, or build from source
 - Not distributed via the Mac App Store

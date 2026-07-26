@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   package:
-    name: Build unsigned zip
+    name: Build unsigned DMG
     runs-on: macos-latest
     timeout-minutes: 120
     steps:
@@ -46,15 +46,14 @@ jobs:
           CURRENT_PROJECT_VERSION: ${{ github.run_number }}
         run: ./scripts/ci-build.sh
 
-      - name: Package zip
+      - name: Package DMG
         run: |
           set -euo pipefail
           VERSION="${{ steps.ver.outputs.version }}"
-          ZIP="Symphonia-${VERSION}.zip"
           APP_PATH="${{ steps.build.outputs.APP_PATH }}"
-          ditto -c -k --keepParent "$APP_PATH" "$ZIP"
-          ls -lh "$ZIP"
-          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          DMG="$(./scripts/package-dmg.sh "$APP_PATH" "$VERSION")"
+          ls -lh "$DMG"
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
 
       - name: Upload to GitHub Release
         env:
@@ -66,16 +65,18 @@ jobs:
           {
             echo "Symphonia **${{ steps.ver.outputs.version }}** (open-source MVP)."
             echo
+            echo "Open the DMG and drag **Symphonia** to Applications."
+            echo
             echo "**Unsigned build.** macOS may warn when opening. Right-click → Open, or build from source (see README)."
             echo
             echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${TAG}/CHANGELOG.md) for details."
           } > "$NOTES"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$ZIP" --clobber
+            gh release upload "$TAG" "$DMG" --clobber
             gh release edit "$TAG" --notes-file "$NOTES" || true
           else
-            gh release create "$TAG" "$ZIP" \
+            gh release create "$TAG" "$DMG" \
               --title "Symphonia ${{ steps.ver.outputs.version }}" \
               --notes-file "$NOTES"
           fi

@@ -4,7 +4,7 @@ Native macOS host for managing local coding agents. Product docs live in [`CONTE
 
 **License:** [MIT](LICENSE). Symphonia’s own code is MIT. Upstream [Ghostty](https://github.com/ghostty-org/ghostty) / libghostty remains under its own MIT license — we vendor a pinned build of GhosttyKit; we do not re-license upstream.
 
-**Status:** Early public MVP (`0.x`). Expect bugs and gaps. Prefer **build from source**; GitHub Release zips are unsigned convenience builds (macOS may warn — see [docs/release.md](docs/release.md)).
+**Status:** Early public MVP (`0.x`). Expect bugs and gaps. Prefer **build from source**; GitHub Release DMGs are unsigned convenience builds (macOS may warn — see [docs/release.md](docs/release.md)).
 
 ## Requirements
 
@@ -51,7 +51,7 @@ Shared Release compile helper (same path CI uses):
 ## Releases & changelog
 
 - [CHANGELOG.md](CHANGELOG.md) — what changed per version  
-- [docs/release.md](docs/release.md) — how shipping works (check ≠ ship, unsigned zips, GitHub setup)
+- [docs/release.md](docs/release.md) — how shipping works (check ≠ ship, unsigned DMGs, GitHub setup)
 
 ## Layout
 
