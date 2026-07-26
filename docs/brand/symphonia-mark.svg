@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Symphonia">
+  <!-- Symphonia mark — concept #11.1 Spiral spine (transparent). -->
+  <g fill="none" stroke="#c4a25a" stroke-width="96" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M560 168C360 168 280 260 280 400C280 560 420 600 560 640C660 680 700 740 700 820C700 900 580 920 480 920M560 168v692M460 360h200"/>
+  </g>
+  <circle cx="560" cy="900" r="56" fill="#c4a25a"/>
+</svg>
