@@ -10,7 +10,7 @@ A native macOS stage where you and your coding agents compose one symphony. Prod
 
 ## Requirements
 
-- macOS 14+
+- macOS 26+
 - Xcode 15+ (tested with Xcode 26)
 - Zig 0.16.x (to build GhosttyKit)
 - Metal Toolchain (`xcodebuild -downloadComponent MetalToolchain`)
