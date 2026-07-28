@@ -54,8 +54,8 @@ struct KeyChordField: View {
 
     private var labelColor: Color {
         if isRecording { return ghosttyTheme.accent }
-        if chord.isEmpty { return Color.secondary }
-        return Color.primary
+        if chord.isEmpty { return ghosttyTheme.tertiaryText }
+        return ghosttyTheme.foreground
     }
 
     private func startRecording() {
@@ -158,8 +158,8 @@ struct SequenceRecordField: View {
 
     private var labelColor: Color {
         if isRecording { return ghosttyTheme.accent }
-        if sequence.isEmpty { return Color.secondary }
-        return Color.primary
+        if sequence.isEmpty { return ghosttyTheme.tertiaryText }
+        return ghosttyTheme.foreground
     }
 
     private func startRecording() {

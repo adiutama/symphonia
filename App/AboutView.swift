@@ -25,19 +25,20 @@ struct AboutView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Symphonia")
                         .font(.title.weight(.bold))
+                        .foregroundStyle(ghosttyTheme.foreground)
                     Text(SymphoniaBrand.tagline)
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
                     Text("Version \(shortVersion) (\(buildVersion))")
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(ghosttyTheme.tertiaryText)
                 }
                 Spacer(minLength: 0)
             }
 
             Text(SymphoniaBrand.description)
                 .font(.body)
-                .foregroundStyle(.primary)
+                .foregroundStyle(ghosttyTheme.foreground)
                 .fixedSize(horizontal: false, vertical: true)
 
             SettingsCard {
@@ -45,9 +46,10 @@ struct AboutView: View {
                     HStack {
                         Text("License")
                             .font(.body.weight(.medium))
+                            .foregroundStyle(ghosttyTheme.foreground)
                         Spacer()
                         Text("MIT")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(ghosttyTheme.secondaryText)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
@@ -55,9 +57,10 @@ struct AboutView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Terminal")
                             .font(.body.weight(.medium))
+                            .foregroundStyle(ghosttyTheme.foreground)
                         Text("Ghostty / libghostty (MIT)")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(ghosttyTheme.secondaryText)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
@@ -66,7 +69,7 @@ struct AboutView: View {
 
             Text("Copyright © 2026 Adi Utama and Symphonia contributors")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(ghosttyTheme.secondaryText)
 
             HStack {
                 Spacer()

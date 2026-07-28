@@ -12,7 +12,7 @@ struct KeymapCheatsheetView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
+            SoftHairline(horizontalPadding: 16)
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     section("System", rows: KeymapBindings.systemWindowRows.map {
@@ -21,7 +21,7 @@ struct KeymapCheatsheetView: View {
                     section("Global", rows: globalRows)
                     Text("Worktree cycle includes Main. Leader: \(leaderDisplay).")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
 
                     section("Command Center chrome", rows: KeymapBindings.commandCenterChrome.map {
                         (title: $0.title, display: $0.display)
@@ -31,7 +31,7 @@ struct KeymapCheatsheetView: View {
 
                     Text("Sequences respect Settings → Shortcuts overrides.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
                         .padding(.top, 4)
                 }
                 .padding(20)
@@ -47,10 +47,11 @@ struct KeymapCheatsheetView: View {
         HStack {
             Text("Keymap")
                 .font(.headline)
+                .foregroundStyle(ghosttyTheme.foreground)
             Spacer()
             Text("⌘⇧/")
                 .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(ghosttyTheme.secondaryText)
             Button("Done") {
                 settingsNavigation.closeKeymap()
             }
@@ -109,26 +110,27 @@ struct KeymapCheatsheetView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(ghosttyTheme.secondaryText)
             VStack(spacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
                     if index > 0 {
-                        Divider().opacity(0.35)
+                        SoftHairline(horizontalPadding: 4)
                     }
                     HStack {
                         Text(row.title)
                             .font(.body)
+                            .foregroundStyle(ghosttyTheme.foreground)
                         Spacer(minLength: 12)
                         Text(row.display)
                             .font(.body.monospaced())
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(ghosttyTheme.secondaryText)
                     }
                     .padding(.vertical, 6)
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
-            .background(Color.primary.opacity(0.04))
+            .background(ghosttyTheme.foreground.opacity(0.04))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
     }

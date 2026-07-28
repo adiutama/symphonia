@@ -9,7 +9,7 @@ import SwiftUI
 final class GhosttyChromeTheme: ObservableObject {
     @Published private(set) var background: Color
     @Published private(set) var foreground: Color
-    /// Slightly elevated from background for sidebar / rail separation.
+    /// Darker than terminal background so the rail reads as chrome without washing out text.
     @Published private(set) var sidebar: Color
     /// Solid panel fill for Command Center / Settings cards (avoids light system materials).
     @Published private(set) var panel: Color
@@ -17,6 +17,14 @@ final class GhosttyChromeTheme: ObservableObject {
     @Published private(set) var control: Color
     /// Accent from Ghostty palette index 4 (ANSI blue), used for tint / selection.
     @Published private(set) var accent: Color
+    /// Subtle edge / divider stroke — solid fg mix (not alpha) so hairlines stay even over opaque chrome.
+    @Published private(set) var hairline: Color
+    /// Muted copy on Ghostty-filled chrome (replaces `.secondary`).
+    @Published private(set) var secondaryText: Color
+    /// Quieter chrome labels / placeholders (replaces `.tertiary`).
+    @Published private(set) var tertiaryText: Color
+    /// Selection wash for sidebar rows / Command Center items.
+    @Published private(set) var selectionFill: Color
     @Published private(set) var colorScheme: ColorScheme
     /// AppKit placeholder behind a terminal surface before Ghostty paints.
     @Published private(set) var nsBackground: NSColor
@@ -38,6 +46,10 @@ final class GhosttyChromeTheme: ObservableObject {
         panel = applied.panel
         control = applied.control
         accent = applied.accent
+        hairline = applied.hairline
+        secondaryText = applied.secondaryText
+        tertiaryText = applied.tertiaryText
+        selectionFill = applied.selectionFill
         colorScheme = applied.colorScheme
         nsBackground = applied.nsBackground
 
@@ -84,6 +96,10 @@ final class GhosttyChromeTheme: ObservableObject {
         panel = applied.panel
         control = applied.control
         accent = applied.accent
+        hairline = applied.hairline
+        secondaryText = applied.secondaryText
+        tertiaryText = applied.tertiaryText
+        selectionFill = applied.selectionFill
         colorScheme = applied.colorScheme
         nsBackground = applied.nsBackground
     }
@@ -95,26 +111,38 @@ final class GhosttyChromeTheme: ObservableObject {
         var panel: Color
         var control: Color
         var accent: Color
+        var hairline: Color
+        var secondaryText: Color
+        var tertiaryText: Color
+        var selectionFill: Color
         var colorScheme: ColorScheme
         var nsBackground: NSColor
     }
 
     private static func colors(from resolved: Resolved) -> AppliedColors {
-        AppliedColors(
+        let accentColor = Color(nsColor: resolved.accent)
+        // Sidebar goes darker than the Ghostty terminal bg (Catppuccin crust/mantle idea):
+        // lightening the rail washed out muted themes and hurt text contrast.
+        // Panels/controls still lift lighter so cards/fields read above the canvas.
+        let sidebarBase = resolved.mix(toward: NSColor.black, amount: resolved.isDark ? 0.28 : 0.08)
+        let panelLift = resolved.mix(toward: resolved.foreground, amount: 0.10)
+        return AppliedColors(
             background: Color(nsColor: resolved.background),
             foreground: Color(nsColor: resolved.foreground),
-            // Sidebar lifts off the Ghostty terminal background so the traffic-light column
-            // reads as its own surface (Xcode / Raycast).
-            sidebar: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.07)),
-            // Command Center / Overlay / Settings cards: tiny lift so panels read as peeks.
-            panel: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.04)),
-            // Text fields / chips sit above panel so borders are not required for contrast.
-            control: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.12)),
-            accent: Color(nsColor: resolved.accent),
+            sidebar: Color(nsColor: Resolved.mix(sidebarBase, toward: resolved.accent, amount: 0.06)),
+            panel: Color(nsColor: Resolved.mix(panelLift, toward: resolved.accent, amount: 0.05)),
+            control: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.20)),
+            accent: accentColor,
+            hairline: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.20)),
+            // Keep muted labels closer to fg so they stay readable on the darker rail.
+            secondaryText: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.72)),
+            tertiaryText: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.50)),
+            selectionFill: accentColor.opacity(0.28),
             colorScheme: resolved.isDark ? .dark : .light,
             nsBackground: resolved.background
         )
     }
+
 
     // MARK: - Config path watching
 
@@ -193,10 +221,14 @@ final class GhosttyChromeTheme: ObservableObject {
         }
 
         func mix(toward other: NSColor, amount: CGFloat) -> NSColor {
+            Self.mix(background, toward: other, amount: amount)
+        }
+
+        static func mix(_ baseColor: NSColor, toward other: NSColor, amount: CGFloat) -> NSColor {
             let t = min(max(amount, 0), 1)
             var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
             var orr: CGFloat = 0, og: CGFloat = 0, ob: CGFloat = 0, oa: CGFloat = 0
-            let base = background.usingColorSpace(.sRGB) ?? background
+            let base = baseColor.usingColorSpace(.sRGB) ?? baseColor
             let tip = other.usingColorSpace(.sRGB) ?? other
             base.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
             tip.getRed(&orr, green: &og, blue: &ob, alpha: &oa)
