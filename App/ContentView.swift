@@ -5,9 +5,13 @@ struct ContentView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
     @EnvironmentObject private var preferences: PreferencesController
+    @EnvironmentObject private var workspaces: WorkspaceController
+    @EnvironmentObject private var worktrees: WorktreeController
+    @EnvironmentObject private var overlays: OverlayController
 
     @AppStorage("sidebarWidth") private var sidebarWidth: Double = 240
     @State private var dragStartWidth: Double?
+    @State private var showOverlayGlance = false
 
     private let sidebarMinWidth: Double = 180
     private let sidebarMaxWidth: Double = 400
@@ -24,8 +28,18 @@ struct ContentView: View {
                         resizeHandle
                     }
 
-                OverlayHostView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                HStack(spacing: 0) {
+                    OverlayHostView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    if showOverlayGlance {
+                        OverlayGlanceSheet()
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(ghosttyTheme.background.ignoresSafeArea(.container, edges: .top))
+                .animation(.easeOut(duration: 0.16), value: showOverlayGlance)
             }
             .frame(minWidth: 720, minHeight: 420)
 
@@ -49,7 +63,29 @@ struct ContentView: View {
                 ghosttyTheme.background
             }
         }
-        .ignoresSafeArea(.container, edges: .top)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    workspaces.beginCreateWorkspace()
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .help("New Project")
+            }
+
+            ToolbarItem(placement: .principal) {
+                projectMeta
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showOverlayGlance.toggle()
+                } label: {
+                    Image(systemName: "rectangle.stack")
+                }
+                .help("Overlays")
+            }
+        }
         .symphoniaTitlebarChrome()
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
         .background(SettingsWindowPresenter())
@@ -64,6 +100,39 @@ struct ContentView: View {
         )) {
             OnboardingView()
         }
+    }
+
+    @ViewBuilder
+    private var projectMeta: some View {
+        if let workspace = workspaces.current {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(displayLowercased(workspace.slug))
+                    .font(.headline)
+                    .foregroundStyle(ghosttyTheme.foreground)
+                    .lineLimit(1)
+                Text(pathCaption(for: workspace))
+                    .font(.caption)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .frame(maxWidth: 280, alignment: .leading)
+        }
+    }
+
+    private func pathCaption(for workspace: WorkspaceSummary) -> String {
+        if let focused = worktrees.focusedSession {
+            return abbreviatedPath(focused.workingDirectory)
+        }
+        return abbreviatedPath(workspace.dataDirURL.path)
+    }
+
+    private func abbreviatedPath(_ path: String) -> String {
+        let home = NSHomeDirectory()
+        if path.hasPrefix(home) {
+            return "~" + path.dropFirst(home.count)
+        }
+        return path
     }
 
     /// Invisible resize hit-target on the sidebar’s trailing edge (no gap / seam in the HStack).

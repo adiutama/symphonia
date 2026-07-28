@@ -4,9 +4,11 @@ import SwiftUI
 ///
 /// Pane chrome (Peek requirements): kind + title + Back. No tabs; kill only via CC nest.
 struct OverlayHostView: View {
+    @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var worktrees: WorktreeController
     @EnvironmentObject private var overlays: OverlayController
     @EnvironmentObject private var preferences: PreferencesController
+    @EnvironmentObject private var settingsNavigation: SettingsNavigation
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     var body: some View {
@@ -30,9 +32,7 @@ struct OverlayHostView: View {
             }
 
             if worktrees.openedMainCLISessions.isEmpty {
-                Text("Select Main Repo or a Worktree")
-                    .foregroundStyle(ghosttyTheme.secondaryText)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                mainEmptyState
                     .zIndex(-1)
             }
 
@@ -74,6 +74,52 @@ struct OverlayHostView: View {
         .animation(.easeOut(duration: 0.15), value: overlays.visibleOverlayID)
         .animation(.easeOut(duration: 0.12), value: worktrees.focusedSession?.id)
         .animation(.easeOut(duration: 0.12), value: overlays.lastError)
+    }
+
+    private var mainEmptyState: some View {
+        VStack(spacing: 14) {
+            if workspaces.workspaces.isEmpty {
+                Text("No project yet")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(ghosttyTheme.foreground)
+                Text("Create a project to open its Main CLI.")
+                    .font(.subheadline)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+
+                HStack(spacing: 12) {
+                    Button("Create Project") {
+                        workspaces.beginCreateWorkspace()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(ghosttyTheme.accent)
+
+                    Button("Open Settings") {
+                        settingsNavigation.openSettings()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(.top, 4)
+            } else {
+                Text("Select a project")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(ghosttyTheme.foreground)
+                Text("Pick a project in the sidebar, then open Main or a Worktree.")
+                    .font(.subheadline)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+
+                Button("Create Project") {
+                    workspaces.beginCreateWorkspace()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(ghosttyTheme.accent)
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: 360)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
     }
 
     private func overlayPane(session: OverlaySession, isVisible: Bool) -> some View {
