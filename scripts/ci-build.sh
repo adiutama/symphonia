@@ -18,6 +18,13 @@ else
   echo "==> GhosttyKit.xcframework already present"
 fi
 
+if [[ ! -d "$ROOT/Terminal/Sparkle.framework" ]]; then
+  echo "==> Installing Sparkle.framework"
+  ./scripts/install-sparkle.sh
+else
+  echo "==> Sparkle.framework already present"
+fi
+
 echo "==> Building Symphonia ($CONFIGURATION)"
 XCODEBUILD_ARGS=(
   -scheme Symphonia

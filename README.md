@@ -1,10 +1,12 @@
 # Symphonia
 
-Native macOS host for managing local coding agents. Product docs live in [`CONTEXT.md`](CONTEXT.md) and [`docs/`](docs/).
+**Conduct the agent ensemble.**
+
+A native macOS stage where you and your coding agents compose one symphony. Product docs live in [`CONTEXT.md`](CONTEXT.md) and [`docs/`](docs/).
 
 **License:** [MIT](LICENSE). Symphonia’s own code is MIT. Upstream [Ghostty](https://github.com/ghostty-org/ghostty) / libghostty remains under its own MIT license — we vendor a pinned build of GhosttyKit; we do not re-license upstream.
 
-**Status:** Early public MVP (`0.x`). Expect bugs and gaps. Prefer **build from source**; GitHub Release DMGs are unsigned convenience builds (macOS may warn — see [docs/release.md](docs/release.md)).
+**Status:** Early public MVP (`0.x`). Expect bugs and gaps. Prefer **build from source**; GitHub Release DMGs are convenience builds (unsigned unless notarization secrets are set — see [docs/release.md](docs/release.md)).
 
 ## Requirements
 
@@ -13,15 +15,16 @@ Native macOS host for managing local coding agents. Product docs live in [`CONTE
 - Zig 0.16.x (to build GhosttyKit)
 - Metal Toolchain (`xcodebuild -downloadComponent MetalToolchain`)
 
-## First-time setup (GhosttyKit)
+## First-time setup (GhosttyKit + Sparkle)
 
-GhosttyKit is **not** committed (large binary). Build it once:
+GhosttyKit and Sparkle are **not** committed (large binaries). Install once:
 
 ```bash
 ./Terminal/scripts/build-ghosttykit.sh
+./scripts/install-sparkle.sh
 ```
 
-This clones [ghostty-org/ghostty](https://github.com/ghostty-org/ghostty) at the SHA in `Vendor/ghostty.pin`, builds a **native-arch** `GhosttyKit.xcframework`, and installs it to `Terminal/GhosttyKit.xcframework`.
+GhosttyKit clones [ghostty-org/ghostty](https://github.com/ghostty-org/ghostty) at the SHA in `Vendor/ghostty.pin`. Sparkle downloads the framework from the Sparkle GitHub release.
 
 ## Open
 
@@ -51,7 +54,7 @@ Shared Release compile helper (same path CI uses):
 ## Releases & changelog
 
 - [CHANGELOG.md](CHANGELOG.md) — what changed per version  
-- [docs/release.md](docs/release.md) — how shipping works (check ≠ ship, unsigned DMGs, GitHub setup)
+- [docs/release.md](docs/release.md) — how shipping works (check ≠ ship, Sparkle updates, optional notarization, GitHub setup)
 
 ## Layout
 
