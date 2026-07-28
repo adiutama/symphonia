@@ -20,8 +20,11 @@ struct CommandModeView: View {
             footer
         }
         .frame(width: 440)
-        .background(ghosttyTheme.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .chromeFloatingSurface(
+            glass: preferences.preferences.chromeGlass,
+            solid: ghosttyTheme.panel,
+            cornerRadius: 14
+        )
         .shadow(color: .black.opacity(0.22), radius: 28, y: 12)
     }
 

@@ -40,8 +40,15 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
-        .background(ghosttyTheme.background.ignoresSafeArea())
-        // Extend under the hidden titlebar so the sidebar owns the traffic-light column.
+        // When glass is on, keep the window clear under the sidebar so Liquid Glass /
+        // vibrancy can sample the desktop. The terminal host paints its own solid fill.
+        .background {
+            if preferences.preferences.chromeGlass {
+                Color.clear
+            } else {
+                ghosttyTheme.background
+            }
+        }
         .ignoresSafeArea(.container, edges: .top)
         .symphoniaTitlebarChrome()
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
