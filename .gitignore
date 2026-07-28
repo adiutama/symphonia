@@ -21,3 +21,6 @@ Vendor/ghostty/
 
 # Built GhosttyKit artifact (~200MB) — rebuild via Terminal/scripts/build-ghosttykit.sh
 Terminal/GhosttyKit.xcframework/
+
+# Sparkle (downloaded by scripts/install-sparkle.sh)
+Terminal/Sparkle.framework/

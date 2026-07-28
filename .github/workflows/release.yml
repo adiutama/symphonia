@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   package:
-    name: Build unsigned DMG
+    name: Build DMG and appcast
     runs-on: macos-latest
     timeout-minutes: 120
     steps:
@@ -46,6 +46,25 @@ jobs:
           CURRENT_PROJECT_VERSION: ${{ github.run_number }}
         run: ./scripts/ci-build.sh
 
+      - name: Optional Developer ID sign + notarize
+        id: notarize
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APP_PATH: ${{ steps.build.outputs.APP_PATH }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${MACOS_CERTIFICATE:-}" || -z "${APPLE_API_KEY:-}" ]]; then
+            echo "Apple signing secrets not set — shipping unsigned DMG."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ./scripts/notarize-app.sh "$APP_PATH"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
       - name: Package DMG
         run: |
           set -euo pipefail
@@ -55,28 +74,60 @@ jobs:
           ls -lh "$DMG"
           echo "DMG=$DMG" >> "$GITHUB_ENV"
 
+      - name: Generate Sparkle appcast
+        id: appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          CURRENT_PROJECT_VERSION: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_ED_PRIVATE_KEY:-}" ]]; then
+            echo "SPARKLE_ED_PRIVATE_KEY not set — skipping appcast (run scripts/sparkle-setup-keys.sh)."
+            echo "has_appcast=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          VERSION="${{ steps.ver.outputs.version }}"
+          SPARKLE_DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/$(basename "$DMG")"
+          export SPARKLE_DOWNLOAD_URL
+          APPCAST="$(./scripts/sparkle-generate-appcast.sh "$DMG" "$VERSION")"
+          echo "APPCAST=$APPCAST" >> "$GITHUB_ENV"
+          echo "has_appcast=true" >> "$GITHUB_OUTPUT"
+
       - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           TAG="${{ steps.ver.outputs.tag }}"
+          SIGNED="${{ steps.notarize.outputs.signed }}"
           NOTES="$(mktemp)"
           {
             echo "Symphonia **${{ steps.ver.outputs.version }}** (open-source MVP)."
             echo
             echo "Open the DMG and drag **Symphonia** to Applications."
             echo
-            echo "**Unsigned build.** macOS may warn when opening. Right-click → Open, or build from source (see README)."
+            if [[ "$SIGNED" == "true" ]]; then
+              echo "Developer ID signed and notarized."
+            else
+              echo "**Unsigned build.** macOS may warn when opening. Right-click → Open, or build from source (see README)."
+            fi
+            echo
+            echo "In-app updates use Sparkle when an appcast is attached and EdDSA keys are configured."
             echo
             echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${TAG}/CHANGELOG.md) for details."
           } > "$NOTES"
 
+          ASSETS=("$DMG")
+          if [[ "${{ steps.appcast.outputs.has_appcast }}" == "true" && -n "${APPCAST:-}" && -f "$APPCAST" ]]; then
+            ASSETS+=("$APPCAST")
+          fi
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$DMG" --clobber
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
             gh release edit "$TAG" --notes-file "$NOTES" || true
           else
-            gh release create "$TAG" "$DMG" \
+            gh release create "$TAG" "${ASSETS[@]}" \
               --title "Symphonia ${{ steps.ver.outputs.version }}" \
               --notes-file "$NOTES"
           fi
