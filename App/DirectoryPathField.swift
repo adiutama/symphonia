@@ -9,7 +9,7 @@ struct DirectoryPathField: View {
     var body: some View {
         HStack(spacing: 8) {
             TextField(prompt, text: $path, prompt: Text(prompt))
-                .textFieldStyle(.roundedBorder)
+                .settingsControlField()
                 .frame(minWidth: 140, idealWidth: 200)
                 .frame(maxWidth: 280)
 

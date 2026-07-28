@@ -11,8 +11,12 @@ final class GhosttyChromeTheme: ObservableObject {
     @Published private(set) var foreground: Color
     /// Slightly elevated from background for sidebar / rail separation.
     @Published private(set) var sidebar: Color
-    /// Solid panel fill for Command Center (avoids light system materials on dark themes).
+    /// Solid panel fill for Command Center / Settings cards (avoids light system materials).
     @Published private(set) var panel: Color
+    /// Elevated fill for text fields / chord chips so controls read against `panel`.
+    @Published private(set) var control: Color
+    /// Accent from Ghostty palette index 4 (ANSI blue), used for tint / selection.
+    @Published private(set) var accent: Color
     @Published private(set) var colorScheme: ColorScheme
     /// AppKit placeholder behind a terminal surface before Ghostty paints.
     @Published private(set) var nsBackground: NSColor
@@ -32,6 +36,8 @@ final class GhosttyChromeTheme: ObservableObject {
         foreground = applied.foreground
         sidebar = applied.sidebar
         panel = applied.panel
+        control = applied.control
+        accent = applied.accent
         colorScheme = applied.colorScheme
         nsBackground = applied.nsBackground
 
@@ -76,6 +82,8 @@ final class GhosttyChromeTheme: ObservableObject {
         foreground = applied.foreground
         sidebar = applied.sidebar
         panel = applied.panel
+        control = applied.control
+        accent = applied.accent
         colorScheme = applied.colorScheme
         nsBackground = applied.nsBackground
     }
@@ -85,6 +93,8 @@ final class GhosttyChromeTheme: ObservableObject {
         var foreground: Color
         var sidebar: Color
         var panel: Color
+        var control: Color
+        var accent: Color
         var colorScheme: ColorScheme
         var nsBackground: NSColor
     }
@@ -96,8 +106,11 @@ final class GhosttyChromeTheme: ObservableObject {
             // Sidebar lifts off the Ghostty terminal background so the traffic-light column
             // reads as its own surface (Xcode / Raycast).
             sidebar: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.07)),
-            // Command Center / Overlay chrome: tiny lift so panels read as peeks, not a different theme.
+            // Command Center / Overlay / Settings cards: tiny lift so panels read as peeks.
             panel: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.04)),
+            // Text fields / chips sit above panel so borders are not required for contrast.
+            control: Color(nsColor: resolved.mix(toward: resolved.foreground, amount: 0.12)),
+            accent: Color(nsColor: resolved.accent),
             colorScheme: resolved.isDark ? .dark : .light,
             nsBackground: resolved.background
         )
@@ -168,6 +181,8 @@ final class GhosttyChromeTheme: ObservableObject {
     private struct Resolved {
         var background: NSColor
         var foreground: NSColor
+        /// ANSI blue (palette 4), or a mid mix when palette is unavailable.
+        var accent: NSColor
 
         var isDark: Bool {
             // Relative luminance (sRGB approx); Ghostty window-theme=auto uses the same idea.
@@ -195,9 +210,12 @@ final class GhosttyChromeTheme: ObservableObject {
     }
 
     private static func loadFromGhosttyConfig() -> Resolved {
+        let fallbackForeground = NSColor(srgbRed: 0.9, green: 0.9, blue: 0.9, alpha: 1)
+        let fallbackBackground = NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 1)
         let fallback = Resolved(
-            background: NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 1),
-            foreground: NSColor(srgbRed: 0.9, green: 0.9, blue: 0.9, alpha: 1)
+            background: fallbackBackground,
+            foreground: fallbackForeground,
+            accent: NSColor(srgbRed: 0.45, green: 0.55, blue: 0.85, alpha: 1)
         )
 
         guard let config = ghostty_config_new() else {
@@ -210,29 +228,44 @@ final class GhosttyChromeTheme: ObservableObject {
 
         var background = ghostty_config_color_s(r: 0, g: 0, b: 0)
         var foreground = ghostty_config_color_s(r: 230, g: 230, b: 230)
+        var palette = ghostty_config_palette_s()
 
         let bgKey = "background"
         let fgKey = "foreground"
+        let paletteKey = "palette"
         _ = bgKey.withCString { keyPtr in
             ghostty_config_get(config, &background, keyPtr, UInt(bgKey.utf8.count))
         }
         _ = fgKey.withCString { keyPtr in
             ghostty_config_get(config, &foreground, keyPtr, UInt(fgKey.utf8.count))
         }
+        let gotPalette = paletteKey.withCString { keyPtr in
+            ghostty_config_get(config, &palette, keyPtr, UInt(paletteKey.utf8.count))
+        }
 
-        return Resolved(
-            background: NSColor(
-                srgbRed: CGFloat(background.r) / 255,
-                green: CGFloat(background.g) / 255,
-                blue: CGFloat(background.b) / 255,
-                alpha: 1
-            ),
-            foreground: NSColor(
-                srgbRed: CGFloat(foreground.r) / 255,
-                green: CGFloat(foreground.g) / 255,
-                blue: CGFloat(foreground.b) / 255,
-                alpha: 1
-            )
+        let bg = Self.nsColor(from: background)
+        let fg = Self.nsColor(from: foreground)
+        let accent: NSColor
+        if gotPalette {
+            // Index 4 = ANSI blue — theme accent for chrome tint / selection.
+            accent = withUnsafeBytes(of: palette.colors) { raw in
+                let colors = raw.bindMemory(to: ghostty_config_color_s.self)
+                return Self.nsColor(from: colors[4])
+            }
+        } else {
+            accent = Resolved(background: bg, foreground: fg, accent: fallback.accent)
+                .mix(toward: fg, amount: 0.55)
+        }
+
+        return Resolved(background: bg, foreground: fg, accent: accent)
+    }
+
+    private static func nsColor(from color: ghostty_config_color_s) -> NSColor {
+        NSColor(
+            srgbRed: CGFloat(color.r) / 255,
+            green: CGFloat(color.g) / 255,
+            blue: CGFloat(color.b) / 255,
+            alpha: 1
         )
     }
 }

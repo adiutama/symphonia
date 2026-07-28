@@ -96,7 +96,7 @@ struct SecretStoreScaffoldView: View {
                 ) {
                     HStack(spacing: 8) {
                         TextField("Name", text: $secrets.draftGroupName)
-                            .textFieldStyle(.roundedBorder)
+                            .settingsControlField()
                             .frame(minWidth: 120, idealWidth: 160)
                             .frame(maxWidth: 200)
                         Button("Add") {
@@ -134,7 +134,7 @@ struct SecretStoreScaffoldView: View {
                         set: { secrets.renameGroup(group.id, name: $0) }
                     )
                 )
-                .textFieldStyle(.roundedBorder)
+                .settingsControlField()
                 .frame(width: 140)
 
                 Button(role: .destructive) {
@@ -173,7 +173,7 @@ struct SecretStoreScaffoldView: View {
                     description: "\(filteredVars.count) shown"
                 ) {
                     TextField("Key or group", text: $filter)
-                        .textFieldStyle(.roundedBorder)
+                        .settingsControlField()
                         .frame(minWidth: 140, idealWidth: 200)
                         .frame(maxWidth: 260)
                 }
@@ -289,7 +289,7 @@ struct SecretStoreScaffoldView: View {
                 ) {
                     HStack(spacing: 8) {
                         TextField("Key", text: $secrets.draftVarKey)
-                            .textFieldStyle(.roundedBorder)
+                            .settingsControlField()
                             .font(.body.monospaced())
                             .frame(width: 120)
 
@@ -300,7 +300,7 @@ struct SecretStoreScaffoldView: View {
                                 SecureField("Value", text: $secrets.draftVarValue)
                             }
                         }
-                        .textFieldStyle(.roundedBorder)
+                        .settingsControlField()
                         .font(.body.monospaced())
                         .frame(minWidth: 100, idealWidth: 140)
                         .frame(maxWidth: 180)
