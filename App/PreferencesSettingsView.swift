@@ -32,7 +32,13 @@ struct PreferencesSettingsView: View {
                 .background(ghosttyTheme.background)
         }
         .frame(minWidth: 720, minHeight: 480)
-        .background(ghosttyTheme.background)
+        .background {
+            if preferences.preferences.chromeGlass {
+                Color.clear
+            } else {
+                ghosttyTheme.background
+            }
+        }
         .ignoresSafeArea(.container, edges: .top)
         .symphoniaTitlebarChrome()
         .background(SettingsWindowChrome())
@@ -227,7 +233,7 @@ struct PreferencesSettingsView: View {
                 SettingsCard {
                     SettingsRow(
                         title: "Glass chrome",
-                        description: "Stronger frosted glass on the workspace sidebar."
+                        description: "Liquid Glass sidebar on macOS 26+ (frosted fallback earlier). Also tints Command Center and Overlay peeks."
                     ) {
                         Toggle("", isOn: $preferences.preferences.chromeGlass)
                             .labelsHidden()

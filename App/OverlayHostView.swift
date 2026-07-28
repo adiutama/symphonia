@@ -6,6 +6,7 @@ import SwiftUI
 struct OverlayHostView: View {
     @EnvironmentObject private var worktrees: WorktreeController
     @EnvironmentObject private var overlays: OverlayController
+    @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     var body: some View {
@@ -87,8 +88,11 @@ struct OverlayHostView: View {
             )
             .id(session.id)
         }
-        .background(ghosttyTheme.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .chromeFloatingSurface(
+            glass: preferences.preferences.chromeGlass,
+            solid: ghosttyTheme.panel,
+            cornerRadius: 12
+        )
         .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
     }
 
