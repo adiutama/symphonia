@@ -26,12 +26,15 @@ else
 fi
 
 echo "==> Building Symphonia ($CONFIGURATION)"
+# GhosttyKit is built native-only (arm64); macOS 26 is Apple Silicon only.
 XCODEBUILD_ARGS=(
   -scheme Symphonia
   -configuration "$CONFIGURATION"
   -project Symphonia.xcodeproj
   -derivedDataPath "$DERIVED_DATA"
-  -destination "platform=macOS"
+  -destination "platform=macOS,arch=arm64"
+  ARCHS=arm64
+  ONLY_ACTIVE_ARCH=YES
   CODE_SIGN_IDENTITY="-"
   CODE_SIGNING_ALLOWED=YES
   build
