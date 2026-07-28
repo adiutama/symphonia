@@ -27,9 +27,13 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// Default Base Ref for new Worktree branches (ADR 0019).
     var baseRef: String
 
-    /// Operator overrides for Command aliases/sequences, keyed by stable Command `id`
+    /// Operator overrides for Command sequences, keyed by stable Command `id`
     /// (e.g. `"overlay.openEditor"`, ADR 0021 CC.3 / Path B). Missing id → Command defaults.
+    /// Aliases are no longer used.
     var commandBindings: [String: CommandBindingOverride]
+
+    /// First-launch sheet dismissed. Missing file → `false`; existing TOML without key → `true`.
+    var onboardingCompleted: Bool
 
     /// Sensible Global Setting defaults when `preferences.toml` is missing.
     static let `default` = GlobalPreferences(
@@ -39,12 +43,13 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         commandCenterPreferredMode: .input,
         workspacesRoot: "~/.symphonia/workspaces",
         baseRef: "main",
-        commandBindings: [:]
+        commandBindings: [:],
+        onboardingCompleted: false
     )
 
     enum CodingKeys: String, CodingKey {
         case mainCLICommand, editorCommand, leaderKey, commandCenterPreferredMode
-        case workspacesRoot, baseRef, commandBindings
+        case workspacesRoot, baseRef, commandBindings, onboardingCompleted
     }
 
     init(
@@ -54,7 +59,8 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         commandCenterPreferredMode: CommandCenterMode = .input,
         workspacesRoot: String,
         baseRef: String,
-        commandBindings: [String: CommandBindingOverride] = [:]
+        commandBindings: [String: CommandBindingOverride] = [:],
+        onboardingCompleted: Bool = false
     ) {
         self.mainCLICommand = mainCLICommand
         self.editorCommand = editorCommand
@@ -63,6 +69,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         self.workspacesRoot = workspacesRoot
         self.baseRef = baseRef
         self.commandBindings = commandBindings
+        self.onboardingCompleted = onboardingCompleted
     }
 
     init(from decoder: Decoder) throws {
@@ -81,5 +88,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
             [String: CommandBindingOverride].self,
             forKey: .commandBindings
         ) ?? [:]
+        // Existing installs (key absent) skip the sheet; brand-new defaults use `false`.
+        onboardingCompleted = try container.decodeIfPresent(Bool.self, forKey: .onboardingCompleted) ?? true
     }
 }

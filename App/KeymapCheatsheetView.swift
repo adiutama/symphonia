@@ -29,7 +29,7 @@ struct KeymapCheatsheetView: View {
                     section("Command Center–only", rows: ccOnlyRows)
                     section("Sequences", rows: sequenceRows)
 
-                    Text("Sequences/aliases respect Settings → Commands overrides.")
+                    Text("Sequences respect Settings → Shortcuts overrides.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)

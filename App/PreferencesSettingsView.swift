@@ -141,7 +141,7 @@ struct PreferencesSettingsView: View {
             generalPage
                 .navigationTitle("")
         case .globalCommands:
-            commandsPage
+            shortcutsPage
                 .navigationTitle("")
         case .workspaceSettings(let id):
             workspaceSettingsDetail(id)
@@ -168,7 +168,7 @@ struct PreferencesSettingsView: View {
                         description: "Empty runs a login shell. Set a command when you want a specific CLI on spawn."
                     ) {
                         TextField("Command", text: $preferences.preferences.mainCLICommand)
-                            .textFieldStyle(.roundedBorder)
+                            .settingsControlField()
                             .frame(minWidth: 160, idealWidth: 220)
                             .frame(maxWidth: 280)
                     }
@@ -178,16 +178,9 @@ struct PreferencesSettingsView: View {
                         description: "Empty uses $EDITOR (fallback vi). GUI editors launch externally."
                     ) {
                         TextField("Command", text: $preferences.preferences.editorCommand)
-                            .textFieldStyle(.roundedBorder)
+                            .settingsControlField()
                             .frame(minWidth: 160, idealWidth: 220)
                             .frame(maxWidth: 280)
-                    }
-                    SettingsRowDivider()
-                    SettingsRow(
-                        title: "Leader",
-                        description: leaderDescription
-                    ) {
-                        KeyChordField(chord: $preferences.preferences.leaderKey)
                     }
                     SettingsRowDivider()
                     SettingsRow(
@@ -222,7 +215,7 @@ struct PreferencesSettingsView: View {
                         description: "New Worktree branches are created from this ref."
                     ) {
                         TextField("Ref", text: $preferences.preferences.baseRef)
-                            .textFieldStyle(.roundedBorder)
+                            .settingsControlField()
                             .frame(minWidth: 100, idealWidth: 140)
                             .frame(maxWidth: 180)
                     }
@@ -237,24 +230,21 @@ struct PreferencesSettingsView: View {
         }
     }
 
-    private var leaderDescription: String {
-        if preferences.preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Required — empty restores default ⌘⇧P on save."
-        }
-        return "Opens Command Center (VS Code–style ⌘⇧P by default)."
-    }
+    // MARK: - Shortcuts
 
-    // MARK: - Commands
-
-    private var commandsPage: some View {
-        SettingsPage(title: "Commands") {
-            CommandBindingsSettingsView()
+    private var shortcutsPage: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ShortcutsSettingsView()
+                .padding(24)
             if let lastError = preferences.lastError {
                 Text(lastError)
                     .font(.caption)
                     .foregroundStyle(.red)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     // MARK: - Workspace Settings
@@ -288,7 +278,7 @@ struct PreferencesSettingsView: View {
                                         }
                                     )
                                 )
-                                .textFieldStyle(.roundedBorder)
+                                .settingsControlField()
                                 .frame(minWidth: 160, idealWidth: 220)
                                 .frame(maxWidth: 280)
 
@@ -307,7 +297,7 @@ struct PreferencesSettingsView: View {
                                     set: { draftOverrides.editorCommand = $0.isEmpty ? nil : $0 }
                                 )
                             )
-                            .textFieldStyle(.roundedBorder)
+                            .settingsControlField()
                             .frame(minWidth: 160, idealWidth: 220)
                             .frame(maxWidth: 280)
                         }
@@ -316,7 +306,7 @@ struct PreferencesSettingsView: View {
                             title: "Leader",
                             description: "Empty inherits Global Leader."
                         ) {
-                            KeyChordField(chord: workspaceLeaderBinding)
+                            KeyChordField(chord: workspaceLeaderBinding, emptyLabel: "Inherit")
                         }
                     }
                 }
@@ -341,7 +331,7 @@ struct PreferencesSettingsView: View {
                                     set: { draftOverrides.baseRef = $0.isEmpty ? nil : $0 }
                                 )
                             )
-                            .textFieldStyle(.roundedBorder)
+                            .settingsControlField()
                             .frame(minWidth: 100, idealWidth: 140)
                             .frame(maxWidth: 180)
                         }
@@ -486,7 +476,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
     var title: String {
         switch self {
         case .globalGeneral: return "General"
-        case .globalCommands: return "Commands"
+        case .globalCommands: return "Shortcuts"
         case .workspaceSettings: return "Settings"
         case .workspaceSecrets: return "Secret Store"
         }
@@ -495,7 +485,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
     var systemImage: String {
         switch self {
         case .globalGeneral: return "gearshape"
-        case .globalCommands: return "command"
+        case .globalCommands: return "keyboard"
         case .workspaceSettings: return "slider.horizontal.3"
         case .workspaceSecrets: return "key"
         }

@@ -338,8 +338,10 @@ final class CommandModeController: ObservableObject {
     private func matches(_ command: Command, query: String, overrides: [String: CommandBindingOverride]) -> Bool {
         if command.title.lowercased().contains(query) { return true }
         if let subtitle = command.subtitle, subtitle.lowercased().contains(query) { return true }
-        let aliases = CommandBindingResolver.aliases(for: command, overrides: overrides)
-        return aliases.contains { $0.lowercased().contains(query) }
+        if let sequence = CommandBindingResolver.sequence(for: command, overrides: overrides) {
+            return sequence.lowercased().contains(query)
+        }
+        return false
     }
 
     private func commandItem(_ command: Command, overrides: [String: CommandBindingOverride]) -> CommandModeItem {

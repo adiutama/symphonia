@@ -28,7 +28,7 @@ extension CommandContext {
 ///
 /// `run` wraps the existing `CommandModeAction` enum so today's `CommandModeController`
 /// stays the single place that knows how to execute an action — the registry only adds
-/// discovery, default aliases, and a default shortcut on top.
+/// discovery and a default sequence / shortcut on top.
 struct Command: Identifiable {
     /// Stable id, e.g. `"overlay.openEditor"`. Never shown to the Operator; used for
     /// Settings overrides (CC.3) and conflict checks (CC.4).
