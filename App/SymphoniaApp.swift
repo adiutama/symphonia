@@ -78,7 +78,7 @@ struct SymphoniaApp: App {
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .tint(ghosttyTheme.accent)
-                .ghosttyWindowChrome(ghosttyTheme)
+                .ghosttyWindowChrome(ghosttyTheme, glass: preferences.preferences.chromeGlass)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 720)
@@ -174,7 +174,7 @@ struct SymphoniaApp: App {
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .tint(ghosttyTheme.accent)
-                .ghosttyWindowChrome(ghosttyTheme)
+                .ghosttyWindowChrome(ghosttyTheme, glass: preferences.preferences.chromeGlass)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 860, height: 560)
@@ -188,7 +188,7 @@ struct SymphoniaApp: App {
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .tint(ghosttyTheme.accent)
-                .ghosttyWindowChrome(ghosttyTheme)
+                .ghosttyWindowChrome(ghosttyTheme, glass: preferences.preferences.chromeGlass)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 480, height: 640)
@@ -199,7 +199,7 @@ struct SymphoniaApp: App {
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .tint(ghosttyTheme.accent)
-                .ghosttyWindowChrome(ghosttyTheme)
+                .ghosttyWindowChrome(ghosttyTheme, glass: preferences.preferences.chromeGlass)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

@@ -35,6 +35,9 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// First-launch sheet dismissed. Missing file → `false`; existing TOML without key → `true`.
     var onboardingCompleted: Bool
 
+    /// Frosted glass sidebar + light window blur. Missing key → `true`.
+    var chromeGlass: Bool
+
     /// Sensible Global Setting defaults when `preferences.toml` is missing.
     static let `default` = GlobalPreferences(
         mainCLICommand: "",
@@ -44,12 +47,13 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         workspacesRoot: "~/.symphonia/workspaces",
         baseRef: "main",
         commandBindings: [:],
-        onboardingCompleted: false
+        onboardingCompleted: false,
+        chromeGlass: true
     )
 
     enum CodingKeys: String, CodingKey {
         case mainCLICommand, editorCommand, leaderKey, commandCenterPreferredMode
-        case workspacesRoot, baseRef, commandBindings, onboardingCompleted
+        case workspacesRoot, baseRef, commandBindings, onboardingCompleted, chromeGlass
     }
 
     init(
@@ -60,7 +64,8 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         workspacesRoot: String,
         baseRef: String,
         commandBindings: [String: CommandBindingOverride] = [:],
-        onboardingCompleted: Bool = false
+        onboardingCompleted: Bool = false,
+        chromeGlass: Bool = true
     ) {
         self.mainCLICommand = mainCLICommand
         self.editorCommand = editorCommand
@@ -70,6 +75,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         self.baseRef = baseRef
         self.commandBindings = commandBindings
         self.onboardingCompleted = onboardingCompleted
+        self.chromeGlass = chromeGlass
     }
 
     init(from decoder: Decoder) throws {
@@ -90,5 +96,6 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         ) ?? [:]
         // Existing installs (key absent) skip the sheet; brand-new defaults use `false`.
         onboardingCompleted = try container.decodeIfPresent(Bool.self, forKey: .onboardingCompleted) ?? true
+        chromeGlass = try container.decodeIfPresent(Bool.self, forKey: .chromeGlass) ?? true
     }
 }

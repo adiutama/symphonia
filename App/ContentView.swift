@@ -17,7 +17,12 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 WorkspaceSidebarView()
                     .frame(width: sidebarWidth)
-                resizeDivider
+                    .overlay(alignment: .trailing) {
+                        SoftPaneHairline()
+                    }
+                    .overlay(alignment: .trailing) {
+                        resizeHandle
+                    }
 
                 OverlayHostView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -54,10 +59,11 @@ struct ContentView: View {
         }
     }
 
-    /// Invisible resize hit-target — separation comes from the darker sidebar fill alone.
-    private var resizeDivider: some View {
+    /// Invisible resize hit-target on the sidebar’s trailing edge (no gap / seam in the HStack).
+    private var resizeHandle: some View {
         Color.clear
-            .frame(width: 6)
+            .frame(width: 8)
+            .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
             .onHover { hovering in
                 if hovering {
