@@ -22,13 +22,8 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
-      - name: Download Metal Toolchain
-        run: |
-          xcodebuild -downloadComponent MetalToolchain || true
-          xcrun -sdk macosx metal --version
-
-      - name: Install Zig 0.16
-        run: ./scripts/install-zig.sh
+      - name: Setup build deps
+        uses: ./.github/actions/setup-build-deps
 
       - name: Resolve version
         id: ver
