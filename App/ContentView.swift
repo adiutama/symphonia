@@ -15,6 +15,9 @@ struct ContentView: View {
 
     private let sidebarMinWidth: Double = 180
     private let sidebarMaxWidth: Double = 400
+    /// Matches `WorkspaceSidebarView` titlebar band so meta vertically aligns with chrome.
+    private let titlebarBandHeight: CGFloat = 52
+    private let titlebarEdgeInset: CGFloat = 14
 
     var body: some View {
         ZStack {
@@ -31,6 +34,12 @@ struct ContentView: View {
                 OverlayHostView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(ghosttyTheme.background.ignoresSafeArea(.container, edges: .top))
+                    .overlay(alignment: .topLeading) {
+                        projectMetaLayer
+                            // Sit in the transparent titlebar band (level with traffic lights),
+                            // not the content safe area on top of the terminal.
+                            .ignoresSafeArea(.container, edges: .top)
+                    }
                     .overlay(alignment: .topTrailing) {
                         glanceLayer
                     }
@@ -58,10 +67,6 @@ struct ContentView: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                projectMeta
-            }
-
             // Glance HUD toggle — trailing edge (not clustered with traffic lights).
             ToolbarSpacer(.flexible)
             ToolbarItem {
@@ -92,21 +97,9 @@ struct ContentView: View {
         }
     }
 
-    /// Floating Glance chip under the titlebar toggle (option B). Toggle only — no outside dismiss.
+    /// Project slug + path — content titlebar leading edge, no toolbar pill wrapper.
     @ViewBuilder
-    private var glanceLayer: some View {
-        if showGlance {
-            GlanceHUD()
-                .padding(.top, 6)
-                .padding(.trailing, 14)
-                .transition(
-                    .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing))
-                )
-        }
-    }
-
-    @ViewBuilder
-    private var projectMeta: some View {
+    private var projectMetaLayer: some View {
         if let workspace = workspaces.current {
             VStack(alignment: .leading, spacing: 1) {
                 Text(displayLowercased(workspace.slug))
@@ -120,6 +113,22 @@ struct ContentView: View {
                     .truncationMode(.middle)
             }
             .frame(maxWidth: 280, alignment: .leading)
+            .padding(.leading, titlebarEdgeInset)
+            .frame(height: titlebarBandHeight, alignment: .center)
+            .windowDragRegion()
+        }
+    }
+
+    /// Floating Glance chip under the titlebar toggle (option B). Toggle only — no outside dismiss.
+    @ViewBuilder
+    private var glanceLayer: some View {
+        if showGlance {
+            GlanceHUD()
+                .padding(.top, 6)
+                .padding(.trailing, 14)
+                .transition(
+                    .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing))
+                )
         }
     }
 
