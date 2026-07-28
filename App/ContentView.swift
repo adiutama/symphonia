@@ -4,6 +4,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
+    @EnvironmentObject private var preferences: PreferencesController
 
     @AppStorage("sidebarWidth") private var sidebarWidth: Double = 240
     @State private var dragStartWidth: Double?
@@ -40,6 +41,17 @@ struct ContentView: View {
         .symphoniaTitlebarChrome()
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
         .background(SettingsWindowPresenter())
+        .sheet(isPresented: Binding(
+            get: { !preferences.preferences.onboardingCompleted },
+            set: { presented in
+                if !presented {
+                    preferences.preferences.onboardingCompleted = true
+                    preferences.save()
+                }
+            }
+        )) {
+            OnboardingView()
+        }
     }
 
     /// Draggable divider between the sidebar and the workspace content; persists width.
