@@ -4,7 +4,7 @@ import Foundation
 enum CommandCenterMode: String, Codable, Equatable, Sendable, CaseIterable {
     /// Sequence prefix buffer; `j`/`k` move; auto-run on unique exact chord.
     case normal
-    /// Title/alias filter buffer; ↑↓ move.
+    /// Title/sequence filter buffer; ↑↓ move.
     case input
 
     var stripLabel: String {

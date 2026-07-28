@@ -19,19 +19,19 @@ enum PreferencesToml {
             "commandCenterPreferredMode = \(stringLiteral(preferences.commandCenterPreferredMode.rawValue))",
             "workspacesRoot = \(stringLiteral(preferences.workspacesRoot))",
             "baseRef = \(stringLiteral(preferences.baseRef))",
+            "onboardingCompleted = \(boolLiteral(preferences.onboardingCompleted))",
         ]
 
         let bindingKeys = preferences.commandBindings.keys.sorted()
         if !bindingKeys.isEmpty {
             lines.append("")
-            lines.append("# Command aliases / sequences keyed by Command id (ADR 0021 / Path B).")
+            lines.append("# Command sequences keyed by Command id (ADR 0021 / Path B).")
             for id in bindingKeys {
                 guard let override = preferences.commandBindings[id] else { continue }
+                // Skip empty override tables (e.g. leftover alias-only entries).
+                guard override.sequence != nil || override.shortcut != nil else { continue }
                 lines.append("")
                 lines.append("[commandBindings.\(quotedKey(id))]")
-                if let aliases = override.aliases {
-                    lines.append("aliases = \(stringLiteral(aliases))")
-                }
                 if let sequence = override.sequence {
                     lines.append("sequence = \(stringLiteral(sequence))")
                 }
@@ -52,8 +52,9 @@ enum PreferencesToml {
         var bindings: [String: CommandBindingOverride] = [:]
         if let bindingTables = table.tables["commandBindings"] {
             for (id, fields) in bindingTables {
+                // Aliases dropped from product UI — ignore legacy TOML keys.
                 bindings[id] = CommandBindingOverride(
-                    aliases: fields.strings["aliases"],
+                    aliases: nil,
                     sequence: fields.strings["sequence"],
                     shortcut: fields.strings["shortcut"]
                 )
@@ -64,6 +65,9 @@ enum PreferencesToml {
         let preferredMode = CommandCenterMode(rawValue: preferredModeRaw)
             ?? GlobalPreferences.default.commandCenterPreferredMode
 
+        // Existing TOML without the key → already onboarded. Missing file uses `.default` (false).
+        let onboardingCompleted = root.bools["onboardingCompleted"] ?? true
+
         return GlobalPreferences(
             mainCLICommand: root.strings["mainCLICommand"] ?? "",
             editorCommand: root.strings["editorCommand"] ?? "",
@@ -71,7 +75,8 @@ enum PreferencesToml {
             commandCenterPreferredMode: preferredMode,
             workspacesRoot: root.strings["workspacesRoot"] ?? GlobalPreferences.default.workspacesRoot,
             baseRef: root.strings["baseRef"] ?? GlobalPreferences.default.baseRef,
-            commandBindings: bindings
+            commandBindings: bindings,
+            onboardingCompleted: onboardingCompleted
         )
     }
 

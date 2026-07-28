@@ -1,14 +1,15 @@
 import Foundation
 
-/// Operator override for one Command's alias/sequence binding, persisted by Command
+/// Operator override for one Command's sequence binding, persisted by Command
 /// `id` in Global Setting (`GlobalPreferences.commandBindings`, ADR 0021 CC.3 / Path B).
 ///
 /// Fields are independently optional so "use the Command's default" and
 /// "explicitly override with an empty value" are distinguishable:
-/// - `aliases == nil` → use `Command.defaultAliases`. `aliases == ""` → no aliases.
 /// - `sequence == nil` → derive from title (or `Command.defaultSequence`). `sequence == ""` → none.
+/// - `aliases` is legacy (ignored; no longer written).
 /// - `shortcut` is legacy (empty-filter modifier chords); ignored by Path B Normal mode.
 struct CommandBindingOverride: Codable, Equatable, Sendable {
+    /// Legacy. Ignored by Settings / Command Center; stripped on save.
     var aliases: String?
     /// Optional Normal-mode sequence override (min 2, no `j`/`k`).
     var sequence: String?
@@ -22,18 +23,17 @@ struct CommandBindingOverride: Codable, Equatable, Sendable {
     }
 }
 
-/// Resolves **effective** Command aliases/sequences: Operator override (Global Setting)
+/// Resolves **effective** Command sequences: Operator override (Global Setting)
 /// if present, otherwise the Command's own default (ADR 0021 CC.3 / Path B).
 enum CommandBindingResolver {
-    /// Effective aliases for `command` given the Operator's `overrides` map.
+    /// Legacy alias resolver — returns empty. Kept so older call sites compile during migration.
     static func aliases(
         for command: Command,
         overrides: [String: CommandBindingOverride]
     ) -> [String] {
-        guard let raw = overrides[command.id]?.aliases else {
-            return command.defaultAliases
-        }
-        return parseAliases(raw)
+        _ = command
+        _ = overrides
+        return []
     }
 
     /// Effective Normal-mode sequence. `nil` means no sequence.
