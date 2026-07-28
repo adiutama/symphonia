@@ -4,8 +4,8 @@ import SwiftUI
 /// Applies Ghostty chrome colors to the hosting `NSWindow` (titlebar / window bg)
 /// so macOS chrome blends with the terminal the way Ghostty does.
 ///
-/// Headless-ish: transparent titlebar + hidden title, system traffic lights kept.
-/// Drag via chrome-only regions (`WindowDragRegion`) — not whole-window background.
+/// Unified transparent titlebar + real toolbar items (from SwiftUI) so traffic lights
+/// sit mid-band with our controls. Sidebar glass paints under via fullSizeContentView.
 struct GhosttyWindowChrome: NSViewRepresentable {
     let background: NSColor
     let isDark: Bool
@@ -35,8 +35,6 @@ struct GhosttyWindowChrome: NSViewRepresentable {
             window.isOpaque = true
             window.backgroundColor = background
         }
-        // Full-size content + transparent titlebar: content (sidebar) paints under the
-        // traffic lights — Xcode / Raycast / Supacode pattern.
         if !window.styleMask.contains(.fullSizeContentView) {
             window.styleMask.insert(.fullSizeContentView)
         }
@@ -45,7 +43,8 @@ struct GhosttyWindowChrome: NSViewRepresentable {
         window.titlebarSeparatorStyle = .none
         window.toolbarStyle = .unified
         if let toolbar = window.toolbar {
-            toolbar.isVisible = false
+            toolbar.showsBaselineSeparator = false
+            toolbar.isVisible = true
         }
         // Never move the window from terminal / list hits — chrome drag regions only.
         window.isMovableByWindowBackground = false
@@ -91,8 +90,8 @@ extension View {
         background(WindowDragRegion())
     }
 
-    /// Let content paint under traffic lights (macOS 15+ SwiftUI toolbar chrome).
-    /// Pair with `.windowStyle(.hiddenTitleBar)` on the Scene and top safe-area ignore.
+    /// Transparent unified titlebar chrome. Pair with `.windowToolbarStyle(.unified)`
+    /// and real `.toolbar` items so traffic lights align with controls.
     @ViewBuilder
     func symphoniaTitlebarChrome() -> some View {
         if #available(macOS 15.0, *) {
@@ -101,6 +100,7 @@ extension View {
                 .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         } else {
             self
+                .toolbarBackground(.hidden, for: .windowToolbar)
         }
     }
 }

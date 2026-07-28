@@ -17,7 +17,7 @@ struct PreferencesSettingsView: View {
     @State private var suppressWorkspaceAutosave = false
 
     /// Clearance under system traffic lights when titlebar is transparent / full-size content.
-    private let trafficLightClearance: CGFloat = 28
+    private let trafficLightClearance: CGFloat = 52
 
     var body: some View {
         // Custom HStack split — NavigationSplitView draws an inset sidebar that never
