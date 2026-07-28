@@ -11,7 +11,7 @@ struct ContentView: View {
 
     @AppStorage("sidebarWidth") private var sidebarWidth: Double = 240
     @State private var dragStartWidth: Double?
-    @State private var showOverlayGlance = false
+    @State private var showGlance = false
 
     private let sidebarMinWidth: Double = 180
     private let sidebarMaxWidth: Double = 400
@@ -28,18 +28,12 @@ struct ContentView: View {
                         resizeHandle
                     }
 
-                HStack(spacing: 0) {
-                    OverlayHostView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    if showOverlayGlance {
-                        OverlayGlanceSheet()
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                OverlayHostView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(ghosttyTheme.background.ignoresSafeArea(.container, edges: .top))
+                    .overlay(alignment: .topTrailing) {
+                        glanceLayer
                     }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(ghosttyTheme.background.ignoresSafeArea(.container, edges: .top))
-                .animation(.easeOut(duration: 0.16), value: showOverlayGlance)
             }
             .frame(minWidth: 720, minHeight: 420)
 
@@ -64,30 +58,26 @@ struct ContentView: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    workspaces.beginCreateWorkspace()
-                } label: {
-                    Image(systemName: "folder.badge.plus")
-                }
-                .help("New Project")
-            }
-
             ToolbarItem(placement: .principal) {
                 projectMeta
             }
 
-            ToolbarItem(placement: .primaryAction) {
+            // Glance HUD toggle — trailing edge (not clustered with traffic lights).
+            ToolbarSpacer(.flexible)
+            ToolbarItem {
                 Button {
-                    showOverlayGlance.toggle()
+                    showGlance.toggle()
                 } label: {
-                    Image(systemName: "rectangle.stack")
+                    Image(systemName: "viewfinder")
+                        .foregroundStyle(ghosttyTheme.foreground)
                 }
-                .help("Overlays")
+                .help("Glance")
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .symphoniaTitlebarChrome()
         .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
+        .animation(.easeOut(duration: 0.14), value: showGlance)
         .background(SettingsWindowPresenter())
         .sheet(isPresented: Binding(
             get: { !preferences.preferences.onboardingCompleted },
@@ -99,6 +89,19 @@ struct ContentView: View {
             }
         )) {
             OnboardingView()
+        }
+    }
+
+    /// Floating Glance chip under the titlebar toggle (option B). Toggle only — no outside dismiss.
+    @ViewBuilder
+    private var glanceLayer: some View {
+        if showGlance {
+            GlanceHUD()
+                .padding(.top, 6)
+                .padding(.trailing, 14)
+                .transition(
+                    .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing))
+                )
         }
     }
 
