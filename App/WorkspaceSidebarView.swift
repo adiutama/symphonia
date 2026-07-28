@@ -15,14 +15,23 @@ struct WorkspaceSidebarView: View {
     @State private var renameWorktreeBranch = ""
     @State private var renameWorktreeFolder = ""
 
+    /// Clearance under traffic lights / unified titlebar (matches settings sidebar).
+    private let titlebarBandHeight: CGFloat = 52
+    /// Match standard traffic-light leading inset from the window edge.
+    private let titlebarEdgeInset: CGFloat = 14
+
     var body: some View {
-        projectList
+        VStack(spacing: 0) {
+            sidebarTitlebarBand
+            projectList
+        }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            // Glass / solid fills under the transparent titlebar; list content stays in the safe area.
+            // Glass / solid fills under the transparent titlebar; list content stays below the band.
             .background {
                 sidebarChrome
                     .ignoresSafeArea(.container, edges: .top)
             }
+            .ignoresSafeArea(.container, edges: .top)
             .confirmationDialog(
                 removeDialogTitle,
                 isPresented: Binding(
@@ -97,6 +106,28 @@ struct WorkspaceSidebarView: View {
                 expandedWorkspaceIDs.insert(newID)
             }
         }
+    }
+
+    /// Titlebar strip over the sidebar: drag region + New Project pinned to the trailing edge
+    /// so it tracks sidebar resize (not a window-toolbar item next to the traffic lights).
+    private var sidebarTitlebarBand: some View {
+        HStack(spacing: 0) {
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .windowDragRegion()
+
+            Button {
+                beginCreateWorkspace()
+            } label: {
+                Image(systemName: "folder.badge.plus")
+                    .foregroundStyle(ghosttyTheme.foreground)
+            }
+            .buttonStyle(.borderless)
+            .help("New Project")
+            .padding(.trailing, titlebarEdgeInset)
+        }
+        .frame(height: titlebarBandHeight)
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
