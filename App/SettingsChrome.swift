@@ -5,6 +5,7 @@ import SwiftUI
 
 struct SettingsPage<Content: View>: View {
     let title: String
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -12,7 +13,7 @@ struct SettingsPage<Content: View>: View {
             VStack(alignment: .leading, spacing: 20) {
                 Text(title)
                     .font(.largeTitle.weight(.bold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(ghosttyTheme.foreground)
                     .padding(.bottom, 4)
 
                 content()
@@ -26,13 +27,14 @@ struct SettingsPage<Content: View>: View {
 
 struct SettingsSection<Content: View>: View {
     let title: String
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
-                .foregroundStyle(.primary)
+                .foregroundStyle(ghosttyTheme.foreground)
 
             content()
         }
@@ -50,13 +52,14 @@ struct SettingsCard<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(ghosttyTheme.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
 struct SettingsRow<Control: View>: View {
     let title: String
     let description: String?
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
     @ViewBuilder var control: () -> Control
 
     init(title: String, description: String? = nil, @ViewBuilder control: @escaping () -> Control) {
@@ -70,11 +73,11 @@ struct SettingsRow<Control: View>: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(ghosttyTheme.foreground)
                 if let description, !description.isEmpty {
                     Text(description)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -88,13 +91,44 @@ struct SettingsRow<Control: View>: View {
     }
 }
 
-/// Hairline between rows inside a `SettingsCard`.
+/// Soft row separator — opacity fade, not a hard rule.
 struct SettingsRowDivider: View {
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
+
     var body: some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.08))
-            .frame(height: 1)
-            .padding(.leading, 14)
+        LinearGradient(
+            colors: [
+                ghosttyTheme.hairline.opacity(0),
+                ghosttyTheme.hairline.opacity(0.55),
+                ghosttyTheme.hairline.opacity(0.55),
+                ghosttyTheme.hairline.opacity(0),
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(height: 1)
+        .padding(.horizontal, 14)
+    }
+}
+
+/// Soft horizontal rule that fades at the ends.
+struct SoftHairline: View {
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
+    var horizontalPadding: CGFloat = 0
+
+    var body: some View {
+        LinearGradient(
+            colors: [
+                ghosttyTheme.hairline.opacity(0),
+                ghosttyTheme.hairline.opacity(0.45),
+                ghosttyTheme.hairline.opacity(0.45),
+                ghosttyTheme.hairline.opacity(0),
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(height: 1)
+        .padding(.horizontal, horizontalPadding)
     }
 }
 

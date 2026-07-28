@@ -29,7 +29,7 @@ struct OverlayHostView: View {
 
             if worktrees.openedMainCLISessions.isEmpty {
                 Text("Select Main Repo or a Worktree")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .zIndex(-1)
             }
@@ -62,7 +62,7 @@ struct OverlayHostView: View {
             if let error = overlays.lastError {
                 Text(error)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .frame(maxWidth: .infinity)
@@ -77,7 +77,7 @@ struct OverlayHostView: View {
     private func overlayPane(session: OverlaySession, isVisible: Bool) -> some View {
         VStack(spacing: 0) {
             sheetHeader(session)
-            Divider().opacity(0.25)
+            SoftHairline(horizontalPadding: 10)
             TerminalSurfaceView(
                 workingDirectory: session.workingDirectory,
                 command: session.command,
@@ -87,23 +87,20 @@ struct OverlayHostView: View {
             .id(session.id)
         }
         .background(ghosttyTheme.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.5)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
     }
 
     private func sheetHeader(_ session: OverlaySession) -> some View {
         HStack(spacing: 8) {
             Text(session.kind == .editor ? "EDITOR" : "BG")
                 .font(.caption2.weight(.semibold).monospaced())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(ghosttyTheme.secondaryText)
                 .tracking(0.4)
 
             Text(session.title)
                 .font(.subheadline)
-                .foregroundStyle(.primary.opacity(0.85))
+                .foregroundStyle(ghosttyTheme.foreground.opacity(0.85))
                 .lineLimit(1)
 
             Spacer(minLength: 8)
@@ -113,7 +110,7 @@ struct OverlayHostView: View {
             }
             .font(.caption.weight(.medium))
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(ghosttyTheme.secondaryText)
             .help("Toggle Overlay (process stays alive); kill via Overlay Switcher")
         }
         .padding(.horizontal, 12)

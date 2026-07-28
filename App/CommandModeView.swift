@@ -14,19 +14,15 @@ struct CommandModeView: View {
                 modeStrip
             }
             promptBar
-            Divider().opacity(0.35)
+            SoftHairline(horizontalPadding: 10)
             itemList
-            Divider().opacity(0.35)
+            SoftHairline(horizontalPadding: 10)
             footer
         }
         .frame(width: 440)
         .background(ghosttyTheme.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.28), radius: 18, y: 8)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.22), radius: 28, y: 12)
     }
 
     // MARK: - D · Minimal strip
@@ -35,7 +31,7 @@ struct CommandModeView: View {
         HStack(spacing: 6) {
             Text(stripLabel)
                 .font(.caption2.weight(.semibold).monospaced())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(ghosttyTheme.secondaryText)
                 .tracking(0.6)
             Spacer(minLength: 8)
             Text(
@@ -43,7 +39,7 @@ struct CommandModeView: View {
                     ?? preferences.effective.leaderKey
             )
             .font(.caption2.monospaced())
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(ghosttyTheme.tertiaryText)
         }
         .padding(.horizontal, 14)
         .padding(.top, 10)
@@ -67,20 +63,20 @@ struct CommandModeView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
             }
             .buttonStyle(.plain)
             .help("Back to main list (Esc)")
 
             Text("Overlay Switcher")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.primary.opacity(0.85))
+                .foregroundStyle(ghosttyTheme.foreground.opacity(0.85))
 
             Spacer(minLength: 8)
 
             Text("Esc")
                 .font(.caption2.monospaced())
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(ghosttyTheme.tertiaryText)
                 .help("Leave nest to main list")
         }
         .padding(.horizontal, 14)
@@ -94,17 +90,21 @@ struct CommandModeView: View {
         HStack(spacing: 8) {
             Text(commandMode.filterQuery.isEmpty ? placeholder : commandMode.filterQuery)
                 .font(.system(size: 15, weight: .regular, design: .monospaced))
-                .foregroundStyle(commandMode.filterQuery.isEmpty ? .tertiary : .primary)
+                .foregroundStyle(
+                    commandMode.filterQuery.isEmpty
+                        ? ghosttyTheme.tertiaryText
+                        : ghosttyTheme.foreground
+                )
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if !commandMode.filterQuery.isEmpty {
                 Text("⌫")
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(ghosttyTheme.tertiaryText)
             } else {
                 Rectangle()
-                    .fill(Color.accentColor.opacity(0.7))
+                    .fill(ghosttyTheme.accent.opacity(0.7))
                     .frame(width: 1.5, height: 14)
             }
         }
@@ -134,7 +134,7 @@ struct CommandModeView: View {
                     if commandMode.items.isEmpty {
                         Text("No matches")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(ghosttyTheme.secondaryText)
                             .padding(12)
                     } else {
                         ForEach(Array(commandMode.items.enumerated()), id: \.element.id) { index, item in
@@ -166,10 +166,11 @@ struct CommandModeView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.callout.weight(selected ? .semibold : .regular))
+                    .foregroundStyle(ghosttyTheme.foreground)
                 if let subtitle = item.subtitle {
                     Text(subtitle)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -178,17 +179,21 @@ struct CommandModeView: View {
             if let sequence = item.sequence {
                 Text(sequence)
                     .font(.caption.monospaced().weight(.medium))
-                    .foregroundStyle(selected ? Color.primary.opacity(0.7) : Color.secondary)
+                    .foregroundStyle(
+                        selected
+                            ? ghosttyTheme.foreground.opacity(0.7)
+                            : ghosttyTheme.secondaryText
+                    )
             } else if selected {
                 Text("↩")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(selected ? Color.accentColor.opacity(0.18) : Color.clear)
+        .background(selected ? ghosttyTheme.selectionFill : Color.clear)
     }
 
     // MARK: - Footer
@@ -197,12 +202,12 @@ struct CommandModeView: View {
         HStack {
             Text(footerHints)
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(ghosttyTheme.tertiaryText)
             Spacer()
             if let info = commandMode.lastInfo {
                 Text(info)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
                     .lineLimit(1)
             }
         }

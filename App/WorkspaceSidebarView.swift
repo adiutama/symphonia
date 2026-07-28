@@ -24,7 +24,7 @@ struct WorkspaceSidebarView: View {
                 .windowDragRegion()
 
             header
-            Divider()
+            SoftHairline(horizontalPadding: 12)
             workspaceList
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -109,12 +109,14 @@ struct WorkspaceSidebarView: View {
         HStack {
             Text("workspaces")
                 .font(.headline)
+                .foregroundStyle(ghosttyTheme.foreground)
             Spacer(minLength: 8)
                 .windowDragRegion()
             Button {
                 beginCreateWorkspace()
             } label: {
                 Image(systemName: "plus")
+                    .foregroundStyle(ghosttyTheme.accent)
             }
             .buttonStyle(.borderless)
             .help("Create Workspace")
@@ -140,7 +142,7 @@ struct WorkspaceSidebarView: View {
         List {
             if workspaces.workspaces.isEmpty {
                 Text("No Workspaces yet")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
                     .font(.caption)
             } else {
                 ForEach(workspaces.workspaces) { workspace in
@@ -177,13 +179,14 @@ struct WorkspaceSidebarView: View {
         let isCurrent = workspaces.current?.id == workspace.id
         return HStack(spacing: 6) {
             Image(systemName: "folder.fill")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(ghosttyTheme.secondaryText)
                 .font(.caption)
             Text(displayLowercased(workspace.slug))
                 .fontWeight(isCurrent ? .semibold : .regular)
+                .foregroundStyle(ghosttyTheme.foreground)
             if isCurrent {
                 Circle()
-                    .fill(Color.accentColor)
+                    .fill(ghosttyTheme.accent)
                     .frame(width: 6, height: 6)
             }
             Spacer(minLength: 0)
@@ -194,7 +197,7 @@ struct WorkspaceSidebarView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.accent)
                 }
                 .buttonStyle(.borderless)
                 .help("New Worktree")
@@ -218,16 +221,17 @@ struct WorkspaceSidebarView: View {
             HStack(spacing: 6) {
                 Image(systemName: "house.fill")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
                     .frame(width: 14)
                 Text("main")
                     .fontWeight(isFocused ? .semibold : .regular)
+                    .foregroundStyle(ghosttyTheme.foreground)
                 Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowBackground(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
+        .listRowBackground(isFocused ? ghosttyTheme.selectionFill : Color.clear)
         .contextMenu {
             Button("New Worktree…") {
                 selectWorkspace(workspace)
@@ -269,16 +273,17 @@ struct WorkspaceSidebarView: View {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.triangle.branch")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
                     .frame(width: 14)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(displayLowercased(agent.primaryLabel))
                         .fontWeight(isFocused ? .semibold : .regular)
+                        .foregroundStyle(ghosttyTheme.foreground)
                         .lineLimit(1)
                     if let secondary {
                         Text(displayLowercased(secondary))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(ghosttyTheme.tertiaryText)
                             .lineLimit(1)
                     }
                 }
@@ -287,7 +292,7 @@ struct WorkspaceSidebarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowBackground(isFocused ? Color.accentColor.opacity(0.18) : Color.clear)
+        .listRowBackground(isFocused ? ghosttyTheme.selectionFill : Color.clear)
         .contextMenu {
             Button("Rename Worktree…") {
                 selectWorkspace(workspace)

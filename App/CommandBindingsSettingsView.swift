@@ -36,6 +36,7 @@ struct ShortcutsSettingsView: View {
         HStack(spacing: 10) {
             Text("Shortcuts")
                 .font(.largeTitle.weight(.bold))
+                .foregroundStyle(ghosttyTheme.foreground)
 
             Spacer(minLength: 8)
 
@@ -54,7 +55,7 @@ struct ShortcutsSettingsView: View {
 
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
                 TextField("Search…", text: $search)
                     .textFieldStyle(.plain)
             }
@@ -77,7 +78,7 @@ struct ShortcutsSettingsView: View {
                             .font(.caption.weight(.semibold))
                         Text(conflict.commandTitles.joined(separator: " ↔ "))
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(ghosttyTheme.secondaryText)
                     }
                 }
             }
@@ -122,7 +123,7 @@ struct ShortcutsSettingsView: View {
     private func headerLabel(_ title: String) -> some View {
         Text(title)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(ghosttyTheme.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -137,12 +138,12 @@ struct ShortcutsSettingsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "chevron.down")
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
                         .rotationEffect(.degrees(isExpanded ? 0 : -90))
                         .frame(width: 12)
                     Text(group.title)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(ghosttyTheme.foreground)
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, rowHorizontalPadding)
@@ -164,7 +165,7 @@ struct ShortcutsSettingsView: View {
         HStack(spacing: 0) {
             Text(row.title)
                 .font(.body)
-                .foregroundStyle(.primary)
+                .foregroundStyle(ghosttyTheme.foreground)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -214,14 +215,12 @@ struct ShortcutsSettingsView: View {
     private func placeholderCell(_ text: String) -> some View {
         Text(text)
             .font(.body.monospaced())
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(ghosttyTheme.tertiaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var tableDivider: some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.08))
-            .frame(height: 1)
+        SoftHairline(horizontalPadding: 8)
     }
 
     // MARK: - Data

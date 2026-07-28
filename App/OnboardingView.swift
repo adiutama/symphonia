@@ -72,12 +72,12 @@ struct OnboardingView: View {
 
             Text(step.title)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(ghosttyTheme.foreground)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(step.body)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(ghosttyTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -109,10 +109,8 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 220)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 16, y: 6)
         .accessibilityLabel(step.title)
     }
 
@@ -156,7 +154,7 @@ struct OnboardingView: View {
         HStack(spacing: 6) {
             ForEach(steps.indices, id: \.self) { index in
                 Circle()
-                    .fill(index == stepIndex ? ghosttyTheme.accent : Color.secondary.opacity(0.35))
+                    .fill(index == stepIndex ? ghosttyTheme.accent : ghosttyTheme.tertiaryText.opacity(0.55))
                     .frame(width: 7, height: 7)
             }
         }

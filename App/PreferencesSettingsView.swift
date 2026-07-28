@@ -27,8 +27,6 @@ struct PreferencesSettingsView: View {
                 .frame(width: 220)
                 .frame(maxHeight: .infinity, alignment: .top)
 
-            Divider()
-
             detailView
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(ghosttyTheme.background)
@@ -87,14 +85,14 @@ struct PreferencesSettingsView: View {
                 } header: {
                     Text("Global")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
                         .textCase(nil)
                 }
 
                 Section {
                     if workspaces.workspaces.isEmpty {
                         Text("No Workspaces")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(ghosttyTheme.secondaryText)
                             .font(.caption)
                     } else {
                         ForEach(workspaces.workspaces) { workspace in
@@ -108,7 +106,7 @@ struct PreferencesSettingsView: View {
                 } header: {
                     Text("Workspace")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ghosttyTheme.secondaryText)
                         .textCase(nil)
                 }
             }
@@ -255,7 +253,7 @@ struct PreferencesSettingsView: View {
             SettingsPage(title: workspace.slug) {
                 Text("Empty fields inherit Global. Changes save to this Workspace’s config.toml.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
 
                 SettingsSection(title: "Runtime") {
                     SettingsCard {

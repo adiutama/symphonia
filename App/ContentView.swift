@@ -54,10 +54,11 @@ struct ContentView: View {
         }
     }
 
-    /// Draggable divider between the sidebar and the workspace content; persists width.
+    /// Invisible resize hit-target — separation comes from the darker sidebar fill alone.
     private var resizeDivider: some View {
-        Divider()
-            .contentShape(Rectangle().inset(by: -4))
+        Color.clear
+            .frame(width: 6)
+            .contentShape(Rectangle())
             .onHover { hovering in
                 if hovering {
                     NSCursor.resizeLeftRight.push()
