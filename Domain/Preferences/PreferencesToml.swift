@@ -20,6 +20,7 @@ enum PreferencesToml {
             "workspacesRoot = \(stringLiteral(preferences.workspacesRoot))",
             "baseRef = \(stringLiteral(preferences.baseRef))",
             "onboardingCompleted = \(boolLiteral(preferences.onboardingCompleted))",
+            "chromeGlass = \(boolLiteral(preferences.chromeGlass))",
         ]
 
         let bindingKeys = preferences.commandBindings.keys.sorted()
@@ -67,6 +68,8 @@ enum PreferencesToml {
 
         // Existing TOML without the key → already onboarded. Missing file uses `.default` (false).
         let onboardingCompleted = root.bools["onboardingCompleted"] ?? true
+        // Missing key → glass on (Sequence C default).
+        let chromeGlass = root.bools["chromeGlass"] ?? true
 
         return GlobalPreferences(
             mainCLICommand: root.strings["mainCLICommand"] ?? "",
@@ -76,7 +79,8 @@ enum PreferencesToml {
             workspacesRoot: root.strings["workspacesRoot"] ?? GlobalPreferences.default.workspacesRoot,
             baseRef: root.strings["baseRef"] ?? GlobalPreferences.default.baseRef,
             commandBindings: bindings,
-            onboardingCompleted: onboardingCompleted
+            onboardingCompleted: onboardingCompleted,
+            chromeGlass: chromeGlass
         )
     }
 

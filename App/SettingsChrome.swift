@@ -132,6 +132,19 @@ struct SoftHairline: View {
     }
 }
 
+/// Subtle vertical edge between glass sidebar and solid canvas.
+struct SoftPaneHairline: View {
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
+
+    var body: some View {
+        Rectangle()
+            .fill(ghosttyTheme.hairline.opacity(0.5))
+            .frame(width: 1)
+            .frame(maxHeight: .infinity)
+            .allowsHitTesting(false)
+    }
+}
+
 /// Plain text field filled with Ghostty `control` so it contrasts against Settings cards.
 struct SettingsControlFieldModifier: ViewModifier {
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme

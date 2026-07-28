@@ -114,7 +114,10 @@ struct PreferencesSettingsView: View {
             .scrollContentBackground(.hidden)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(ghosttyTheme.sidebar)
+        .chromeSurface(glass: preferences.preferences.chromeGlass, solid: ghosttyTheme.sidebar)
+        .overlay(alignment: .trailing) {
+            SoftPaneHairline()
+        }
     }
 
     private var isEditingGlobal: Bool {
@@ -216,6 +219,19 @@ struct PreferencesSettingsView: View {
                             .settingsControlField()
                             .frame(minWidth: 100, idealWidth: 140)
                             .frame(maxWidth: 180)
+                    }
+                }
+            }
+
+            SettingsSection(title: "Appearance") {
+                SettingsCard {
+                    SettingsRow(
+                        title: "Glass chrome",
+                        description: "Stronger frosted glass on the workspace sidebar."
+                    ) {
+                        Toggle("", isOn: $preferences.preferences.chromeGlass)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
                     }
                 }
             }

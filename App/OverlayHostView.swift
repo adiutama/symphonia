@@ -10,6 +10,7 @@ struct OverlayHostView: View {
 
     var body: some View {
         ZStack {
+            // Terminal host stays solid — glass is for the sidebar only.
             ghosttyTheme.background
 
             ForEach(worktrees.openedMainCLISessions) { slot in

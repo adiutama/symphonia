@@ -9,25 +9,32 @@ import SwiftUI
 struct GhosttyWindowChrome: NSViewRepresentable {
     let background: NSColor
     let isDark: Bool
+    /// When true, window is non-opaque so `NSVisualEffectView` blur can sample behind the window.
+    var glass: Bool = false
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView(frame: .zero)
         DispatchQueue.main.async {
-            Self.apply(to: view.window, background: background, isDark: isDark)
+            Self.apply(to: view.window, background: background, isDark: isDark, glass: glass)
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async {
-            Self.apply(to: nsView.window, background: background, isDark: isDark)
+            Self.apply(to: nsView.window, background: background, isDark: isDark, glass: glass)
         }
     }
 
-    private static func apply(to window: NSWindow?, background: NSColor, isDark: Bool) {
+    private static func apply(to window: NSWindow?, background: NSColor, isDark: Bool, glass: Bool) {
         guard let window else { return }
-        window.backgroundColor = background
-        window.isOpaque = true
+        if glass {
+            window.isOpaque = false
+            window.backgroundColor = .clear
+        } else {
+            window.isOpaque = true
+            window.backgroundColor = background
+        }
         // Full-size content + transparent titlebar: content (sidebar) paints under the
         // traffic lights — Xcode / Raycast / Supacode pattern.
         if !window.styleMask.contains(.fullSizeContentView) {
@@ -68,11 +75,13 @@ private final class WindowDragNSView: NSView {
 
 extension View {
     /// Tint the macOS window chrome to match Ghostty background / scheme.
-    func ghosttyWindowChrome(_ theme: GhosttyChromeTheme) -> some View {
+    /// Pass `glass: true` so sidebar / host visual-effect blur can sample the desktop.
+    func ghosttyWindowChrome(_ theme: GhosttyChromeTheme, glass: Bool = false) -> some View {
         background(
             GhosttyWindowChrome(
                 background: theme.nsBackground,
-                isDark: theme.colorScheme == .dark
+                isDark: theme.colorScheme == .dark,
+                glass: glass
             )
         )
     }

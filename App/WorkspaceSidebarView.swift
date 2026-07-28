@@ -28,7 +28,7 @@ struct WorkspaceSidebarView: View {
             workspaceList
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(ghosttyTheme.sidebar)
+        .chromeSurface(glass: preferences.preferences.chromeGlass, solid: ghosttyTheme.sidebar)
         .confirmationDialog(
             removeDialogTitle,
             isPresented: Binding(

@@ -13,6 +13,7 @@
 		A1B2C3D4E5F60718293A4B5E /* SettingsNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5F /* SettingsNavigation.swift */; };
 		S1T2U3V4W5X60718293A4B07 /* SettingsWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1T2U3V4W5X60718293A4B08 /* SettingsWindowPresenter.swift */; };
 		S1T2U3V4W5X60718293A4B01 /* SettingsChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1T2U3V4W5X60718293A4B02 /* SettingsChrome.swift */; };
+		C1A2B3C4D5E60718293A4B01 /* ChromeGlassBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2B3C4D5E60718293A4B02 /* ChromeGlassBackground.swift */; };
 		S1T2U3V4W5X60718293A4B03 /* DirectoryPathField.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1T2U3V4W5X60718293A4B04 /* DirectoryPathField.swift */; };
 		S1T2U3V4W5X60718293A4B05 /* KeyChordField.swift in Sources */ = {isa = PBXBuildFile; fileRef = S1T2U3V4W5X60718293A4B06 /* KeyChordField.swift */; };
 		K1M2A3P4C5H60718293A4B01 /* KeymapCheatsheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1M2A3P4C5H60718293A4B02 /* KeymapCheatsheetView.swift */; };
@@ -81,6 +82,7 @@
 		A1B2C3D4E5F60718293A4B5F /* SettingsNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigation.swift; sourceTree = "<group>"; };
 		S1T2U3V4W5X60718293A4B08 /* SettingsWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowPresenter.swift; sourceTree = "<group>"; };
 		S1T2U3V4W5X60718293A4B02 /* SettingsChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsChrome.swift; sourceTree = "<group>"; };
+		C1A2B3C4D5E60718293A4B02 /* ChromeGlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChromeGlassBackground.swift; sourceTree = "<group>"; };
 		S1T2U3V4W5X60718293A4B04 /* DirectoryPathField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryPathField.swift; sourceTree = "<group>"; };
 		S1T2U3V4W5X60718293A4B06 /* KeyChordField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyChordField.swift; sourceTree = "<group>"; };
 		K1M2A3P4C5H60718293A4B02 /* KeymapCheatsheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapCheatsheetView.swift; sourceTree = "<group>"; };
@@ -222,6 +224,7 @@
 				A1B2C3D4E5F60718293A4B5F /* SettingsNavigation.swift */,
 				S1T2U3V4W5X60718293A4B08 /* SettingsWindowPresenter.swift */,
 				S1T2U3V4W5X60718293A4B02 /* SettingsChrome.swift */,
+				C1A2B3C4D5E60718293A4B02 /* ChromeGlassBackground.swift */,
 				S1T2U3V4W5X60718293A4B04 /* DirectoryPathField.swift */,
 				S1T2U3V4W5X60718293A4B06 /* KeyChordField.swift */,
 				K1M2A3P4C5H60718293A4B02 /* KeymapCheatsheetView.swift */,
@@ -445,6 +448,7 @@
 				A1B2C3D4E5F60718293A4B5E /* SettingsNavigation.swift in Sources */,
 				S1T2U3V4W5X60718293A4B07 /* SettingsWindowPresenter.swift in Sources */,
 				S1T2U3V4W5X60718293A4B01 /* SettingsChrome.swift in Sources */,
+				C1A2B3C4D5E60718293A4B01 /* ChromeGlassBackground.swift in Sources */,
 				S1T2U3V4W5X60718293A4B03 /* DirectoryPathField.swift in Sources */,
 				S1T2U3V4W5X60718293A4B05 /* KeyChordField.swift in Sources */,
 				K1M2A3P4C5H60718293A4B01 /* KeymapCheatsheetView.swift in Sources */,
