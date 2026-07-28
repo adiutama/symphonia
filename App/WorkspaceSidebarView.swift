@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Collapsible left sidebar: Workspaces → Main Repo + Worktrees.
+/// Collapsible left sidebar: Projects → Main Repo + Worktrees.
 struct WorkspaceSidebarView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var worktrees: WorktreeController
@@ -16,27 +16,21 @@ struct WorkspaceSidebarView: View {
     @State private var renameWorktreeFolder = ""
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Clearance under traffic lights; drag strip (Xcode / Raycast).
-            Color.clear
-                .frame(height: 28)
-                .frame(maxWidth: .infinity)
-                .windowDragRegion()
-
-            header
-            SoftHairline(horizontalPadding: 12)
-            workspaceList
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .chromeSurface(glass: preferences.preferences.chromeGlass, solid: ghosttyTheme.sidebar)
-        .confirmationDialog(
-            removeDialogTitle,
-            isPresented: Binding(
-                get: { worktrees.pendingRemove != nil },
-                set: { if !$0 { worktrees.cancelRemove() } }
-            ),
-            titleVisibility: .visible
-        ) {
+        projectList
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            // Glass / solid fills under the transparent titlebar; list content stays in the safe area.
+            .background {
+                sidebarChrome
+                    .ignoresSafeArea(.container, edges: .top)
+            }
+            .confirmationDialog(
+                removeDialogTitle,
+                isPresented: Binding(
+                    get: { worktrees.pendingRemove != nil },
+                    set: { if !$0 { worktrees.cancelRemove() } }
+                ),
+                titleVisibility: .visible
+            ) {
             Button("Remove worktree (keep branch)", role: .destructive) {
                 worktrees.pendingRemoveDeleteBranch = false
                 worktrees.confirmRemove()
@@ -59,14 +53,14 @@ struct WorkspaceSidebarView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Delete Workspace permanently", role: .destructive) {
+            Button("Delete Project permanently", role: .destructive) {
                 workspaces.confirmRemove()
             }
             Button("Cancel", role: .cancel) {
                 workspaces.cancelRemove()
             }
         } message: {
-            Text("Deletes the Workspace folder on disk (Main, Worktrees, secrets, config) and removes it from Symphonia’s index. This cannot be undone.")
+            Text("Deletes the project folder on disk (Main, Worktrees, secrets, config) and removes it from Symphonia’s index. This cannot be undone.")
         }
         .sheet(isPresented: Binding(
             get: { workspaces.pendingCreateWorkspace },
@@ -105,43 +99,29 @@ struct WorkspaceSidebarView: View {
         }
     }
 
-    private var header: some View {
-        HStack {
-            Text("workspaces")
-                .font(.headline)
-                .foregroundStyle(ghosttyTheme.foreground)
-            Spacer(minLength: 8)
-                .windowDragRegion()
-            Button {
-                beginCreateWorkspace()
-            } label: {
-                Image(systemName: "plus")
-                    .foregroundStyle(ghosttyTheme.accent)
+    @ViewBuilder
+    private var sidebarChrome: some View {
+        if preferences.preferences.chromeGlass {
+            ZStack {
+                ChromeGlassBackground(
+                    tintColor: NSColor(ghosttyTheme.sidebar).withAlphaComponent(
+                        ChromeGlassBackground.supportsLiquidGlass ? 0.55 : 1
+                    ),
+                    fallbackMaterial: .hudWindow
+                )
+                if !ChromeGlassBackground.supportsLiquidGlass {
+                    ghosttyTheme.sidebar.opacity(0.22)
+                }
             }
-            .buttonStyle(.borderless)
-            .help("Create Workspace")
-            .accessibilityLabel("Create Workspace")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .contextMenu {
-            Button("New Workspace…") {
-                beginCreateWorkspace()
-            }
-            Button("Refresh") {
-                workspaces.refresh()
-                worktrees.refresh()
-            }
-            Button("Reveal Workspaces Root") {
-                reveal(preferences.effective.workspacesRootURL)
-            }
+        } else {
+            ghosttyTheme.sidebar
         }
     }
 
-    private var workspaceList: some View {
+    private var projectList: some View {
         List {
             if workspaces.workspaces.isEmpty {
-                Text("No Workspaces yet")
+                Text("No Projects yet")
                     .foregroundStyle(ghosttyTheme.secondaryText)
                     .font(.caption)
             } else {
@@ -173,6 +153,18 @@ struct WorkspaceSidebarView: View {
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
+        .contextMenu {
+            Button("New Project…") {
+                beginCreateWorkspace()
+            }
+            Button("Refresh") {
+                workspaces.refresh()
+                worktrees.refresh()
+            }
+            Button("Reveal Workspaces Root") {
+                reveal(preferences.effective.workspacesRootURL)
+            }
+        }
     }
 
     private func workspaceLabel(_ workspace: WorkspaceSummary) -> some View {
@@ -330,7 +322,7 @@ struct WorkspaceSidebarView: View {
             selectWorkspace(workspace)
             beginCreateWorktree()
         }
-        Button("Rename Workspace…") {
+        Button("Rename Project…") {
             beginRenameWorkspace(workspace)
         }
         Divider()
@@ -366,7 +358,7 @@ struct WorkspaceSidebarView: View {
             archivedSheetWorkspace = workspace
         }
         Divider()
-        Button("Remove Workspace…", role: .destructive) {
+        Button("Remove Project…", role: .destructive) {
             workspaces.requestRemove(workspace)
         }
     }
@@ -421,7 +413,7 @@ struct WorkspaceSidebarView: View {
 
     private var createWorkspaceSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Create Workspace")
+            Text("Create Project")
                 .font(.headline)
             TextField("slug", text: $workspaces.draftSlug)
                 .textFieldStyle(.roundedBorder)
@@ -468,7 +460,7 @@ struct WorkspaceSidebarView: View {
             workspacesRoot: workspaces.workspacesRoot
         )
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Rename Workspace")
+            Text("Rename Project")
                 .font(.headline)
             TextField("slug", text: $renameWorkspaceSlug)
                 .textFieldStyle(.roundedBorder)
@@ -705,8 +697,8 @@ struct WorkspaceSidebarView: View {
 
     private var removeWorkspaceDialogTitle: String {
         if let slug = workspaces.pendingRemoveWorkspace?.slug {
-            return "Remove Workspace “\(slug)”?"
+            return "Remove Project “\(slug)”?"
         }
-        return "Remove Workspace?"
+        return "Remove Project?"
     }
 }
