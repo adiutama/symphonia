@@ -1,0 +1,44 @@
+name: Setup build deps
+description: >
+  Restore cached GhosttyKit / Sparkle / Zig. On a GhosttyKit miss, install Zig
+  and the Metal toolchain so ci-build.sh can rebuild from Vendor/ghostty.pin.
+
+runs:
+  using: composite
+  steps:
+    - name: Cache GhosttyKit
+      id: cache-ghosttykit
+      uses: actions/cache@v4
+      with:
+        path: Terminal/GhosttyKit.xcframework
+        key: ghosttykit-debug-${{ hashFiles('Vendor/ghostty.pin') }}-zig0.16.0-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Cache Sparkle
+      id: cache-sparkle
+      uses: actions/cache@v4
+      with:
+        path: Terminal/Sparkle.framework
+        key: sparkle-2.9.4-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Cache Zig
+      id: cache-zig
+      if: steps.cache-ghosttykit.outputs.cache-hit != 'true'
+      uses: actions/cache@v4
+      with:
+        path: .tools/zig
+        key: zig-0.16.0-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Install Zig 0.16
+      if: steps.cache-ghosttykit.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "${{ github.workspace }}/.tools/zig" >> "$GITHUB_PATH"
+        export PATH="${{ github.workspace }}/.tools/zig:$PATH"
+        ./scripts/install-zig.sh
+
+    - name: Download Metal Toolchain
+      if: steps.cache-ghosttykit.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        xcodebuild -downloadComponent MetalToolchain || true
+        xcrun -sdk macosx metal --version
