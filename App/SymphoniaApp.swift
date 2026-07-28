@@ -1,4 +1,5 @@
 import SwiftUI
+import Sparkle
 
 @main
 struct SymphoniaApp: App {
@@ -15,7 +16,16 @@ struct SymphoniaApp: App {
     /// Ghostty config colors for chrome (bg/fg/scheme). Load once at launch.
     @StateObject private var ghosttyTheme: GhosttyChromeTheme
 
+    private let updaterController: SPUStandardUpdaterController
+
     init() {
+        // Sparkle: start updater; feed URL + EdDSA public key come from Info.plist.
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+
         let preferences = PreferencesController()
         let workspaces = WorkspaceController(preferences: preferences)
         let secrets = SecretStoreController(workspaces: workspaces)
@@ -67,12 +77,26 @@ struct SymphoniaApp: App {
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
+                .tint(ghosttyTheme.accent)
                 .ghosttyWindowChrome(ghosttyTheme)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 720)
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Symphonia") {
+                    settingsNavigation.openAbout()
+                }
+            }
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesView(updater: updaterController.updater)
+            }
             CommandGroup(replacing: .help) {
+                Button("Welcome to Symphonia…") {
+                    preferences.preferences.onboardingCompleted = false
+                    preferences.save()
+                    Self.orderMainWindowFront()
+                }
                 Button("Keymap") {
                     settingsNavigation.toggleKeymap()
                 }
@@ -149,6 +173,7 @@ struct SymphoniaApp: App {
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
+                .tint(ghosttyTheme.accent)
                 .ghosttyWindowChrome(ghosttyTheme)
         }
         .windowStyle(.hiddenTitleBar)
@@ -162,10 +187,41 @@ struct SymphoniaApp: App {
                 .environmentObject(settingsNavigation)
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
+                .tint(ghosttyTheme.accent)
                 .ghosttyWindowChrome(ghosttyTheme)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 480, height: 640)
         .commandsRemoved()
+
+        Window("About Symphonia", id: SymphoniaSceneID.about) {
+            AboutView()
+                .environmentObject(ghosttyTheme)
+                .preferredColorScheme(ghosttyTheme.colorScheme)
+                .tint(ghosttyTheme.accent)
+                .ghosttyWindowChrome(ghosttyTheme)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultSize(width: 420, height: 320)
+        .commandsRemoved()
+    }
+
+    /// Bring the main WindowGroup forward so the welcome sheet is visible (not behind Settings).
+    private static func orderMainWindowFront() {
+        NSApp.activate(ignoringOtherApps: true)
+        let auxiliary: Set<String> = [
+            SymphoniaSceneID.settings,
+            SymphoniaSceneID.keymap,
+            SymphoniaSceneID.about,
+        ]
+        for window in NSApp.windows {
+            let id = window.identifier?.rawValue ?? ""
+            if auxiliary.contains(where: { id.contains($0) }) { continue }
+            if window.canBecomeKey {
+                window.makeKeyAndOrderFront(nil)
+                return
+            }
+        }
     }
 }

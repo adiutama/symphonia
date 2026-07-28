@@ -9,6 +9,12 @@ Release Please updates this file when you merge a Release PR. See [docs/release.
 
 ## [Unreleased]
 
+### Added
+
+- About window (version, license, Ghostty credit) from the App menu
+- Sparkle 2 in-app updates (Check for Updates…); EdDSA appcast on release when configured
+- Short first-launch onboarding sheet (what is different; no feature tour)
+
 ## [0.1.0] - 2026-07-26
 
 Initial public MVP (early access). Build from source is first-class; Release DMGs are unsigned.

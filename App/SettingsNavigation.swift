@@ -13,7 +13,7 @@ final class SettingsNavigation: ObservableObject {
         case globalMainCLI
         /// Opens Global → General.
         case globalGeneral
-        /// Opens Global → Commands.
+        /// Opens Global → Shortcuts.
         case globalCommands
         case workspaceSettings(workspaceId: String)
         case workspaceSecrets(workspaceId: String)
@@ -26,10 +26,16 @@ final class SettingsNavigation: ObservableObject {
     /// Installed from a view that has `@Environment(\.openWindow)`.
     private var presentSettingsWindow: (() -> Void)?
     private var presentKeymapWindow: (() -> Void)?
+    private var presentAboutWindow: (() -> Void)?
 
-    func installPresenter(settings: @escaping () -> Void, keymap: @escaping () -> Void) {
+    func installPresenter(
+        settings: @escaping () -> Void,
+        keymap: @escaping () -> Void,
+        about: @escaping () -> Void
+    ) {
         presentSettingsWindow = settings
         presentKeymapWindow = keymap
+        presentAboutWindow = about
     }
 
     func open(_ destination: Destination) {
@@ -40,6 +46,10 @@ final class SettingsNavigation: ObservableObject {
     /// Opens Settings on Global → General.
     func openSettings() {
         open(.globalGeneral)
+    }
+
+    func openAbout() {
+        presentAboutWindow?()
     }
 
     /// Toggle the Keymap cheatsheet window (⌘⇧/).
