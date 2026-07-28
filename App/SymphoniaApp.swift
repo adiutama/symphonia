@@ -80,7 +80,7 @@ struct SymphoniaApp: App {
                 .tint(ghosttyTheme.accent)
                 .ghosttyWindowChrome(ghosttyTheme, glass: preferences.preferences.chromeGlass)
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unified)
         .defaultSize(width: 1100, height: 720)
         .commands {
             CommandGroup(replacing: .appInfo) {
