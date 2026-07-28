@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Supacode-inspired Settings chrome: page title → section header → card → rows.
+/// Surfaces and fields pull from ``GhosttyChromeTheme`` so chrome matches the terminal.
 
 struct SettingsPage<Content: View>: View {
     let title: String
@@ -40,6 +41,7 @@ struct SettingsSection<Content: View>: View {
 }
 
 struct SettingsCard<Content: View>: View {
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -47,7 +49,7 @@ struct SettingsCard<Content: View>: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(ghosttyTheme.panel)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
@@ -89,7 +91,30 @@ struct SettingsRow<Control: View>: View {
 /// Hairline between rows inside a `SettingsCard`.
 struct SettingsRowDivider: View {
     var body: some View {
-        Divider()
+        Rectangle()
+            .fill(Color.primary.opacity(0.08))
+            .frame(height: 1)
             .padding(.leading, 14)
+    }
+}
+
+/// Plain text field filled with Ghostty `control` so it contrasts against Settings cards.
+struct SettingsControlFieldModifier: ViewModifier {
+    @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
+
+    func body(content: Content) -> some View {
+        content
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(ghosttyTheme.control)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+}
+
+extension View {
+    /// Theme-matched Settings text field (replaces `.roundedBorder` system chrome).
+    func settingsControlField() -> some View {
+        modifier(SettingsControlFieldModifier())
     }
 }
