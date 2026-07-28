@@ -15,7 +15,8 @@ if [[ ! -f "$PIN_FILE" ]]; then
   exit 1
 fi
 
-PIN="$(tr -d '[:space:]' <"$PIN_FILE" | grep -E '^[0-9a-f]{40}$' || true)"
+# First line that is exactly a 40-char SHA (comments/blank lines allowed).
+PIN="$(grep -E '^[0-9a-f]{40}$' "$PIN_FILE" | head -n1 || true)"
 if [[ -z "$PIN" ]]; then
   echo "error: Vendor/ghostty.pin must contain a 40-char commit SHA" >&2
   exit 1
