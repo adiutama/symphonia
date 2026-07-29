@@ -1,0 +1,50 @@
+# Pragmatic baseline: catch real bugs without blocking on style debt.
+# Tighten over time as Domain logic gets tests and refactors.
+
+excluded:
+  - build
+  - Vendor
+  - .tools
+  - .local
+  - docs/brand
+  - "**/.build"
+
+disabled_rules:
+  # Style / size — too noisy for current codebase shape
+  - identifier_name
+  - type_body_length
+  - file_length
+  - function_body_length
+  - line_length
+  - trailing_comma
+  - opening_brace
+  - cyclomatic_complexity
+  - nesting
+  - trailing_newline
+  - vertical_whitespace
+  - for_where
+  - is_disjoint
+  - implicit_optional_initialization
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - first_where
+  - last_where
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - flatmap_over_map_reduce
+  - force_unwrapping
+  - reduce_into
+  - redundant_nil_coalescing
+  - unused_enumerated
+  - yoda_condition
+  - overridden_super_call
+  - fatal_error_message
+  - unneeded_override
+
+# Errors fail CI; warnings (e.g. force_unwrapping) are visible but non-blocking for now.
+force_cast: error
+force_try: error
+force_unwrapping: warning

@@ -10,21 +10,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build Symphonia
-    runs-on: macos-latest
-    timeout-minutes: 120
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          xcodebuild -version
-
-      - name: Setup build deps
-        uses: ./.github/actions/setup-build-deps
-
-      - name: Build (GhosttyKit + Symphonia Release)
-        run: ./scripts/ci-build.sh
+      - name: Lint (ShellCheck + actionlint + SwiftLint)
+        env:
+          INSTALL_LINT_TOOLS: "1"
+        run: ./scripts/lint.sh

@@ -18,11 +18,12 @@ Release DMGs are **unsigned by default** (no paid Apple Developer ID). When Appl
 
 | What | When | Version bump? | Download? |
 |------|------|---------------|-----------|
-| Everyday check (CI) | Every PR / push to `main` | No | No |
+| Everyday check (CI) | Every PR / push to `main` — lint only (fast) | No | No |
+| Compile + package | **`v*` tag** (Release workflow) | Already tagged | Yes (DMG) |
 | Draft Release PR | **You** run the “Release Please” workflow (Actions → Run workflow) | Only on that draft PR | No |
 | Ship | **You** merge the Release PR | Yes (lands on `main` + tag) | Yes (DMG on GitHub Releases) |
 
-Everyday pushes never open a Release PR. Shipping is always intentional: run the workflow → review the PR → merge.
+Everyday pushes never open a Release PR and never run the full macOS compile. Shipping is intentional: run Release Please → review the PR → merge → tag builds the DMG.
 
 ## Version numbers (0.x MVP)
 
@@ -102,21 +103,22 @@ That creates the first GitHub Release (DMG once the release workflow finishes). 
 
 ## Day to day
 
-1. Commit with `feat` / `fix` / … and merge to `main`.
-2. CI compiles (no new version, no Release PR).
-3. When you want to ship: **Actions → Release Please → Run workflow**.
-4. Review the Release PR (version + changelog + Xcode marketing version) → **merge**.
-5. Automation tags `vX.Y.Z`, builds, uploads the DMG (and appcast when EdDSA is configured) to GitHub Releases.
+1. Commit with `feat` / `fix` / … and open a PR.
+2. CI runs fast lints (`./scripts/lint.sh`) — no full app compile.
+3. Merge to `main`.
+4. When you want to ship: **Actions → Release Please → Run workflow**.
+5. Review the Release PR (version + changelog + Xcode marketing version) → **merge**.
+6. Automation tags `vX.Y.Z`, compiles, uploads the DMG (and appcast when EdDSA is configured) to GitHub Releases.
 
 ## Workflows
 
 | File | Role |
 |------|------|
-| [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Compile check on PR / `main` |
+| [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Fast lint on PR / `main` (ShellCheck, actionlint, SwiftLint) |
 | [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) | Manual: draft Release PR / tag (workflow_dispatch only) |
-| [`.github/workflows/release.yml`](../.github/workflows/release.yml) | On `v*` tag: build DMG, optional notarize, optional Sparkle appcast |
+| [`.github/workflows/release.yml`](../.github/workflows/release.yml) | On `v*` tag: full macOS build, DMG, optional notarize, optional Sparkle appcast |
 
-Shared build script: [`scripts/ci-build.sh`](../scripts/ci-build.sh) (GhosttyKit + Sparkle + Symphonia). Zig: [`scripts/install-zig.sh`](../scripts/install-zig.sh). DMG: [`scripts/package-dmg.sh`](../scripts/package-dmg.sh).
+Local lint: [`scripts/lint.sh`](../scripts/lint.sh). Full compile helper: [`scripts/ci-build.sh`](../scripts/ci-build.sh) (GhosttyKit + Sparkle + Symphonia). Zig: [`scripts/install-zig.sh`](../scripts/install-zig.sh). DMG: [`scripts/package-dmg.sh`](../scripts/package-dmg.sh).
 
 ## What Release DMGs are today
 

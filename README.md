@@ -45,10 +45,16 @@ xcodebuild -scheme Symphonia -configuration Debug \
 
 Or build and run from Xcode (⌘R) with the **Symphonia** scheme.
 
-Shared Release compile helper (same path CI uses):
+Shared Release compile helper (same path the **Release** workflow uses on `v*` tags):
 
 ```bash
 ./scripts/ci-build.sh
+```
+
+Fast PR checks (ShellCheck, actionlint, SwiftLint — no compile):
+
+```bash
+./scripts/lint.sh
 ```
 
 ## Releases & changelog
