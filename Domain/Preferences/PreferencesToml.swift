@@ -26,19 +26,14 @@ enum PreferencesToml {
         let bindingKeys = preferences.commandBindings.keys.sorted()
         if !bindingKeys.isEmpty {
             lines.append("")
-            lines.append("# Command sequences keyed by Command id (ADR 0021 / Path B).")
+            lines.append("# Command sequences keyed by Command id (ADR 0021 / 0022).")
             for id in bindingKeys {
                 guard let override = preferences.commandBindings[id] else { continue }
-                // Skip empty override tables (e.g. leftover alias-only entries).
-                guard override.sequence != nil || override.shortcut != nil else { continue }
+                // Only sequences are Operator-overridable. Ignore leftover shortcut/alias keys.
+                guard let sequence = override.sequence else { continue }
                 lines.append("")
                 lines.append("[commandBindings.\(quotedKey(id))]")
-                if let sequence = override.sequence {
-                    lines.append("sequence = \(stringLiteral(sequence))")
-                }
-                if let shortcut = override.shortcut {
-                    lines.append("shortcut = \(stringLiteral(shortcut))")
-                }
+                lines.append("sequence = \(stringLiteral(sequence))")
             }
         }
 
@@ -53,11 +48,9 @@ enum PreferencesToml {
         var bindings: [String: CommandBindingOverride] = [:]
         if let bindingTables = table.tables["commandBindings"] {
             for (id, fields) in bindingTables {
-                // Aliases dropped from product UI — ignore legacy TOML keys.
+                // Aliases / shortcut TOML keys are ignored — Hotkeys come from KeymapBindings.
                 bindings[id] = CommandBindingOverride(
-                    aliases: nil,
-                    sequence: fields.strings["sequence"],
-                    shortcut: fields.strings["shortcut"]
+                    sequence: fields.strings["sequence"]
                 )
             }
         }

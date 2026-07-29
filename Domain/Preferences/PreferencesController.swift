@@ -35,12 +35,12 @@ final class PreferencesController: ObservableObject {
             loaded = .default
             self.lastError = error.localizedDescription
         }
-        let didMigrateShortcuts = Self.migrateBareCommandShortcuts(in: &loaded)
+        let didStripLegacy = Self.stripLegacyBindingFields(in: &loaded)
         let didMigrateIds = Self.migrateCommandIds(in: &loaded)
-        let didMigrateLeader = Self.migrateLeaderAndCtrlDefaults(in: &loaded)
+        let didMigrateLeader = Self.migrateLeaderDefault(in: &loaded)
         self.preferences = loaded
         self.effective = EffectiveSettings.resolve(global: loaded)
-        if didMigrateShortcuts || didMigrateIds || didMigrateLeader {
+        if didStripLegacy || didMigrateIds || didMigrateLeader {
             do {
                 try store.save(loaded)
                 lastError = nil
@@ -50,20 +50,18 @@ final class PreferencesController: ObservableObject {
         }
     }
 
-    /// Rewrite legacy bare-letter Command shortcuts (`w`, `,`) to `ctrl+…` chords (L2).
+    /// Drop legacy alias/shortcut override fields. Hotkeys live in `KeymapBindings` (ADR 0022);
+    /// only Normal-mode `sequence` overrides remain Operator-editable.
     @discardableResult
-    private static func migrateBareCommandShortcuts(in preferences: inout GlobalPreferences) -> Bool {
-        var changed = false
+    private static func stripLegacyBindingFields(in preferences: inout GlobalPreferences) -> Bool {
+        var cleaned: [String: CommandBindingOverride] = [:]
         for (id, override) in preferences.commandBindings {
-            guard let raw = override.shortcut, !raw.isEmpty else { continue }
-            let normalized = CommandBindingResolver.normalizeShortcut(raw)
-            guard normalized != raw else { continue }
-            var next = override
-            next.shortcut = normalized
-            preferences.commandBindings[id] = next
-            changed = true
+            guard let sequence = override.sequence else { continue }
+            cleaned[id] = CommandBindingOverride(sequence: sequence)
         }
-        return changed
+        guard cleaned != preferences.commandBindings else { return false }
+        preferences.commandBindings = cleaned
+        return true
     }
 
     /// Move `agent.*` Command binding keys to `worktree.*` (L1). Keep new key if both exist.
@@ -90,41 +88,15 @@ final class PreferencesController: ObservableObject {
         return changed
     }
 
-    /// Bump stock Leader `ctrl+p` → `cmd+shift+p`, and stock in-palette `ctrl+…`
-    /// overrides → macOS/`⌘` defaults. Custom chords are left alone.
+    /// Bump stock Leader `ctrl+p` → `cmd+shift+p`. Custom Leader chords are left alone.
     @discardableResult
-    private static func migrateLeaderAndCtrlDefaults(in preferences: inout GlobalPreferences) -> Bool {
-        var changed = false
+    private static func migrateLeaderDefault(in preferences: inout GlobalPreferences) -> Bool {
         let leader = preferences.leaderKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if leader == "ctrl+p" || leader == "control+p" || leader == "⌃p" {
             preferences.leaderKey = GlobalPreferences.default.leaderKey
-            changed = true
+            return true
         }
-
-        let shortcutRemap: [String: String] = [
-            "ctrl+w": "cmd+o",
-            "ctrl+a": "cmd+shift+a",
-            "ctrl+m": "cmd+shift+m",
-            "ctrl+r": "cmd+shift+r",
-            "ctrl+l": "cmd+r",
-            "ctrl+n": "cmd+n",
-            "ctrl+x": "cmd+shift+x",
-            "ctrl+,": "cmd+,",
-            "ctrl+e": "cmd+e",
-            "ctrl+h": "cmd+shift+h",
-            "ctrl+b": "cmd+shift+b",
-            "ctrl+o": "cmd+shift+o",
-        ]
-        for (id, override) in preferences.commandBindings {
-            guard let raw = override.shortcut, !raw.isEmpty else { continue }
-            let key = CommandBindingResolver.normalizeShortcut(raw)
-            guard let nextShortcut = shortcutRemap[key] else { continue }
-            var next = override
-            next.shortcut = nextShortcut
-            preferences.commandBindings[id] = next
-            changed = true
-        }
-        return changed
+        return false
     }
 
     private func refreshEffective() {
