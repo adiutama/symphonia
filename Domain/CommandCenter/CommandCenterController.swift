@@ -29,8 +29,7 @@ final class CommandCenterController: ObservableObject {
     private var localMonitor: Any?
     private weak var savedFirstResponder: NSResponder?
     private var cancellables = Set<AnyCancellable>()
-    /// Ephemeral nest chords assigned when entering a picker phase.
-    private var nestSequences: [String: String] = [:]
+    private var nestCatalog: CommandCenterNestCatalog
 
     init(
         preferences: PreferencesController,
@@ -46,6 +45,11 @@ final class CommandCenterController: ObservableObject {
         self.overlays = overlays
         self.settingsNavigation = settingsNavigation
         self.commandRegistry = commandRegistry
+        self.nestCatalog = CommandCenterNestCatalog(
+            workspaces: workspaces,
+            worktrees: worktrees,
+            overlays: overlays
+        )
 
         Publishers.CombineLatest4(
             workspaces.$workspaces,
@@ -77,12 +81,12 @@ final class CommandCenterController: ObservableObject {
         mode = preferences.preferences.commandCenterPreferredMode
         filterQuery = ""
         lastInfo = nil
-        nestSequences = [:]
+        nestCatalog.resetSequences()
 
         // Peek ergonomics: while peeking, Leader opens the Overlay nest directly.
         if overlays.isShowingOverlay {
             phase = .pickBackground
-            assignNestSequences(for: .pickBackground)
+            nestCatalog.assignSequences(for: .pickBackground)
         } else {
             phase = .root
         }
@@ -96,7 +100,7 @@ final class CommandCenterController: ObservableObject {
         isActive = false
         phase = .root
         filterQuery = ""
-        nestSequences = [:]
+        nestCatalog.resetSequences()
         items = []
         selectedIndex = 0
         restoreTerminalFocus()
@@ -117,7 +121,7 @@ final class CommandCenterController: ObservableObject {
     func leaveNestToRoot() {
         phase = .root
         filterQuery = ""
-        nestSequences = [:]
+        nestCatalog.resetSequences()
         rebuildItems(resetSelection: true)
     }
 
@@ -271,7 +275,7 @@ final class CommandCenterController: ObservableObject {
                 dismiss()
             } else {
                 filterQuery = ""
-                assignNestSequences(for: .pickBackground)
+                nestCatalog.assignSequences(for: .pickBackground)
                 rebuildItems(resetSelection: true)
             }
         }
@@ -280,7 +284,7 @@ final class CommandCenterController: ObservableObject {
     private func enterNest(_ nest: CommandCenterPhase) {
         phase = nest
         filterQuery = ""
-        assignNestSequences(for: nest)
+        nestCatalog.assignSequences(for: nest)
         rebuildItems(resetSelection: true)
     }
 
@@ -290,12 +294,8 @@ final class CommandCenterController: ObservableObject {
         switch phase {
         case .root:
             items = filteredRootItems()
-        case .pickWorkspace:
-            items = filterNest(workspacePickerItems())
-        case .pickWorktree:
-            items = filterNest(worktreePickerItems())
-        case .pickBackground:
-            items = filterNest(backgroundPickerItems())
+        case .pickWorkspace, .pickWorktree, .pickBackground:
+            items = filterNest(nestCatalog.items(for: phase))
         }
         if resetSelection || selectedIndex >= items.count {
             selectedIndex = items.isEmpty ? 0 : min(selectedIndex, max(items.count - 1, 0))
@@ -397,167 +397,6 @@ final class CommandCenterController: ObservableObject {
         if exact.count == 1, let only = exact.first {
             run(only.action)
         }
-    }
-
-    // MARK: - Nest builders
-
-    private func assignNestSequences(for nest: CommandCenterPhase) {
-        nestSequences = [:]
-        let raw: [CommandCenterItem]
-        switch nest {
-        case .root:
-            return
-        case .pickWorkspace:
-            raw = workspacePickerItemsRaw()
-        case .pickWorktree:
-            raw = worktreePickerItemsRaw()
-        case .pickBackground:
-            // Peek: random ephemeral chords for all nest rows.
-            raw = backgroundPickerItemsRaw()
-            let chords = CommandSequence.randomChords(count: raw.count)
-            for (item, chord) in zip(raw, chords) {
-                nestSequences[item.id] = chord
-            }
-            return
-        }
-        // Workspace / Worktree: prefer title-initial style.
-        let chords = CommandSequence.titleStyleChords(for: raw.map(\.title))
-        for (item, chord) in zip(raw, chords) {
-            nestSequences[item.id] = chord
-        }
-    }
-
-    private func withNestSequence(_ item: CommandCenterItem) -> CommandCenterItem {
-        let chord: String
-        if let existing = nestSequences[item.id] {
-            chord = existing
-        } else {
-            // Rows that appear after nest enter (e.g. Close Overlay) get a fresh chord.
-            let used = Set(nestSequences.values)
-            chord = CommandSequence.randomChords(count: 1, excluding: used).first ?? "xx"
-            nestSequences[item.id] = chord
-        }
-        return CommandCenterItem(
-            id: item.id,
-            title: item.title,
-            subtitle: item.subtitle,
-            sequence: chord,
-            action: item.action
-        )
-    }
-
-    private func workspacePickerItems() -> [CommandCenterItem] {
-        workspacePickerItemsRaw().map(withNestSequence)
-    }
-
-    private func workspacePickerItemsRaw() -> [CommandCenterItem] {
-        var list: [CommandCenterItem] = []
-        if workspaces.workspaces.isEmpty {
-            list.append(CommandCenterItem(
-                id: "ws-empty",
-                title: "(no Workspaces)",
-                action: .back
-            ))
-        } else {
-            for ws in workspaces.workspaces {
-                let mark = workspaces.current?.id == ws.id ? " ← current" : ""
-                list.append(CommandCenterItem(
-                    id: "ws-\(ws.id)",
-                    title: ws.slug + mark,
-                    subtitle: ws.dataDirURL.path,
-                    action: .switchWorkspace(id: ws.id)
-                ))
-            }
-        }
-        return list
-    }
-
-    private func worktreePickerItems() -> [CommandCenterItem] {
-        worktreePickerItemsRaw().map(withNestSequence)
-    }
-
-    private func worktreePickerItemsRaw() -> [CommandCenterItem] {
-        var list: [CommandCenterItem] = []
-        if let current = workspaces.current {
-            let mainFocused = worktrees.focusedSession?.isMainRepo == true
-            list.append(CommandCenterItem(
-                id: "wt-main",
-                title: "main" + (mainFocused ? " ← focus" : ""),
-                subtitle: SymphoniaPaths.workspaceMainDirectory(in: current.dataDirURL).path,
-                action: .focusMainRepo
-            ))
-            if worktrees.worktrees.isEmpty {
-                list.append(CommandCenterItem(
-                    id: "wt-empty",
-                    title: "(no Worktrees)",
-                    action: .back
-                ))
-            } else {
-                for wt in worktrees.worktrees {
-                    let mark = worktrees.focused?.id == wt.id ? " ← focus" : ""
-                    list.append(CommandCenterItem(
-                        id: "wt-\(wt.id)",
-                        title: wt.primaryLabel + mark,
-                        subtitle: wt.secondaryLabel ?? wt.threeWordName,
-                        action: .focusWorktree(id: wt.id)
-                    ))
-                }
-            }
-        } else {
-            list.append(CommandCenterItem(
-                id: "wt-nows",
-                title: "(select a Workspace first)",
-                action: .back
-            ))
-        }
-        return list
-    }
-
-    /// Overlay nest: siblings + Back (hide) + Close Overlay — no main-catalog duplication.
-    private func backgroundPickerItems() -> [CommandCenterItem] {
-        backgroundPickerItemsRaw().map(withNestSequence)
-    }
-
-    private func backgroundPickerItemsRaw() -> [CommandCenterItem] {
-        var list: [CommandCenterItem] = []
-        let sessions = overlays.focusedSessions
-        if sessions.isEmpty {
-            list.append(CommandCenterItem(
-                id: "bg-empty",
-                title: "(no Overlay sessions)",
-                action: .back
-            ))
-        } else {
-            for session in sessions {
-                let mark = overlays.visibleOverlayID == session.id ? " ●" : ""
-                let kindLabel = session.kind == .editor ? "EDITOR" : "BG"
-                list.append(CommandCenterItem(
-                    id: "bg-\(session.id.uuidString)",
-                    title: session.title + mark,
-                    subtitle: kindLabel,
-                    action: .peekBackground(id: session.id)
-                ))
-            }
-        }
-
-        // Product Back = hide Overlay → Main CLI (not Esc leave-nest).
-        list.append(CommandCenterItem(
-            id: "bg-hide",
-            title: "Back",
-            subtitle: "Main CLI · process stays alive",
-            action: .hideOverlay
-        ))
-
-        if let visible = overlays.visibleSession, visible.kind == .background {
-            list.append(CommandCenterItem(
-                id: "bg-close",
-                title: "Close Overlay",
-                subtitle: "Kill Background PTY",
-                action: .closeOverlay(id: visible.id)
-            ))
-        }
-
-        return list
     }
 
     // MARK: - Key monitor
@@ -738,7 +577,7 @@ final class CommandCenterController: ObservableObject {
             mode = preferences.preferences.commandCenterPreferredMode
             filterQuery = ""
             lastInfo = nil
-            nestSequences = [:]
+            nestCatalog.resetSequences()
             resignTerminalFocus()
         }
         enterNest(nest)

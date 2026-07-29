@@ -26,24 +26,14 @@ final class WorktreeController: ObservableObject {
     @Published private(set) var focusedSpawnEnvironment: [(key: String, value: String)] = []
     @Published var lastError: String?
 
-    /// Optional manual branch name on create; empty → Three-Word folder name (ADR 0018).
-    @Published var draftBranchName: String = ""
-
-    /// Editable folder/Three-Word Name on create (P1.4); empty → auto-generate at create time.
-    /// The New Worktree sheet prefills this via `generateThreeWordName()` so Operator can accept
-    /// or edit before creating.
-    @Published var draftThreeWordName: String = ""
-
     /// Pending remove target for confirm UI (ADR 0020).
     @Published var pendingRemove: WorktreeSummary?
 
     /// When confirming remove, optionally also delete the branch (default keep).
     @Published var pendingRemoveDeleteBranch: Bool = false
 
-    /// Pending rename target + draft fields (branch primary, folder secondary — ADR 0018).
+    /// Pending rename target (branch primary, folder secondary — ADR 0018).
     @Published var pendingRename: WorktreeSummary?
-    @Published var draftRenameBranchName: String = ""
-    @Published var draftRenameFolderName: String = ""
 
     /// New Worktree sheet (sidebar + Command Center parity).
     @Published var pendingCreateWorktree = false
@@ -163,16 +153,15 @@ final class WorktreeController: ObservableObject {
 
     /// Create Worktree under the selected Workspace (P4.1–P4.4).
     ///
-    /// Folder name comes from `draftThreeWordName` when non-empty (Operator-edited prefill from
-    /// the New Worktree sheet, P1.4); otherwise a fresh unique Three-Word Name is generated.
-    func createWorktree() {
+    /// `folder` is the on-disk Three-Word Name. Empty `branch` uses the folder name.
+    func createWorktree(branch: String, folder: String) {
         guard let current = workspaces.current else {
             lastError = WorktreeStore.StoreError.noWorkspace.localizedDescription
             return
         }
 
         do {
-            let manualName = draftThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let manualName = folder.trimmingCharacters(in: .whitespacesAndNewlines)
             let threeWord: String
             if manualName.isEmpty {
                 let existing = try store.existingFolderNames(workspaceDataDir: current.dataDirURL)
@@ -186,18 +175,16 @@ final class WorktreeController: ObservableObject {
                     return
                 }
             }
-            let manualBranch = draftBranchName.trimmingCharacters(in: .whitespacesAndNewlines)
-            let branch = manualBranch.isEmpty ? threeWord : manualBranch
+            let manualBranch = branch.trimmingCharacters(in: .whitespacesAndNewlines)
+            let branchName = manualBranch.isEmpty ? threeWord : manualBranch
             let baseRef = preferences.effective.baseRef
 
             let summary = try store.create(
                 workspaceDataDir: current.dataDirURL,
                 threeWordName: threeWord,
-                branchName: branch,
+                branchName: branchName,
                 baseRef: baseRef
             )
-            draftBranchName = ""
-            draftThreeWordName = ""
             pendingCreateWorktree = false
             refresh()
             focus(summary)
@@ -209,19 +196,14 @@ final class WorktreeController: ObservableObject {
 
     // MARK: - Create Worktree
 
-    /// Open the New Worktree sheet with branch-first drafts (P1.4 / C.4).
+    /// Open the New Worktree sheet.
     func beginCreateWorktree() {
-        let name = generateThreeWordName()
-        draftThreeWordName = name
-        draftBranchName = name
         lastError = nil
         pendingCreateWorktree = true
     }
 
     func cancelCreateWorktree() {
         pendingCreateWorktree = false
-        draftBranchName = ""
-        draftThreeWordName = ""
         lastError = nil
     }
 
@@ -331,19 +313,15 @@ final class WorktreeController: ObservableObject {
 
     func beginRename(_ wt: WorktreeSummary) {
         pendingRename = wt
-        draftRenameBranchName = wt.branchName ?? wt.threeWordName
-        draftRenameFolderName = wt.threeWordName
         lastError = nil
     }
 
     func cancelRename() {
         pendingRename = nil
-        draftRenameBranchName = ""
-        draftRenameFolderName = ""
     }
 
     /// Rename branch and/or folder; refresh list and re-focus when this Worktree was focused.
-    func renameWorktree() {
+    func renameWorktree(branch: String, folder: String) {
         guard let current = workspaces.current,
               let wt = pendingRename
         else { return }
@@ -354,8 +332,8 @@ final class WorktreeController: ObservableObject {
             let updated = try store.rename(
                 workspaceDataDir: current.dataDirURL,
                 agent: wt,
-                newBranchName: draftRenameBranchName,
-                newFolderName: draftRenameFolderName
+                newBranchName: branch,
+                newFolderName: folder
             )
 
             if updated.threeWordName != wt.threeWordName {
@@ -371,8 +349,6 @@ final class WorktreeController: ObservableObject {
             }
 
             pendingRename = nil
-            draftRenameBranchName = ""
-            draftRenameFolderName = ""
             refresh()
             if wasFocused {
                 focus(updated)
@@ -533,11 +509,7 @@ final class WorktreeController: ObservableObject {
         pendingRemove = nil
         pendingRemoveDeleteBranch = false
         pendingRename = nil
-        draftRenameBranchName = ""
-        draftRenameFolderName = ""
         pendingCreateWorktree = false
-        draftBranchName = ""
-        draftThreeWordName = ""
         openedMainCLISessions = []
         guard let current = workspaces.current else {
             worktrees = []

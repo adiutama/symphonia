@@ -11,6 +11,11 @@ struct WorkspaceSidebarView: View {
 
     @State private var expandedWorkspaceIDs: Set<String> = []
     @State private var archivedSheetWorkspace: WorkspaceSummary?
+    @State private var createWorkspaceSlug = ""
+    @State private var createWorkspacePrefix = ""
+    @State private var createWorkspaceCloneURL = ""
+    @State private var createWorktreeBranch = ""
+    @State private var createWorktreeFolder = ""
     @State private var renameWorkspaceSlug = ""
     @State private var renameWorktreeBranch = ""
     @State private var renameWorktreeFolder = ""
@@ -438,12 +443,12 @@ struct WorkspaceSidebarView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Create Project")
                 .font(.headline)
-            TextField("slug", text: $workspaces.draftSlug)
+            TextField("slug", text: $createWorkspaceSlug)
                 .textFieldStyle(.roundedBorder)
-            TextField("prefix (optional)", text: $workspaces.draftPrefix)
+            TextField("prefix (optional)", text: $createWorkspacePrefix)
                 .textFieldStyle(.roundedBorder)
             VStack(alignment: .leading, spacing: 4) {
-                TextField("clone URL (optional)", text: $workspaces.draftCloneURL)
+                TextField("clone URL (optional)", text: $createWorkspaceCloneURL)
                     .textFieldStyle(.roundedBorder)
                 Text("Leave empty to start an empty repo (`git init`). Set a URL to clone Main from it.")
                     .font(.caption2)
@@ -453,7 +458,11 @@ struct WorkspaceSidebarView: View {
                 Spacer()
                 Button("Cancel") { workspaces.cancelCreateWorkspace() }
                 Button("Create") {
-                    workspaces.createWorkspace()
+                    workspaces.createWorkspace(
+                        slug: createWorkspaceSlug,
+                        prefix: createWorkspacePrefix,
+                        cloneURL: createWorkspaceCloneURL
+                    )
                     if workspaces.lastError == nil {
                         if let current = workspaces.current {
                             expandedWorkspaceIDs.insert(current.id)
@@ -461,7 +470,7 @@ struct WorkspaceSidebarView: View {
                         }
                     }
                 }
-                .disabled(workspaces.draftSlug.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(createWorkspaceSlug.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .keyboardShortcut(.defaultAction)
             }
             if let error = workspaces.lastError {
@@ -473,6 +482,12 @@ struct WorkspaceSidebarView: View {
         }
         .padding(20)
         .frame(width: 380)
+        .onAppear {
+            createWorkspaceSlug = ""
+            createWorkspacePrefix = ""
+            createWorkspaceCloneURL = ""
+            workspaces.lastError = nil
+        }
     }
 
     private func renameWorkspaceSheet(_ workspace: WorkspaceSummary) -> some View {
@@ -502,8 +517,7 @@ struct WorkspaceSidebarView: View {
                 }
                 Button("Rename") {
                     let oldExpandedID = workspace.id
-                    workspaces.draftRenameSlug = renameWorkspaceSlug
-                    workspaces.renameWorkspace()
+                    workspaces.renameWorkspace(newSlug: renameWorkspaceSlug)
                     if workspaces.lastError == nil {
                         expandedWorkspaceIDs.remove(oldExpandedID)
                         if let current = workspaces.current {
@@ -553,9 +567,10 @@ struct WorkspaceSidebarView: View {
                     worktrees.cancelRename()
                 }
                 Button("Rename") {
-                    worktrees.draftRenameBranchName = renameWorktreeBranch
-                    worktrees.draftRenameFolderName = renameWorktreeFolder
-                    worktrees.renameWorktree()
+                    worktrees.renameWorktree(
+                        branch: renameWorktreeBranch,
+                        folder: renameWorktreeFolder
+                    )
                 }
                 .disabled(
                     renameWorktreeBranch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -584,7 +599,7 @@ struct WorkspaceSidebarView: View {
             Text("New Worktree")
                 .font(.headline)
             VStack(alignment: .leading, spacing: 4) {
-                TextField("branch name", text: $worktrees.draftBranchName)
+                TextField("branch name", text: $createWorktreeBranch)
                     .textFieldStyle(.roundedBorder)
                 Text("Git branch — the primary label in the sidebar. Empty → folder name below.")
                     .font(.caption2)
@@ -592,12 +607,12 @@ struct WorkspaceSidebarView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    TextField("folder name", text: $worktrees.draftThreeWordName)
+                    TextField("folder name", text: $createWorktreeFolder)
                         .textFieldStyle(.roundedBorder)
                     Button {
                         let name = worktrees.generateThreeWordName()
-                        worktrees.draftThreeWordName = name
-                        worktrees.draftBranchName = name
+                        createWorktreeFolder = name
+                        createWorktreeBranch = name
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
@@ -613,12 +628,15 @@ struct WorkspaceSidebarView: View {
                     worktrees.cancelCreateWorktree()
                 }
                 Button("Create") {
-                    worktrees.createWorktree()
+                    worktrees.createWorktree(
+                        branch: createWorktreeBranch,
+                        folder: createWorktreeFolder
+                    )
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(
                     workspaces.current == nil
-                        || worktrees.draftThreeWordName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || createWorktreeFolder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
             }
             if let error = worktrees.lastError {
@@ -630,6 +648,12 @@ struct WorkspaceSidebarView: View {
         }
         .padding(20)
         .frame(width: 380)
+        .onAppear {
+            let name = worktrees.generateThreeWordName()
+            createWorktreeFolder = name
+            createWorktreeBranch = name
+            worktrees.lastError = nil
+        }
     }
 
     private func beginCreateWorkspace() {
