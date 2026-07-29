@@ -63,6 +63,7 @@
 		5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */; };
 		9B1E4F2A6D3C4A8E9F0B1C2D /* CommandBindingOverride.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */; };
 		K1M2B1N3D4S60718293A4B01 /* KeymapBindings.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */; };
+		N1E2S3T4C5A60718293A4B01 /* CommandCenterNestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = N1E2S3T4C5A60718293A4B02 /* CommandCenterNestCatalog.swift */; };
 		9B1E4F2A6D3C4A8E9F0B1C2F /* CommandBindingsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */; };
 		A8B0UT001ABOUT0001 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT001ABOUT0002 /* AboutView.swift */; };
 		A8B0UT002ONBOARD01 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT002ONBOARD02 /* OnboardingView.swift */; };
@@ -133,6 +134,7 @@
 		3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceCommandProvider.swift; sourceTree = "<group>"; };
 		9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBindingOverride.swift; sourceTree = "<group>"; };
 		K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapBindings.swift; sourceTree = "<group>"; };
+		N1E2S3T4C5A60718293A4B02 /* CommandCenterNestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterNestCatalog.swift; sourceTree = "<group>"; };
 		9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBindingsSettingsView.swift; sourceTree = "<group>"; };
 		A8B0UT001ABOUT0002 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		A8B0UT002ONBOARD02 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -268,6 +270,7 @@
 				3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */,
 				9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */,
 				K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */,
+				N1E2S3T4C5A60718293A4B02 /* CommandCenterNestCatalog.swift */,
 				A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */,
 				A7B405162738495A6B0E0104 /* CommandCenterModels.swift */,
 				A7B405162738495A6B0E0106 /* CommandCenterController.swift */,
@@ -487,6 +490,7 @@
 				5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */,
 				9B1E4F2A6D3C4A8E9F0B1C2D /* CommandBindingOverride.swift in Sources */,
 				K1M2B1N3D4S60718293A4B01 /* KeymapBindings.swift in Sources */,
+				N1E2S3T4C5A60718293A4B01 /* CommandCenterNestCatalog.swift in Sources */,
 				9B1E4F2A6D3C4A8E9F0B1C2F /* CommandBindingsSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

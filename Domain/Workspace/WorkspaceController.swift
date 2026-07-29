@@ -12,21 +12,14 @@ final class WorkspaceController: ObservableObject {
     @Published private(set) var currentConfig: WorkspaceConfig?
     @Published var lastError: String?
 
-    /// Scaffold create fields.
-    @Published var draftSlug: String = ""
-    @Published var draftPrefix: String = ""
-    /// Optional clone source for Main (P1.4). Empty → `git init` as before.
-    @Published var draftCloneURL: String = ""
-
     /// Pending Workspace remove for confirm UI (deletes Data Dir + index entry).
     @Published var pendingRemoveWorkspace: WorkspaceSummary?
 
     /// Pending New Workspace sheet (sidebar / Command Center / ⌘N).
     @Published var pendingCreateWorkspace = false
 
-    /// Pending Workspace rename sheet target + draft slug.
+    /// Pending Workspace rename sheet target.
     @Published var pendingRenameWorkspace: WorkspaceSummary?
-    @Published var draftRenameSlug: String = ""
 
     /// When Prefix relocate changes the Workspace Data Dir path, Settings remounts selection.
     @Published private(set) var lastWorkspaceIdRemap: WorkspaceIdRemap?
@@ -75,18 +68,15 @@ final class WorkspaceController: ObservableObject {
     }
 
     /// Create Workspace under optional Prefix (empty → Workspaces Root), then select it.
-    /// When `draftCloneURL` is non-empty, Main is cloned from that URL instead of `git init`.
-    func createWorkspace() {
+    /// When `cloneURL` is non-empty, Main is cloned from that URL instead of `git init`.
+    func createWorkspace(slug: String, prefix: String = "", cloneURL: String = "") {
         do {
             let summary = try store.create(
-                slug: draftSlug,
-                prefix: draftPrefix.isEmpty ? nil : draftPrefix,
+                slug: slug,
+                prefix: prefix.isEmpty ? nil : prefix,
                 workspacesRoot: workspacesRoot,
-                cloneURL: draftCloneURL.isEmpty ? nil : draftCloneURL
+                cloneURL: cloneURL.isEmpty ? nil : cloneURL
             )
-            draftSlug = ""
-            draftPrefix = ""
-            draftCloneURL = ""
             pendingCreateWorkspace = false
             refresh()
             select(summary)
@@ -96,20 +86,14 @@ final class WorkspaceController: ObservableObject {
         }
     }
 
-    /// Open the New Workspace sheet (draft fields cleared).
+    /// Open the New Workspace sheet.
     func beginCreateWorkspace() {
-        draftSlug = ""
-        draftPrefix = ""
-        draftCloneURL = ""
         lastError = nil
         pendingCreateWorkspace = true
     }
 
     func cancelCreateWorkspace() {
         pendingCreateWorkspace = false
-        draftSlug = ""
-        draftPrefix = ""
-        draftCloneURL = ""
         lastError = nil
     }
 
@@ -239,27 +223,24 @@ final class WorkspaceController: ObservableObject {
 
     func beginRename(_ summary: WorkspaceSummary) {
         pendingRenameWorkspace = summary
-        draftRenameSlug = summary.slug
         lastError = nil
     }
 
     func cancelRename() {
         pendingRenameWorkspace = nil
-        draftRenameSlug = ""
     }
 
     /// Rename slug + move Workspace Data Dir; re-select when this was the current Workspace.
-    func renameWorkspace() {
+    func renameWorkspace(newSlug: String) {
         guard let target = pendingRenameWorkspace else { return }
         let wasCurrent = current?.id == target.id
         do {
             let updated = try store.rename(
                 summary: target,
-                newSlug: draftRenameSlug,
+                newSlug: newSlug,
                 workspacesRoot: workspacesRoot
             )
             pendingRenameWorkspace = nil
-            draftRenameSlug = ""
             refresh()
             if wasCurrent {
                 select(updated)
