@@ -14,7 +14,6 @@ final class CommandCenterController: ObservableObject {
     private let worktrees: WorktreeController
     private let overlays: OverlayController
     private let settingsNavigation: SettingsNavigation
-    private let commandRegistry: CommandRegistry
 
     @Published private(set) var isActive = false
     @Published private(set) var phase: CommandCenterPhase = .root
@@ -45,7 +44,6 @@ final class CommandCenterController: ObservableObject {
         self.worktrees = worktrees
         self.overlays = overlays
         self.settingsNavigation = settingsNavigation
-        self.commandRegistry = commandRegistry
         self.nestCatalog = CommandCenterNestCatalog(
             workspaces: workspaces,
             worktrees: worktrees,
