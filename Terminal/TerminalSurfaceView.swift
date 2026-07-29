@@ -711,18 +711,31 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
             surfaceConfig.command = UnsafePointer(commandCString)
         }
         if !spawnEnvironment.isEmpty {
-            let count = spawnEnvironment.count
-            let buffer = UnsafeMutablePointer<ghostty_env_var_s>.allocate(capacity: count)
-            envVarsBuffer = buffer
-            for (index, pair) in spawnEnvironment.enumerated() {
-                let keyPtr = strdup(pair.key)!
-                let valuePtr = strdup(pair.value)!
+            var copied: [(key: UnsafeMutablePointer<CChar>, value: UnsafeMutablePointer<CChar>)] = []
+            copied.reserveCapacity(spawnEnvironment.count)
+            for pair in spawnEnvironment {
+                let keyPtr = strdup(pair.key)
+                let valuePtr = strdup(pair.value)
+                guard let keyPtr, let valuePtr else {
+                    assertionFailure("strdup failed for spawn environment")
+                    if let keyPtr { free(keyPtr) }
+                    if let valuePtr { free(valuePtr) }
+                    break
+                }
+                copied.append((keyPtr, valuePtr))
                 envKeyCStrings.append(keyPtr)
                 envValueCStrings.append(valuePtr)
-                buffer[index] = ghostty_env_var_s(key: keyPtr, value: valuePtr)
             }
-            surfaceConfig.env_vars = buffer
-            surfaceConfig.env_var_count = count
+            if !copied.isEmpty {
+                let count = copied.count
+                let buffer = UnsafeMutablePointer<ghostty_env_var_s>.allocate(capacity: count)
+                envVarsBuffer = buffer
+                for (index, pair) in copied.enumerated() {
+                    buffer[index] = ghostty_env_var_s(key: pair.key, value: pair.value)
+                }
+                surfaceConfig.env_vars = buffer
+                surfaceConfig.env_var_count = count
+            }
         }
         surfaceConfig.wait_after_command = false
         surfaceConfig.context = GHOSTTY_SURFACE_CONTEXT_WINDOW

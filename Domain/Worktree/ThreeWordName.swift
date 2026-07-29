@@ -47,9 +47,9 @@ enum ThreeWordName {
 
     /// Generate one random Three-Word Name (no collision check).
     static func generate(using rng: inout some RandomNumberGenerator) -> String {
-        let a = words.randomElement(using: &rng)!
-        let b = words.randomElement(using: &rng)!
-        let c = words.randomElement(using: &rng)!
+        let a = words.randomElement(using: &rng) ?? "stone"
+        let b = words.randomElement(using: &rng) ?? "river"
+        let c = words.randomElement(using: &rng) ?? "light"
         return "\(a)-\(b)-\(c)"
     }
 

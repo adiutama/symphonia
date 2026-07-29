@@ -9,7 +9,7 @@ import SwiftUI
 struct GhosttyWindowChrome: NSViewRepresentable {
     let background: NSColor
     let isDark: Bool
-    /// When true, window is non-opaque so `NSVisualEffectView` blur can sample behind the window.
+    /// When true, window is non-opaque so Liquid Glass can sample behind the window.
     var glass: Bool = false
 
     func makeNSView(context: Context) -> NSView {
@@ -43,7 +43,6 @@ struct GhosttyWindowChrome: NSViewRepresentable {
         window.titlebarSeparatorStyle = .none
         window.toolbarStyle = .unified
         if let toolbar = window.toolbar {
-            toolbar.showsBaselineSeparator = false
             toolbar.isVisible = true
         }
         // Never move the window from terminal / list hits — chrome drag regions only.
@@ -74,7 +73,7 @@ private final class WindowDragNSView: NSView {
 
 extension View {
     /// Tint the macOS window chrome to match Ghostty background / scheme.
-    /// Pass `glass: true` so sidebar / host visual-effect blur can sample the desktop.
+    /// Pass `glass: true` so sidebar / host glass can sample the desktop.
     func ghosttyWindowChrome(_ theme: GhosttyChromeTheme, glass: Bool = false) -> some View {
         background(
             GhosttyWindowChrome(
@@ -92,16 +91,10 @@ extension View {
 
     /// Transparent unified titlebar chrome. Pair with `.windowToolbarStyle(.unified)`
     /// and real `.toolbar` items so traffic lights align with controls.
-    @ViewBuilder
     func symphoniaTitlebarChrome() -> some View {
-        if #available(macOS 15.0, *) {
-            self
-                .toolbar(removing: .title)
-                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        } else {
-            self
-                .toolbarBackground(.hidden, for: .windowToolbar)
-        }
+        self
+            .toolbar(removing: .title)
+            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }
 

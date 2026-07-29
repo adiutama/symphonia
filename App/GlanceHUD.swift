@@ -41,7 +41,7 @@ struct GlanceHUD: View {
     /// Translucent blur over Main CLI — lighter than Command Center panels, no border.
     @ViewBuilder
     private var chipVeil: some View {
-        if preferences.preferences.chromeGlass, #available(macOS 26.0, *) {
+        if preferences.preferences.chromeGlass {
             ZStack {
                 ghosttyTheme.panel.opacity(0.14)
                 Color.clear
@@ -51,13 +51,11 @@ struct GlanceHUD: View {
                     )
             }
         } else {
-            // Vibrancy blur + light tint (also used when chrome glass is off —
-            // Glance should still read as a translucent HUD).
+            // Still translucent when glass chrome is off — Glance should read as a HUD.
             ZStack {
                 ChromeGlassBackground(
                     tintColor: NSColor(ghosttyTheme.panel).withAlphaComponent(0.22),
-                    cornerRadius: cornerRadius,
-                    fallbackMaterial: .hudWindow
+                    cornerRadius: cornerRadius
                 )
                 ghosttyTheme.panel.opacity(0.24)
             }

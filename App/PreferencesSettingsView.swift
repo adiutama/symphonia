@@ -233,7 +233,7 @@ struct PreferencesSettingsView: View {
                 SettingsCard {
                     SettingsRow(
                         title: "Glass chrome",
-                        description: "Liquid Glass sidebar on macOS 26+ (frosted fallback earlier). Also tints Command Center and Overlay peeks."
+                        description: "Liquid Glass sidebar, Command Center, and Overlay peeks."
                     ) {
                         Toggle("", isOn: $preferences.preferences.chromeGlass)
                             .labelsHidden()

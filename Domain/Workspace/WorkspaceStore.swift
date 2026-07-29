@@ -11,7 +11,7 @@ import Foundation
 /// existing repo, and healing is a no-op once Main is a valid git repo. Worktree checkouts are
 /// **siblings** of `main/` directly under the Workspace Data Dir (P1.5 flat layout; no
 /// `worktrees/` parent) — created lazily by `WorktreeStore`, not by this store.
-struct WorkspaceStore: Sendable {
+struct WorkspaceStore: @unchecked Sendable {
     enum StoreError: LocalizedError, Equatable {
         case invalidSlug(String)
         case alreadyExists(URL)
@@ -423,7 +423,10 @@ struct WorkspaceStore: Sendable {
         guard process.terminationStatus == 0 else {
             let errData = stderr.fileHandleForReading.readDataToEndOfFile()
             let detail = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            throw StoreError.gitInitFailed(detail?.isEmpty == false ? detail! : "exit \(process.terminationStatus)")
+            if let detail, !detail.isEmpty {
+                throw StoreError.gitInitFailed(detail)
+            }
+            throw StoreError.gitInitFailed("exit \(process.terminationStatus)")
         }
     }
 
@@ -446,7 +449,10 @@ struct WorkspaceStore: Sendable {
         guard process.terminationStatus == 0 else {
             let errData = stderr.fileHandleForReading.readDataToEndOfFile()
             let detail = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            throw StoreError.gitCloneFailed(detail?.isEmpty == false ? detail! : "exit \(process.terminationStatus)")
+            if let detail, !detail.isEmpty {
+                throw StoreError.gitCloneFailed(detail)
+            }
+            throw StoreError.gitCloneFailed("exit \(process.terminationStatus)")
         }
     }
 

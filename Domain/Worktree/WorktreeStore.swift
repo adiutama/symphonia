@@ -17,7 +17,7 @@ struct WorktreeSummary: Equatable, Identifiable, Sendable {
 }
 
 /// Create / list / remove Worktrees via `git worktree` (ADR 0003, 0014, 0017–0020).
-struct WorktreeStore: Sendable {
+struct WorktreeStore: @unchecked Sendable {
     enum StoreError: LocalizedError, Equatable {
         case noWorkspace
         case mainNotGitRepo(URL)
