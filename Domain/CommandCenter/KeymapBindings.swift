@@ -3,7 +3,7 @@ import Foundation
 
 /// Single source of truth for Operator chords that are not Normal-mode sequences (ADR 0022).
 ///
-/// Matched by `CommandModeController`; listed by `KeymapCheatsheetView` and Settings Hotkeys.
+/// Matched by `CommandCenterController`; listed by `KeymapCheatsheetView` and Settings Hotkeys.
 /// Sequences come from `CommandRegistry` + `CommandBindingResolver`.
 enum KeymapBindings {
     enum Scope: String {
@@ -16,7 +16,7 @@ enum KeymapBindings {
         var id: String { "\(scope.rawValue)-\(display)-\(titleFallback)" }
         let display: String
         let titleFallback: String
-        let action: CommandModeAction
+        let action: CommandCenterAction
         let scope: Scope
         let matches: (NSEvent) -> Bool
 
@@ -120,17 +120,17 @@ enum KeymapBindings {
         },
     ]
 
-    static func globalAction(for event: NSEvent) -> CommandModeAction? {
+    static func globalAction(for event: NSEvent) -> CommandCenterAction? {
         globalChords.first(where: { $0.matches(event) })?.action
     }
 
-    static func commandCenterOnlyAction(for event: NSEvent) -> CommandModeAction? {
+    static func commandCenterOnlyAction(for event: NSEvent) -> CommandCenterAction? {
         commandCenterOnlyChords.first(where: { $0.matches(event) })?.action
     }
 
     /// Display string for a Command's fixed modifier chord, if any (ADR 0022).
     /// Settings Hotkey column is read-only from this — Operator overrides do not apply.
-    static func hotkeyDisplay(for action: CommandModeAction) -> String? {
+    static func hotkeyDisplay(for action: CommandCenterAction) -> String? {
         if let chord = globalChords.first(where: { $0.action == action }) {
             return chord.display
         }
@@ -151,7 +151,7 @@ enum KeymapBindings {
     private static func chord(
         _ display: String,
         _ title: String,
-        _ action: CommandModeAction,
+        _ action: CommandCenterAction,
         _ scope: Scope,
         matches: @escaping (NSEvent) -> Bool
     ) -> Chord {

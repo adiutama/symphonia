@@ -99,7 +99,7 @@ The key that enters Command Center. Default is `⌘⇧P` (VS Code / Cursor Comma
 _Avoid_: Hotkey soup, global chord (when meaning the prefix)
 
 **Command Center**:
-A short Symphonia-owned input layer after the Leader (Raycast-like). Keys route to Commands, not the focused PTY, until it dismisses. Some Swift types still use the older name `CommandMode*` (implementation only).
+A short Symphonia-owned input layer after the Leader (Raycast-like). Keys route to Commands, not the focused PTY, until it dismisses.
 _Avoid_: Modal editing, vim mode (when meaning the app layer), Command Mode (preferred product term is Command Center)
 
 **Command**:

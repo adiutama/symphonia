@@ -9,8 +9,8 @@ struct SymphoniaApp: App {
     @StateObject private var settingsNavigation: SettingsNavigation
     @StateObject private var worktrees: WorktreeController
     @StateObject private var overlays: OverlayController
-    @StateObject private var commandMode: CommandModeController
-    /// Command registry (ADR 0021). Drives `commandMode`'s root palette (CC.2);
+    @StateObject private var commandCenter: CommandCenterController
+    /// Command registry (ADR 0021). Drives `commandCenter`'s root palette (CC.2);
     /// constructed here so it's app-wide and testable.
     @StateObject private var commandRegistry: CommandRegistry
     /// Ghostty config colors for chrome (bg/fg/scheme). Load once at launch.
@@ -45,7 +45,7 @@ struct SymphoniaApp: App {
             OverlayCommandProvider(),
             ChromeCommandProvider(),
         ])
-        let commandMode = CommandModeController(
+        let commandCenter = CommandCenterController(
             preferences: preferences,
             workspaces: workspaces,
             worktrees: worktrees,
@@ -59,7 +59,7 @@ struct SymphoniaApp: App {
         _settingsNavigation = StateObject(wrappedValue: settingsNavigation)
         _worktrees = StateObject(wrappedValue: worktrees)
         _overlays = StateObject(wrappedValue: overlays)
-        _commandMode = StateObject(wrappedValue: commandMode)
+        _commandCenter = StateObject(wrappedValue: commandCenter)
         _commandRegistry = StateObject(wrappedValue: commandRegistry)
         _ghosttyTheme = StateObject(wrappedValue: GhosttyChromeTheme.shared)
     }
@@ -73,7 +73,7 @@ struct SymphoniaApp: App {
                 .environmentObject(secrets)
                 .environmentObject(settingsNavigation)
                 .environmentObject(overlays)
-                .environmentObject(commandMode)
+                .environmentObject(commandCenter)
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
@@ -114,51 +114,51 @@ struct SymphoniaApp: App {
                 }
                 .keyboardShortcut("n", modifiers: .command)
                 Button("New Worktree") {
-                    commandMode.run(.newWorktree)
+                    commandCenter.run(.newWorktree)
                 }
                 .keyboardShortcut("t", modifiers: .command)
                 Divider()
                 Button("Next Workspace") {
-                    commandMode.run(.cycleNextWorkspace)
+                    commandCenter.run(.cycleNextWorkspace)
                 }
                 .keyboardShortcut(.tab, modifiers: .control)
                 Button("Previous Workspace") {
-                    commandMode.run(.cyclePrevWorkspace)
+                    commandCenter.run(.cyclePrevWorkspace)
                 }
                 .keyboardShortcut(.tab, modifiers: [.control, .shift])
                 Button("Next Worktree") {
-                    commandMode.run(.cycleNextWorktree)
+                    commandCenter.run(.cycleNextWorktree)
                 }
                 .keyboardShortcut("]", modifiers: .command)
                 Button("Previous Worktree") {
-                    commandMode.run(.cyclePrevWorktree)
+                    commandCenter.run(.cyclePrevWorktree)
                 }
                 .keyboardShortcut("[", modifiers: .command)
                 Button("Focus Main") {
-                    commandMode.run(.focusMainRepo)
+                    commandCenter.run(.focusMainRepo)
                 }
                 .keyboardShortcut("m", modifiers: [.command, .shift])
             }
             CommandMenu("Overlay") {
                 Button("Open Editor") {
-                    commandMode.run(.openEditor)
+                    commandCenter.run(.openEditor)
                 }
                 .keyboardShortcut("e", modifiers: .command)
                 Button("Overlay Terminal") {
-                    commandMode.run(.createBackground)
+                    commandCenter.run(.createBackground)
                 }
                 .keyboardShortcut("j", modifiers: .command)
                 Button("Overlay Switcher") {
-                    commandMode.run(.showBackgroundPicker)
+                    commandCenter.run(.showBackgroundPicker)
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
                 Button("Toggle Overlay") {
-                    commandMode.run(.toggleOverlay)
+                    commandCenter.run(.toggleOverlay)
                 }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 Divider()
                 Button("Reload CLI") {
-                    commandMode.run(.reloadFocusedCLI)
+                    commandCenter.run(.reloadFocusedCLI)
                 }
                 .keyboardShortcut("r", modifiers: .command)
             }

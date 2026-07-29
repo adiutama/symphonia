@@ -142,10 +142,10 @@ When a session is **first opened**, spawn env = English locale defaults (`LANG` 
 | Type | Role |
 |------|------|
 | `LeaderKeyBinding` | Parse Effective `leaderKey` (`cmd+shift+p`, `⌘k`, …) and match `NSEvent` |
-| `CommandModeController` | Local keyDown monitor; enter/dismiss; run palette actions (legacy type name) |
-| `CommandModeItem` / `CommandModeAction` | Palette rows / run actions (legacy type names) |
+| `CommandCenterController` | Local keyDown monitor; enter/dismiss; run palette actions |
+| `CommandCenterItem` / `CommandCenterAction` | Palette rows / run actions |
 | `CommandContext` | Small availability snapshot — `hasFocusedSession`, `overlayVisible` — with a `@MainActor` init from `WorktreeController` + `OverlayController` |
-| `Command` | Stable string `id`, title, optional subtitle/group, `defaultSequence`, `isEnabled(CommandContext) -> Bool`, wraps a `CommandModeAction` |
+| `Command` | Stable string `id`, title, optional subtitle/group, `defaultSequence`, `isEnabled(CommandContext) -> Bool`, wraps a `CommandCenterAction` |
 | `CommandProvider` | Protocol an app area implements to export `[Command]` (ADR 0021) |
 | `CommandRegistry` | Aggregates providers; `allCommands`, `availableCommands(context:)`, `command(id:)` |
 | `OverlayCommandProvider` | Open Editor (`ee`), Toggle Overlay (`oo`), Overlay Terminal (`ot`), Overlay Switcher (`os`) |
@@ -159,7 +159,7 @@ When a session is **first opened**, spawn env = English locale defaults (`LANG` 
 
 Root palette rows come from the `CommandRegistry` (ADR 0021 / CC.2). The picker phases (`pickWorkspace` / `pickWorktree` / `pickBackground`) still build their rows directly from live controller data since each row is a dynamic instance (a Workspace, a Worktree, a live Overlay), not a stable Command.
 
-`CommandRegistry` is constructed once in `SymphoniaApp.init()` (providers: Workspace, Overlay, Chrome) and injected into `CommandModeController`, which drives its root palette entirely from `commandRegistry.availableCommands(context:)`. Filtering matches title and subtitle via case-insensitive substring. An empty filter shows every enabled Command; Normal-mode sequences and `KeymapBindings` Hotkeys fire from the key monitor per ADR 0022.
+`CommandRegistry` is constructed once in `SymphoniaApp.init()` (providers: Workspace, Overlay, Chrome) and injected into `CommandCenterController`, which drives its root palette entirely from `commandRegistry.availableCommands(context:)`. Filtering matches title and subtitle via case-insensitive substring. An empty filter shows every enabled Command; Normal-mode sequences and `KeymapBindings` Hotkeys fire from the key monitor per ADR 0022.
 
 **Operator overrides (ADR 0021 CC.3 / ADR 0022):** `GlobalPreferences.commandBindings` persists per-Command **sequence** overrides at `~/.symphonia/preferences.toml` under `[commandBindings."<id>"]`. Hotkeys are **not** overridable — they come from `KeymapBindings`. Legacy `aliases` / `shortcut` TOML keys are ignored and stripped on load. Legacy `preferences.json` is ignored.
 

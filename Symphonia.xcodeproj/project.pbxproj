@@ -55,9 +55,9 @@
 		B8C405162738495A6B0F0105 /* MainCLISurfaceSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */; };
 		B8C405162738495A6B0F0107 /* CLISpawnEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */; };
 		A7B405162738495A6B0E0101 /* LeaderKeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */; };
-		A7B405162738495A6B0E0103 /* CommandModeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0104 /* CommandModeModels.swift */; };
-		A7B405162738495A6B0E0105 /* CommandModeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0106 /* CommandModeController.swift */; };
-		A7B405162738495A6B0E0107 /* CommandModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0108 /* CommandModeView.swift */; };
+		A7B405162738495A6B0E0103 /* CommandCenterModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0104 /* CommandCenterModels.swift */; };
+		A7B405162738495A6B0E0105 /* CommandCenterController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0106 /* CommandCenterController.swift */; };
+		A7B405162738495A6B0E0107 /* CommandCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B405162738495A6B0E0108 /* CommandCenterView.swift */; };
 		92B3541DF27546F091CDA9DC /* Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AE7305E6FD442E9DE81179 /* Command.swift */; };
 		CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */; };
 		5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */; };
@@ -125,9 +125,9 @@
 		B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCLISurfaceSlot.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLISpawnEnvironment.swift; sourceTree = "<group>"; };
 		A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderKeyBinding.swift; sourceTree = "<group>"; };
-		A7B405162738495A6B0E0104 /* CommandModeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeModels.swift; sourceTree = "<group>"; };
-		A7B405162738495A6B0E0106 /* CommandModeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeController.swift; sourceTree = "<group>"; };
-		A7B405162738495A6B0E0108 /* CommandModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandModeView.swift; sourceTree = "<group>"; };
+		A7B405162738495A6B0E0104 /* CommandCenterModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterModels.swift; sourceTree = "<group>"; };
+		A7B405162738495A6B0E0106 /* CommandCenterController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterController.swift; sourceTree = "<group>"; };
+		A7B405162738495A6B0E0108 /* CommandCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterView.swift; sourceTree = "<group>"; };
 		22AE7305E6FD442E9DE81179 /* Command.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Command.swift; sourceTree = "<group>"; };
 		2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayCommandProvider.swift; sourceTree = "<group>"; };
 		3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceCommandProvider.swift; sourceTree = "<group>"; };
@@ -217,7 +217,7 @@
 				B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */,
 				E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */,
 				F6A405162738495A6B0D0106 /* OverlayHostView.swift */,
-				A7B405162738495A6B0E0108 /* CommandModeView.swift */,
+				A7B405162738495A6B0E0108 /* CommandCenterView.swift */,
 				A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */,
 				A1B2C3D4E5F60718293A4B5F /* SettingsNavigation.swift */,
 				S1T2U3V4W5X60718293A4B08 /* SettingsWindowPresenter.swift */,
@@ -255,20 +255,9 @@
 				D2E3F405162738495A6B0B00 /* Worktree */,
 				E5F405162738495A6B0C0100 /* Secrets */,
 				F6A405162738495A6B0D0100 /* Overlay */,
-				A7B405162738495A6B0E0100 /* CommandMode */,
 				265AAA08BB3045BCAFAB1721 /* CommandCenter */,
 			);
 			path = Domain;
-			sourceTree = "<group>";
-		};
-		A7B405162738495A6B0E0100 /* CommandMode */ = {
-			isa = PBXGroup;
-			children = (
-				A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */,
-				A7B405162738495A6B0E0104 /* CommandModeModels.swift */,
-				A7B405162738495A6B0E0106 /* CommandModeController.swift */,
-			);
-			path = CommandMode;
 			sourceTree = "<group>";
 		};
 		265AAA08BB3045BCAFAB1721 /* CommandCenter */ = {
@@ -279,6 +268,9 @@
 				3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */,
 				9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */,
 				K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */,
+				A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */,
+				A7B405162738495A6B0E0104 /* CommandCenterModels.swift */,
+				A7B405162738495A6B0E0106 /* CommandCenterController.swift */,
 			);
 			path = CommandCenter;
 			sourceTree = "<group>";
@@ -487,9 +479,9 @@
 				F6A405162738495A6B0D0103 /* OverlayController.swift in Sources */,
 				F6A405162738495A6B0D0105 /* OverlayHostView.swift in Sources */,
 				A7B405162738495A6B0E0101 /* LeaderKeyBinding.swift in Sources */,
-				A7B405162738495A6B0E0103 /* CommandModeModels.swift in Sources */,
-				A7B405162738495A6B0E0105 /* CommandModeController.swift in Sources */,
-				A7B405162738495A6B0E0107 /* CommandModeView.swift in Sources */,
+				A7B405162738495A6B0E0103 /* CommandCenterModels.swift in Sources */,
+				A7B405162738495A6B0E0105 /* CommandCenterController.swift in Sources */,
+				A7B405162738495A6B0E0107 /* CommandCenterView.swift in Sources */,
 				92B3541DF27546F091CDA9DC /* Command.swift in Sources */,
 				CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */,
 				5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */,

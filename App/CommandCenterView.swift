@@ -1,14 +1,14 @@
 import SwiftUI
 
 /// Command Center chrome — minimal strip + Peek nest bar.
-struct CommandModeView: View {
-    @EnvironmentObject private var commandMode: CommandModeController
+struct CommandCenterView: View {
+    @EnvironmentObject private var commandCenter: CommandCenterController
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if commandMode.phase == .pickBackground {
+            if commandCenter.phase == .pickBackground {
                 nestBar
             } else {
                 modeStrip
@@ -50,8 +50,8 @@ struct CommandModeView: View {
     }
 
     private var stripLabel: String {
-        let mode = commandMode.mode.stripLabel
-        if let phase = commandMode.phase.phaseTitle {
+        let mode = commandCenter.mode.stripLabel
+        if let phase = commandCenter.phase.phaseTitle {
             return "\(mode) · \(phase)"
         }
         return mode
@@ -62,7 +62,7 @@ struct CommandModeView: View {
     private var nestBar: some View {
         HStack(spacing: 8) {
             Button {
-                commandMode.leaveNestToRoot()
+                commandCenter.leaveNestToRoot()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.caption.weight(.semibold))
@@ -91,17 +91,17 @@ struct CommandModeView: View {
 
     private var promptBar: some View {
         HStack(spacing: 8) {
-            Text(commandMode.filterQuery.isEmpty ? placeholder : commandMode.filterQuery)
+            Text(commandCenter.filterQuery.isEmpty ? placeholder : commandCenter.filterQuery)
                 .font(.system(size: 15, weight: .regular, design: .monospaced))
                 .foregroundStyle(
-                    commandMode.filterQuery.isEmpty
+                    commandCenter.filterQuery.isEmpty
                         ? ghosttyTheme.tertiaryText
                         : ghosttyTheme.foreground
                 )
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if !commandMode.filterQuery.isEmpty {
+            if !commandCenter.filterQuery.isEmpty {
                 Text("⌫")
                     .font(.caption2)
                     .foregroundStyle(ghosttyTheme.tertiaryText)
@@ -116,7 +116,7 @@ struct CommandModeView: View {
     }
 
     private var placeholder: String {
-        switch (commandMode.phase, commandMode.mode) {
+        switch (commandCenter.phase, commandCenter.mode) {
         case (.root, .normal): return "Sequence…"
         case (.root, .input): return "Filter commands…"
         case (.pickWorkspace, .normal): return "Sequence…"
@@ -134,18 +134,18 @@ struct CommandModeView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    if commandMode.items.isEmpty {
+                    if commandCenter.items.isEmpty {
                         Text("No matches")
                             .font(.caption)
                             .foregroundStyle(ghosttyTheme.secondaryText)
                             .padding(12)
                     } else {
-                        ForEach(Array(commandMode.items.enumerated()), id: \.element.id) { index, item in
+                        ForEach(Array(commandCenter.items.enumerated()), id: \.element.id) { index, item in
                             Button {
-                                commandMode.selectedIndex = index
-                                commandMode.run(item.action)
+                                commandCenter.selectedIndex = index
+                                commandCenter.run(item.action)
                             } label: {
-                                row(item: item, selected: index == commandMode.selectedIndex)
+                                row(item: item, selected: index == commandCenter.selectedIndex)
                             }
                             .buttonStyle(.plain)
                             .id(item.id)
@@ -154,17 +154,17 @@ struct CommandModeView: View {
                 }
             }
             .frame(maxHeight: 300)
-            .onChange(of: commandMode.selectedIndex) {
-                let newValue = commandMode.selectedIndex
-                guard commandMode.items.indices.contains(newValue) else { return }
+            .onChange(of: commandCenter.selectedIndex) {
+                let newValue = commandCenter.selectedIndex
+                guard commandCenter.items.indices.contains(newValue) else { return }
                 withAnimation(.easeOut(duration: 0.1)) {
-                    proxy.scrollTo(commandMode.items[newValue].id, anchor: .center)
+                    proxy.scrollTo(commandCenter.items[newValue].id, anchor: .center)
                 }
             }
         }
     }
 
-    private func row(item: CommandModeItem, selected: Bool) -> some View {
+    private func row(item: CommandCenterItem, selected: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
@@ -207,7 +207,7 @@ struct CommandModeView: View {
                 .font(.caption2)
                 .foregroundStyle(ghosttyTheme.tertiaryText)
             Spacer()
-            if let info = commandMode.lastInfo {
+            if let info = commandCenter.lastInfo {
                 Text(info)
                     .font(.caption2)
                     .foregroundStyle(ghosttyTheme.secondaryText)
@@ -219,7 +219,7 @@ struct CommandModeView: View {
     }
 
     private var footerHints: String {
-        let move = commandMode.mode == .normal ? "⌃N/P · j/k · ↑↓" : "⌃N/P · ↑↓"
+        let move = commandCenter.mode == .normal ? "⌃N/P · j/k · ↑↓" : "⌃N/P · ↑↓"
         return "⇧Tab · \(move) · ↩ · Esc"
     }
 }

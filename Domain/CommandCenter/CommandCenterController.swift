@@ -8,7 +8,7 @@ import Foundation
 /// Leader chords or in-mode keystrokes. Effective `leaderKey` is re-parsed each event.
 /// Fixed Hotkeys live in `KeymapBindings`.
 @MainActor
-final class CommandModeController: ObservableObject {
+final class CommandCenterController: ObservableObject {
     private let preferences: PreferencesController
     private let workspaces: WorkspaceController
     private let worktrees: WorktreeController
@@ -17,9 +17,9 @@ final class CommandModeController: ObservableObject {
     private let commandRegistry: CommandRegistry
 
     @Published private(set) var isActive = false
-    @Published private(set) var phase: CommandModePhase = .root
+    @Published private(set) var phase: CommandCenterPhase = .root
     @Published private(set) var mode: CommandCenterMode = .input
-    @Published private(set) var items: [CommandModeItem] = []
+    @Published private(set) var items: [CommandCenterItem] = []
     @Published var selectedIndex: Int = 0
     /// Shared buffer: filter text in Input, sequence prefix in Normal.
     @Published var filterQuery: String = ""
@@ -134,7 +134,7 @@ final class CommandModeController: ObservableObject {
         run(items[selectedIndex].action)
     }
 
-    func run(_ action: CommandModeAction) {
+    func run(_ action: CommandCenterAction) {
         switch action {
         case .dismiss:
             dismiss()
@@ -277,7 +277,7 @@ final class CommandModeController: ObservableObject {
         }
     }
 
-    private func enterNest(_ nest: CommandModePhase) {
+    private func enterNest(_ nest: CommandCenterPhase) {
         phase = nest
         filterQuery = ""
         assignNestSequences(for: nest)
@@ -302,7 +302,7 @@ final class CommandModeController: ObservableObject {
         }
     }
 
-    private func filteredRootItems() -> [CommandModeItem] {
+    private func filteredRootItems() -> [CommandCenterItem] {
         let context = CommandContext(worktrees: worktrees, overlays: overlays)
         let commands = commandRegistry.availableCommands(context: context)
             .filter { command in
@@ -345,8 +345,8 @@ final class CommandModeController: ObservableObject {
         return false
     }
 
-    private func commandItem(_ command: Command, overrides: [String: CommandBindingOverride]) -> CommandModeItem {
-        CommandModeItem(
+    private func commandItem(_ command: Command, overrides: [String: CommandBindingOverride]) -> CommandCenterItem {
+        CommandCenterItem(
             id: command.id,
             title: command.title,
             subtitle: liveSubtitle(for: command),
@@ -368,7 +368,7 @@ final class CommandModeController: ObservableObject {
         }
     }
 
-    private func filterNest(_ raw: [CommandModeItem]) -> [CommandModeItem] {
+    private func filterNest(_ raw: [CommandCenterItem]) -> [CommandCenterItem] {
         switch mode {
         case .input:
             let q = filterQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -401,9 +401,9 @@ final class CommandModeController: ObservableObject {
 
     // MARK: - Nest builders
 
-    private func assignNestSequences(for nest: CommandModePhase) {
+    private func assignNestSequences(for nest: CommandCenterPhase) {
         nestSequences = [:]
-        let raw: [CommandModeItem]
+        let raw: [CommandCenterItem]
         switch nest {
         case .root:
             return
@@ -427,7 +427,7 @@ final class CommandModeController: ObservableObject {
         }
     }
 
-    private func withNestSequence(_ item: CommandModeItem) -> CommandModeItem {
+    private func withNestSequence(_ item: CommandCenterItem) -> CommandCenterItem {
         let chord: String
         if let existing = nestSequences[item.id] {
             chord = existing
@@ -437,7 +437,7 @@ final class CommandModeController: ObservableObject {
             chord = CommandSequence.randomChords(count: 1, excluding: used).first ?? "xx"
             nestSequences[item.id] = chord
         }
-        return CommandModeItem(
+        return CommandCenterItem(
             id: item.id,
             title: item.title,
             subtitle: item.subtitle,
@@ -446,14 +446,14 @@ final class CommandModeController: ObservableObject {
         )
     }
 
-    private func workspacePickerItems() -> [CommandModeItem] {
+    private func workspacePickerItems() -> [CommandCenterItem] {
         workspacePickerItemsRaw().map(withNestSequence)
     }
 
-    private func workspacePickerItemsRaw() -> [CommandModeItem] {
-        var list: [CommandModeItem] = []
+    private func workspacePickerItemsRaw() -> [CommandCenterItem] {
+        var list: [CommandCenterItem] = []
         if workspaces.workspaces.isEmpty {
-            list.append(CommandModeItem(
+            list.append(CommandCenterItem(
                 id: "ws-empty",
                 title: "(no Workspaces)",
                 action: .back
@@ -461,7 +461,7 @@ final class CommandModeController: ObservableObject {
         } else {
             for ws in workspaces.workspaces {
                 let mark = workspaces.current?.id == ws.id ? " ← current" : ""
-                list.append(CommandModeItem(
+                list.append(CommandCenterItem(
                     id: "ws-\(ws.id)",
                     title: ws.slug + mark,
                     subtitle: ws.dataDirURL.path,
@@ -472,22 +472,22 @@ final class CommandModeController: ObservableObject {
         return list
     }
 
-    private func worktreePickerItems() -> [CommandModeItem] {
+    private func worktreePickerItems() -> [CommandCenterItem] {
         worktreePickerItemsRaw().map(withNestSequence)
     }
 
-    private func worktreePickerItemsRaw() -> [CommandModeItem] {
-        var list: [CommandModeItem] = []
+    private func worktreePickerItemsRaw() -> [CommandCenterItem] {
+        var list: [CommandCenterItem] = []
         if let current = workspaces.current {
             let mainFocused = worktrees.focusedSession?.isMainRepo == true
-            list.append(CommandModeItem(
+            list.append(CommandCenterItem(
                 id: "wt-main",
                 title: "main" + (mainFocused ? " ← focus" : ""),
                 subtitle: SymphoniaPaths.workspaceMainDirectory(in: current.dataDirURL).path,
                 action: .focusMainRepo
             ))
             if worktrees.worktrees.isEmpty {
-                list.append(CommandModeItem(
+                list.append(CommandCenterItem(
                     id: "wt-empty",
                     title: "(no Worktrees)",
                     action: .back
@@ -495,7 +495,7 @@ final class CommandModeController: ObservableObject {
             } else {
                 for wt in worktrees.worktrees {
                     let mark = worktrees.focused?.id == wt.id ? " ← focus" : ""
-                    list.append(CommandModeItem(
+                    list.append(CommandCenterItem(
                         id: "wt-\(wt.id)",
                         title: wt.primaryLabel + mark,
                         subtitle: wt.secondaryLabel ?? wt.threeWordName,
@@ -504,7 +504,7 @@ final class CommandModeController: ObservableObject {
                 }
             }
         } else {
-            list.append(CommandModeItem(
+            list.append(CommandCenterItem(
                 id: "wt-nows",
                 title: "(select a Workspace first)",
                 action: .back
@@ -514,15 +514,15 @@ final class CommandModeController: ObservableObject {
     }
 
     /// Overlay nest: siblings + Back (hide) + Close Overlay — no main-catalog duplication.
-    private func backgroundPickerItems() -> [CommandModeItem] {
+    private func backgroundPickerItems() -> [CommandCenterItem] {
         backgroundPickerItemsRaw().map(withNestSequence)
     }
 
-    private func backgroundPickerItemsRaw() -> [CommandModeItem] {
-        var list: [CommandModeItem] = []
+    private func backgroundPickerItemsRaw() -> [CommandCenterItem] {
+        var list: [CommandCenterItem] = []
         let sessions = overlays.focusedSessions
         if sessions.isEmpty {
-            list.append(CommandModeItem(
+            list.append(CommandCenterItem(
                 id: "bg-empty",
                 title: "(no Overlay sessions)",
                 action: .back
@@ -531,7 +531,7 @@ final class CommandModeController: ObservableObject {
             for session in sessions {
                 let mark = overlays.visibleOverlayID == session.id ? " ●" : ""
                 let kindLabel = session.kind == .editor ? "EDITOR" : "BG"
-                list.append(CommandModeItem(
+                list.append(CommandCenterItem(
                     id: "bg-\(session.id.uuidString)",
                     title: session.title + mark,
                     subtitle: kindLabel,
@@ -541,7 +541,7 @@ final class CommandModeController: ObservableObject {
         }
 
         // Product Back = hide Overlay → Main CLI (not Esc leave-nest).
-        list.append(CommandModeItem(
+        list.append(CommandCenterItem(
             id: "bg-hide",
             title: "Back",
             subtitle: "Main CLI · process stays alive",
@@ -549,7 +549,7 @@ final class CommandModeController: ObservableObject {
         ))
 
         if let visible = overlays.visibleSession, visible.kind == .background {
-            list.append(CommandModeItem(
+            list.append(CommandCenterItem(
                 id: "bg-close",
                 title: "Close Overlay",
                 subtitle: "Kill Background PTY",
@@ -732,7 +732,7 @@ final class CommandModeController: ObservableObject {
         ensureCommandCenterThenNest(.pickBackground)
     }
 
-    private func ensureCommandCenterThenNest(_ nest: CommandModePhase) {
+    private func ensureCommandCenterThenNest(_ nest: CommandCenterPhase) {
         if !isActive {
             isActive = true
             mode = preferences.preferences.commandCenterPreferredMode
