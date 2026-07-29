@@ -1,19 +1,16 @@
 import Foundation
 
-/// Operator override for one Command's sequence binding, persisted by Command
-/// `id` in Global Setting (`GlobalPreferences.commandBindings`, ADR 0021 CC.3 / Path B).
+/// Operator override for one Command's Normal-mode sequence, persisted by Command
+/// `id` in Global Setting (`GlobalPreferences.commandBindings`, ADR 0021 CC.3 / ADR 0022).
 ///
-/// Fields are independently optional so "use the Command's default" and
-/// "explicitly override with an empty value" are distinguishable:
 /// - `sequence == nil` → derive from title (or `Command.defaultSequence`). `sequence == ""` → none.
-/// - `aliases` is legacy (ignored; no longer written).
-/// - `shortcut` is legacy (empty-filter modifier chords); ignored by Path B Normal mode.
+/// - `aliases` / `shortcut` are legacy decode leftovers; stripped on load and never written.
 struct CommandBindingOverride: Codable, Equatable, Sendable {
-    /// Legacy. Ignored by Settings / Command Center; stripped on save.
+    /// Legacy. Ignored; stripped on load / save.
     var aliases: String?
     /// Optional Normal-mode sequence override (min 2, no `j`/`k`).
     var sequence: String?
-    /// Legacy empty-filter modifier chord. Kept for TOML compatibility; not the primary power path.
+    /// Legacy. Ignored; Hotkeys come from `KeymapBindings` (ADR 0022).
     var shortcut: String?
 
     init(aliases: String? = nil, sequence: String? = nil, shortcut: String? = nil) {
@@ -24,18 +21,8 @@ struct CommandBindingOverride: Codable, Equatable, Sendable {
 }
 
 /// Resolves **effective** Command sequences: Operator override (Global Setting)
-/// if present, otherwise the Command's own default (ADR 0021 CC.3 / Path B).
+/// if present, otherwise the Command's own default (ADR 0021 CC.3 / ADR 0022).
 enum CommandBindingResolver {
-    /// Legacy alias resolver — returns empty. Kept so older call sites compile during migration.
-    static func aliases(
-        for command: Command,
-        overrides: [String: CommandBindingOverride]
-    ) -> [String] {
-        _ = command
-        _ = overrides
-        return []
-    }
-
     /// Effective Normal-mode sequence. `nil` means no sequence.
     static func sequence(
         for command: Command,
@@ -53,63 +40,10 @@ enum CommandBindingResolver {
         return CommandSequence.defaultFromTitle(command.title)
     }
 
-    /// Legacy Command Center shortcut (modifier chord). Kept for Settings migration display.
-    static func shortcut(
-        for command: Command,
-        overrides: [String: CommandBindingOverride]
-    ) -> String? {
-        let raw: String?
-        if let override = overrides[command.id]?.shortcut {
-            raw = override.isEmpty ? nil : override
-        } else {
-            raw = command.defaultShortcut
-        }
-        guard let raw else { return nil }
-        return normalizeShortcut(raw)
-    }
-
-    /// Display form for a shortcut storage string (`⌃W`).
-    static func shortcutDisplay(_ raw: String?) -> String? {
-        guard let raw, let binding = LeaderKeyBinding.parse(raw) else { return raw }
-        return binding.displaySymbolString
-    }
-
-    /// Normalize storage: bare `w` / `,` → `ctrl+w` / `ctrl+,` (legacy empty-filter keys).
-    static func normalizeShortcut(_ raw: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return trimmed }
-        if let binding = LeaderKeyBinding.parse(trimmed),
-           !binding.modifiers.isEmpty
-        {
-            return binding.storageString
-        }
-        if trimmed.count == 1 {
-            return "ctrl+\(trimmed.lowercased())"
-        }
-        return trimmed
-    }
-
-    /// Canonical key for conflict checks (normalized chord storage).
-    static func shortcutConflictKey(_ raw: String) -> String? {
-        let normalized = normalizeShortcut(raw)
-        guard let binding = LeaderKeyBinding.parse(normalized),
-              !binding.modifiers.intersection([.control, .option, .command]).isEmpty
-        else { return nil }
-        return binding.storageString
-    }
-
     /// Canonical sequence key for conflict checks.
     static func sequenceConflictKey(_ raw: String) -> String? {
         let sanitized = CommandSequence.sanitize(raw)
         guard CommandSequence.isValid(sanitized) else { return nil }
         return sanitized
-    }
-
-    /// Splits Operator-facing comma-separated alias text into trimmed, non-empty aliases.
-    static func parseAliases(_ raw: String) -> [String] {
-        raw
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
     }
 }

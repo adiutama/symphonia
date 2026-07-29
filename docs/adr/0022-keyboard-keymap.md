@@ -40,7 +40,7 @@ Symphonia embeds **libghostty** and loads `ghostty_config_new` → `load_default
 
 - Keep [docs/keymap.md](../keymap.md) in sync when defaults change; do not duplicate full tables elsewhere.
 - Rename Commands to match the cheatsheet (Switch Workspace / Switch Worktree, Open Editor, Overlay Terminal, Toggle Overlay, Overlay Switcher).
-- Replace title-derived sequences with the cheatsheet table; Settings still allow overrides.
-- Default aliases `[]`; Operators add filter keywords in Settings if desired.
+- Replace title-derived sequences with the cheatsheet table; Settings still allow **sequence** overrides. **Hotkeys are fixed** in `KeymapBindings` (Settings Hotkey column is read-only display).
+- Default aliases `[]`; alias UI removed (title/subtitle filter only).
 - Implement cycle ±1 Commands; Worktree cycle includes Main.
 - Embedded Ghostty config: unbind Symphonia-owned chords.

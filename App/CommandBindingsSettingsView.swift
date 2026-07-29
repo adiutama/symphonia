@@ -1,7 +1,11 @@
 import SwiftUI
 
-/// Settings → Global → Shortcuts: flat table of Name | Sequence | Hotkey.
-/// Sequence = Normal-mode char chord; Hotkey = modifier key combination.
+/// Settings → Global → Shortcuts: Name | Sequence | Hotkey.
+///
+/// - **Sequence** — editable Normal-mode chord (persisted overrides).
+/// - **Hotkey** — fixed ⌘/⌃ chords from `KeymapBindings` (read-only). Leader is the
+///   exception: it is editable Global Setting.
+///
 /// No aliases, no enable checkboxes, no per-row clear buttons.
 struct ShortcutsSettingsView: View {
     @EnvironmentObject private var preferences: PreferencesController
@@ -33,10 +37,15 @@ struct ShortcutsSettingsView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 10) {
-            Text("Shortcuts")
-                .font(.largeTitle.weight(.bold))
-                .foregroundStyle(ghosttyTheme.foreground)
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Shortcuts")
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundStyle(ghosttyTheme.foreground)
+                Text("Sequences are editable. Hotkeys are fixed app chords.")
+                    .font(.caption)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
+            }
 
             Spacer(minLength: 8)
 
@@ -111,20 +120,27 @@ struct ShortcutsSettingsView: View {
         HStack(spacing: 0) {
             headerLabel("Name")
                 .frame(maxWidth: .infinity, alignment: .leading)
-            headerLabel("Sequence")
+            headerLabel("Sequence", detail: "editable")
                 .frame(width: sequenceColumnWidth, alignment: .leading)
-            headerLabel("Hotkey")
+            headerLabel("Hotkey", detail: "fixed")
                 .frame(width: hotkeyColumnWidth, alignment: .leading)
         }
         .padding(.horizontal, rowHorizontalPadding)
         .padding(.vertical, 10)
     }
 
-    private func headerLabel(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(ghosttyTheme.secondaryText)
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private func headerLabel(_ title: String, detail: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(ghosttyTheme.secondaryText)
+            if let detail {
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(ghosttyTheme.tertiaryText)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func groupBlock(_ group: ShortcutGroup) -> some View {
@@ -188,7 +204,7 @@ struct ShortcutsSettingsView: View {
             if allowsSequence {
                 SequenceRecordField(
                     sequence: sequenceBinding(for: commandId),
-                    emptyLabel: "—",
+                    emptyLabel: "Record",
                     fillsWidth: true
                 )
             } else {
@@ -201,15 +217,26 @@ struct ShortcutsSettingsView: View {
     private func hotkeyCell(for row: ShortcutRow) -> some View {
         switch row.kind {
         case .leader:
-            KeyChordField(chord: leaderBinding, emptyLabel: "Record Hotkey", fillsWidth: true)
+            KeyChordField(chord: leaderBinding, emptyLabel: "Record", fillsWidth: true)
         case .command(let commandId, _):
-            KeyChordField(
-                chord: shortcutBinding(for: commandId),
-                requireModifier: true,
-                emptyLabel: "Record Hotkey",
-                fillsWidth: true
-            )
+            if let display = hotkeyDisplay(for: commandId) {
+                Text(display)
+                    .font(.body.monospaced())
+                    .foregroundStyle(ghosttyTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .help("Fixed app hotkey — not editable. Use Sequence for Normal mode.")
+                    .accessibilityLabel("Hotkey \(display), fixed")
+            } else {
+                placeholderCell("—")
+            }
         }
+    }
+
+    private func hotkeyDisplay(for commandId: String) -> String? {
+        guard let command = commandRegistry.command(id: commandId) else { return nil }
+        return KeymapBindings.hotkeyDisplay(for: command.action)
     }
 
     private func placeholderCell(_ text: String) -> some View {
@@ -217,6 +244,8 @@ struct ShortcutsSettingsView: View {
             .font(.body.monospaced())
             .foregroundStyle(ghosttyTheme.tertiaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
     }
 
     private var tableDivider: some View {
@@ -347,40 +376,8 @@ struct ShortcutsSettingsView: View {
                 } else {
                     override.sequence = CommandSequence.sanitize(trimmed)
                 }
-                override.aliases = nil
-                persist(commandId, override)
-            }
-        )
-    }
-
-    private func shortcutBinding(for commandId: String) -> Binding<String> {
-        Binding(
-            get: {
-                guard let command = commandRegistry.command(id: commandId) else { return "" }
-                return CommandBindingResolver.shortcut(
-                    for: command,
-                    overrides: preferences.preferences.commandBindings
-                ) ?? ""
-            },
-            set: { newValue in
-                guard let command = commandRegistry.command(id: commandId) else { return }
-                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                let normalized = trimmed.isEmpty
-                    ? ""
-                    : CommandBindingResolver.normalizeShortcut(trimmed)
-                let defaultShortcut = command.defaultShortcut.flatMap {
-                    CommandBindingResolver.normalizeShortcut($0)
-                }
-                var override = preferences.preferences.commandBindings[commandId]
-                    ?? CommandBindingOverride()
-
-                if normalized.isEmpty {
-                    override.shortcut = ""
-                } else if normalized == defaultShortcut {
-                    override.shortcut = nil
-                } else {
-                    override.shortcut = normalized
-                }
+                // Hotkeys live in KeymapBindings; never persist shortcut/alias overrides.
+                override.shortcut = nil
                 override.aliases = nil
                 persist(commandId, override)
             }
@@ -388,10 +385,12 @@ struct ShortcutsSettingsView: View {
     }
 
     private func persist(_ commandId: String, _ override: CommandBindingOverride) {
-        if override.sequence == nil, override.shortcut == nil {
+        if override.sequence == nil {
             preferences.preferences.commandBindings.removeValue(forKey: commandId)
         } else {
-            preferences.preferences.commandBindings[commandId] = override
+            preferences.preferences.commandBindings[commandId] = CommandBindingOverride(
+                sequence: override.sequence
+            )
         }
     }
 
@@ -421,27 +420,17 @@ struct ShortcutsSettingsView: View {
     private var conflicts: [Conflict] {
         let overrides = preferences.preferences.commandBindings
         var sequenceMap: [String: [String]] = [:]
-        var shortcutMap: [String: [String]] = [:]
         for command in commandRegistry.allCommands {
             if let sequence = CommandBindingResolver.sequence(for: command, overrides: overrides),
                let key = CommandBindingResolver.sequenceConflictKey(sequence)
             {
                 sequenceMap[key, default: []].append(command.title)
             }
-            if let shortcut = CommandBindingResolver.shortcut(for: command, overrides: overrides),
-               let key = CommandBindingResolver.shortcutConflictKey(shortcut)
-            {
-                shortcutMap[key, default: []].append(command.title)
-            }
         }
 
         var result: [Conflict] = []
         for (sequence, titles) in sequenceMap where titles.count > 1 {
             result.append(Conflict(id: "seq-\(sequence)", label: "Sequence \"\(sequence)\"", commandTitles: titles))
-        }
-        for (shortcut, titles) in shortcutMap where titles.count > 1 {
-            let display = CommandBindingResolver.shortcutDisplay(shortcut) ?? shortcut
-            result.append(Conflict(id: "hot-\(shortcut)", label: "Hotkey \(display)", commandTitles: titles))
         }
         return result.sorted { $0.label < $1.label }
     }

@@ -912,6 +912,15 @@ enum KeymapBindings {
         commandCenterOnlyChords.first(where: { $0.matches(event) })?.action
     }
 
+    /// Display string for a Command's fixed modifier chord, if any (ADR 0022).
+    /// Settings Hotkey column is read-only from this — Operator overrides do not apply.
+    static func hotkeyDisplay(for action: CommandModeAction) -> String? {
+        if let chord = globalChords.first(where: { $0.action == action }) {
+            return chord.display
+        }
+        return commandCenterOnlyChords.first(where: { $0.action == action })?.display
+    }
+
     static func isKeymapToggle(_ event: NSEvent) -> Bool {
         let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         guard mods.contains(.command),

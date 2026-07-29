@@ -28,7 +28,7 @@ extension CommandContext {
 ///
 /// `run` wraps the existing `CommandModeAction` enum so today's `CommandModeController`
 /// stays the single place that knows how to execute an action — the registry only adds
-/// discovery and a default sequence / shortcut on top.
+/// discovery and a default Normal-mode sequence on top.
 struct Command: Identifiable {
     /// Stable id, e.g. `"overlay.openEditor"`. Never shown to the Operator; used for
     /// Settings overrides (CC.3) and conflict checks (CC.4).
@@ -37,12 +37,11 @@ struct Command: Identifiable {
     let subtitle: String?
     /// Loose grouping for palette sections / Settings list (e.g. `"Overlay"`).
     let group: String?
-    /// Free-text default aliases (Command Alias, CONTEXT.md). Defaults are empty (ADR 0022);
-    /// slash is optional when the Operator adds aliases. Comma-separated storage is Settings-only.
+    /// Legacy unused field (ADR 0022 emptied defaults; aliases UI removed).
     let defaultAliases: [String]
     /// Normal-mode sequence. `nil` → derive from title (fallback). `""` → no sequence (ADR 0022).
     let defaultSequence: String?
-    /// Legacy empty-filter modifier chord (superseded by Normal sequences). Kept for TOML/Settings.
+    /// Legacy unused field. Fixed Hotkeys live in `KeymapBindings` (ADR 0022).
     let defaultShortcut: String?
     /// Existing Command Center action this Command runs.
     let action: CommandModeAction
