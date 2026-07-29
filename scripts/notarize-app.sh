@@ -41,7 +41,12 @@ security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
 security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
 security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
-security list-keychain -d user -s "$KEYCHAIN" $(security list-keychain -d user | sed -e s/\"//g)
+user_keychains=()
+while IFS= read -r line; do
+  line="${line//\"/}"
+  [[ -n "$line" ]] && user_keychains+=("$line")
+done < <(security list-keychain -d user)
+security list-keychain -d user -s "$KEYCHAIN" "${user_keychains[@]}"
 security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PW" "$KEYCHAIN"
 
 IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | grep 'Developer ID Application' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"

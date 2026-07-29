@@ -274,7 +274,7 @@ struct ShortcutsSettingsView: View {
         for key in order {
             let commands = buckets[key] ?? []
             let rows = commands.map { command -> ShortcutRow in
-                let allowsSequence = command.defaultSequence != ""
+                let allowsSequence = !command.defaultSequence.isEmpty
                 return ShortcutRow(
                     id: command.id,
                     title: command.title,
