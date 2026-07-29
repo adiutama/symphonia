@@ -1,6 +1,6 @@
 import Foundation
 
-/// Command Center interaction mode (Path B).
+/// Command Center interaction mode (Normal / Input).
 enum CommandCenterMode: String, Codable, Equatable, Sendable, CaseIterable {
     /// Sequence prefix buffer; `j`/`k` move; auto-run on unique exact chord.
     case normal
@@ -15,7 +15,7 @@ enum CommandCenterMode: String, Codable, Equatable, Sendable, CaseIterable {
     }
 }
 
-/// Title → default sequence rules and ephemeral nest chords (Path B / Peek).
+/// Title → default sequence rules and ephemeral nest chords (Command Center / Peek).
 enum CommandSequence {
     static let minLength = 2
     /// Movement only in Normal — never part of any chord.

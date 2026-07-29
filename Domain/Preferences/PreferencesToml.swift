@@ -48,7 +48,7 @@ enum PreferencesToml {
         var bindings: [String: CommandBindingOverride] = [:]
         if let bindingTables = table.tables["commandBindings"] {
             for (id, fields) in bindingTables {
-                // Aliases / shortcut TOML keys are ignored — Hotkeys come from KeymapBindings.
+                // Ignore legacy aliases/shortcut TOML keys — Hotkeys come from KeymapBindings.
                 bindings[id] = CommandBindingOverride(
                     sequence: fields.strings["sequence"]
                 )

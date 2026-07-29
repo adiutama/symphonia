@@ -17,7 +17,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// (VS Code / Cursor Command Palette). Parsed by ``LeaderKeyBinding``.
     var leaderKey: String
 
-    /// Mode applied when Leader opens Command Center (`normal` | `input`). Path B.
+    /// Mode applied when Leader opens Command Center (`normal` | `input`).
     var commandCenterPreferredMode: CommandCenterMode
 
     /// Global Workspaces Root (default parent for Workspace containers). ADR 0015.
@@ -28,7 +28,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     var baseRef: String
 
     /// Operator overrides for Command sequences, keyed by stable Command `id`
-    /// (e.g. `"overlay.openEditor"`, ADR 0021 CC.3 / Path B). Missing id → Command defaults.
+    /// (e.g. `"overlay.openEditor"`, ADR 0021 CC.3 / ADR 0022). Missing id → Command defaults.
     /// Aliases are no longer used.
     var commandBindings: [String: CommandBindingOverride]
 
