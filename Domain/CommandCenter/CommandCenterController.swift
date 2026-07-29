@@ -30,6 +30,7 @@ final class CommandCenterController: ObservableObject {
     private weak var savedFirstResponder: NSResponder?
     private var cancellables = Set<AnyCancellable>()
     private var nestCatalog: CommandCenterNestCatalog
+    private let rootCatalog: CommandCenterRootCatalog
 
     init(
         preferences: PreferencesController,
@@ -47,6 +48,12 @@ final class CommandCenterController: ObservableObject {
         self.commandRegistry = commandRegistry
         self.nestCatalog = CommandCenterNestCatalog(
             workspaces: workspaces,
+            worktrees: worktrees,
+            overlays: overlays
+        )
+        self.rootCatalog = CommandCenterRootCatalog(
+            commandRegistry: commandRegistry,
+            preferences: preferences,
             worktrees: worktrees,
             overlays: overlays
         )
@@ -293,99 +300,16 @@ final class CommandCenterController: ObservableObject {
     private func rebuildItems(resetSelection: Bool) {
         switch phase {
         case .root:
-            items = filteredRootItems()
+            items = rootCatalog.items(mode: mode, filterQuery: filterQuery)
         case .pickWorkspace, .pickWorktree, .pickBackground:
-            items = filterNest(nestCatalog.items(for: phase))
+            items = CommandCenterItemFilter.filter(
+                nestCatalog.items(for: phase),
+                mode: mode,
+                query: filterQuery
+            )
         }
         if resetSelection || selectedIndex >= items.count {
             selectedIndex = items.isEmpty ? 0 : min(selectedIndex, max(items.count - 1, 0))
-        }
-    }
-
-    private func filteredRootItems() -> [CommandCenterItem] {
-        let context = CommandContext(worktrees: worktrees, overlays: overlays)
-        let commands = commandRegistry.availableCommands(context: context)
-            .filter { command in
-                switch command.action {
-                case .dismiss,
-                     .cycleNextWorkspace, .cyclePrevWorkspace,
-                     .cycleNextWorktree, .cyclePrevWorktree:
-                    return false
-                default:
-                    return true
-                }
-            }
-        let overrides = preferences.preferences.commandBindings
-
-        switch mode {
-        case .input:
-            let query = filterQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let matched = query.isEmpty
-                ? commands
-                : commands.filter { matches($0, query: query, overrides: overrides) }
-            return matched.map { commandItem($0, overrides: overrides) }
-
-        case .normal:
-            let seq = filterQuery.lowercased()
-            let mapped = commands.map { commandItem($0, overrides: overrides) }
-            guard !seq.isEmpty else { return mapped }
-            return mapped.filter { item in
-                guard let chord = item.sequence?.lowercased() else { return false }
-                return chord.hasPrefix(seq)
-            }
-        }
-    }
-
-    private func matches(_ command: Command, query: String, overrides: [String: CommandBindingOverride]) -> Bool {
-        if command.title.lowercased().contains(query) { return true }
-        if let subtitle = command.subtitle, subtitle.lowercased().contains(query) { return true }
-        if let sequence = CommandBindingResolver.sequence(for: command, overrides: overrides) {
-            return sequence.lowercased().contains(query)
-        }
-        return false
-    }
-
-    private func commandItem(_ command: Command, overrides: [String: CommandBindingOverride]) -> CommandCenterItem {
-        CommandCenterItem(
-            id: command.id,
-            title: command.title,
-            subtitle: liveSubtitle(for: command),
-            sequence: CommandBindingResolver.sequence(for: command, overrides: overrides),
-            action: command.action
-        )
-    }
-
-    private func liveSubtitle(for command: Command) -> String? {
-        switch command.id {
-        case "overlay.openEditor":
-            return preferences.effective.editorCommand
-        case "overlay.toggle":
-            return overlays.isShowingOverlay
-                ? overlays.visibleSession?.title
-                : "Main CLI"
-        default:
-            return command.subtitle
-        }
-    }
-
-    private func filterNest(_ raw: [CommandCenterItem]) -> [CommandCenterItem] {
-        switch mode {
-        case .input:
-            let q = filterQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            guard !q.isEmpty else { return raw }
-            return raw.filter { item in
-                let hay = [item.title, item.subtitle, item.sequence]
-                    .compactMap { $0?.lowercased() }
-                    .joined(separator: " ")
-                return hay.contains(q)
-            }
-        case .normal:
-            let seq = filterQuery.lowercased()
-            guard !seq.isEmpty else { return raw }
-            return raw.filter { item in
-                guard let chord = item.sequence?.lowercased() else { return false }
-                return chord.hasPrefix(seq)
-            }
         }
     }
 

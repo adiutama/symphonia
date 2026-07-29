@@ -51,6 +51,7 @@
 		F6A405162738495A6B0D0103 /* OverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A405162738495A6B0D0104 /* OverlayController.swift */; };
 		F6A405162738495A6B0D0105 /* OverlayHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A405162738495A6B0D0106 /* OverlayHostView.swift */; };
 		B8C405162738495A6B0F0101 /* WorkspaceSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */; };
+		W1S2I3D4E5B6A60718293A01 /* WorkspaceSidebarSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1S2I3D4E5B6A60718293A02 /* WorkspaceSidebarSheets.swift */; };
 		B8C405162738495A6B0F0103 /* FocusedSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0104 /* FocusedSession.swift */; };
 		B8C405162738495A6B0F0105 /* MainCLISurfaceSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */; };
 		B8C405162738495A6B0F0107 /* CLISpawnEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */; };
@@ -64,6 +65,10 @@
 		9B1E4F2A6D3C4A8E9F0B1C2D /* CommandBindingOverride.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */; };
 		K1M2B1N3D4S60718293A4B01 /* KeymapBindings.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */; };
 		N1E2S3T4C5A60718293A4B01 /* CommandCenterNestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = N1E2S3T4C5A60718293A4B02 /* CommandCenterNestCatalog.swift */; };
+		R0O1T2C3A4T5A60718293A01 /* CommandCenterRootCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = R0O1T2C3A4T5A60718293A02 /* CommandCenterRootCatalog.swift */; };
+		F1L2T3E4R5F6A60718293A01 /* CommandCenterItemFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1L2T3E4R5F6A60718293A02 /* CommandCenterItemFilter.swift */; };
+		G1H2O3S4T5Y6I60718293A01 /* GhosttyInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = G1H2O3S4T5Y6I60718293A02 /* GhosttyInput.swift */; };
+		G1H2O3S4T5Y6P60718293A01 /* GhosttyPasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = G1H2O3S4T5Y6P60718293A02 /* GhosttyPasteboard.swift */; };
 		9B1E4F2A6D3C4A8E9F0B1C2F /* CommandBindingsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */; };
 		A8B0UT001ABOUT0001 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT001ABOUT0002 /* AboutView.swift */; };
 		A8B0UT002ONBOARD01 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT002ONBOARD02 /* OnboardingView.swift */; };
@@ -91,6 +96,8 @@
 		1A6590DB81C34F668323C7B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		115412EC1D89435FBC63B315 /* TerminalModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalModule.swift; sourceTree = "<group>"; };
 		C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurfaceView.swift; sourceTree = "<group>"; };
+		G1H2O3S4T5Y6I60718293A02 /* GhosttyInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyInput.swift; sourceTree = "<group>"; };
+		G1H2O3S4T5Y6P60718293A02 /* GhosttyPasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyPasteboard.swift; sourceTree = "<group>"; };
 		E7A41C2A9F7D4E6B8C1A0D25 /* GhosttyChromeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyChromeTheme.swift; sourceTree = "<group>"; };
 		E7A41C2A9F7D4E6B8C1A0D27 /* GhosttyWindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyWindowChrome.swift; sourceTree = "<group>"; };
 		E37F70031D6C42AEBC6226D2 /* DomainModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModule.swift; sourceTree = "<group>"; };
@@ -122,6 +129,7 @@
 		F6A405162738495A6B0D0104 /* OverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayController.swift; sourceTree = "<group>"; };
 		F6A405162738495A6B0D0106 /* OverlayHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayHostView.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSidebarView.swift; sourceTree = "<group>"; };
+		W1S2I3D4E5B6A60718293A02 /* WorkspaceSidebarSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSidebarSheets.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0104 /* FocusedSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedSession.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCLISurfaceSlot.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLISpawnEnvironment.swift; sourceTree = "<group>"; };
@@ -135,6 +143,8 @@
 		9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBindingOverride.swift; sourceTree = "<group>"; };
 		K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapBindings.swift; sourceTree = "<group>"; };
 		N1E2S3T4C5A60718293A4B02 /* CommandCenterNestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterNestCatalog.swift; sourceTree = "<group>"; };
+		R0O1T2C3A4T5A60718293A02 /* CommandCenterRootCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterRootCatalog.swift; sourceTree = "<group>"; };
+		F1L2T3E4R5F6A60718293A02 /* CommandCenterItemFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandCenterItemFilter.swift; sourceTree = "<group>"; };
 		9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBindingsSettingsView.swift; sourceTree = "<group>"; };
 		A8B0UT001ABOUT0002 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		A8B0UT002ONBOARD02 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -217,6 +227,7 @@
 				A8B0UT007PUBKEY01 /* SUPublicEDKey.txt */,
 				620CC0292595445B9FD787B4 /* ContentView.swift */,
 				B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */,
+				W1S2I3D4E5B6A60718293A02 /* WorkspaceSidebarSheets.swift */,
 				E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */,
 				F6A405162738495A6B0D0106 /* OverlayHostView.swift */,
 				A7B405162738495A6B0E0108 /* CommandCenterView.swift */,
@@ -242,6 +253,8 @@
 				E7A41C2A9F7D4E6B8C1A0D25 /* GhosttyChromeTheme.swift */,
 				E7A41C2A9F7D4E6B8C1A0D27 /* GhosttyWindowChrome.swift */,
 				C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */,
+				G1H2O3S4T5Y6I60718293A02 /* GhosttyInput.swift */,
+				G1H2O3S4T5Y6P60718293A02 /* GhosttyPasteboard.swift */,
 				E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */,
 				A8B0UT004SPARKLE04 /* Sparkle.framework */,
 			);
@@ -271,6 +284,8 @@
 				9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */,
 				K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */,
 				N1E2S3T4C5A60718293A4B02 /* CommandCenterNestCatalog.swift */,
+				R0O1T2C3A4T5A60718293A02 /* CommandCenterRootCatalog.swift */,
+				F1L2T3E4R5F6A60718293A02 /* CommandCenterItemFilter.swift */,
 				A7B405162738495A6B0E0102 /* LeaderKeyBinding.swift */,
 				A7B405162738495A6B0E0104 /* CommandCenterModels.swift */,
 				A7B405162738495A6B0E0106 /* CommandCenterController.swift */,
@@ -452,6 +467,8 @@
 				E7A41C2A9F7D4E6B8C1A0D24 /* GhosttyChromeTheme.swift in Sources */,
 				E7A41C2A9F7D4E6B8C1A0D26 /* GhosttyWindowChrome.swift in Sources */,
 				B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */,
+				G1H2O3S4T5Y6I60718293A01 /* GhosttyInput.swift in Sources */,
+				G1H2O3S4T5Y6P60718293A01 /* GhosttyPasteboard.swift in Sources */,
 				1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */,
 				B0C1D2E3F405162738495A6B /* SymphoniaPaths.swift in Sources */,
 				B0C1D2E3F405162738495A6D /* GlobalPreferences.swift in Sources */,
@@ -474,6 +491,7 @@
 				B8C405162738495A6B0F0105 /* MainCLISurfaceSlot.swift in Sources */,
 				B8C405162738495A6B0F0107 /* CLISpawnEnvironment.swift in Sources */,
 				B8C405162738495A6B0F0101 /* WorkspaceSidebarView.swift in Sources */,
+				W1S2I3D4E5B6A60718293A01 /* WorkspaceSidebarSheets.swift in Sources */,
 				E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */,
 				E5F405162738495A6B0C0103 /* SecretStore.swift in Sources */,
 				E5F405162738495A6B0C0105 /* SecretStoreController.swift in Sources */,
@@ -491,6 +509,8 @@
 				9B1E4F2A6D3C4A8E9F0B1C2D /* CommandBindingOverride.swift in Sources */,
 				K1M2B1N3D4S60718293A4B01 /* KeymapBindings.swift in Sources */,
 				N1E2S3T4C5A60718293A4B01 /* CommandCenterNestCatalog.swift in Sources */,
+				R0O1T2C3A4T5A60718293A01 /* CommandCenterRootCatalog.swift in Sources */,
+				F1L2T3E4R5F6A60718293A01 /* CommandCenterItemFilter.swift in Sources */,
 				9B1E4F2A6D3C4A8E9F0B1C2F /* CommandBindingsSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

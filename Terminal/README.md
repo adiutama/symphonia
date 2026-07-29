@@ -5,6 +5,8 @@ AppKit terminal island for libghostty / GhosttyKit (ADR 0010, 0011).
 | Path | Role |
 |------|------|
 | `TerminalSurfaceView.swift` | `NSViewRepresentable` + `TerminalSurfaceNSView` hosting a real Ghostty surface |
+| `GhosttyInput.swift` | Key/mouse mod helpers + `NSEvent` → Ghostty key events |
+| `GhosttyPasteboard.swift` | Selection / standard clipboard helpers (C.5) |
 | `GhosttyKit.xcframework` | Local build artifact (gitignored) — run the script below |
 | `scripts/build-ghosttykit.sh` | Fetch pinned ghostty + Zig-build native GhosttyKit |
 | `libghostty-plan.md` | Phase 1 options and status |

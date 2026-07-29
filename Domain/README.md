@@ -143,7 +143,9 @@ When a session is **first opened**, spawn env = English locale defaults (`LANG` 
 |------|------|
 | `LeaderKeyBinding` | Parse Effective `leaderKey` (`cmd+shift+p`, `⌘k`, …) and match `NSEvent` |
 | `CommandCenterController` | Local keyDown monitor; enter/dismiss; run palette actions |
+| `CommandCenterRootCatalog` | Root palette rows from the command registry |
 | `CommandCenterNestCatalog` | Nest picker rows + ephemeral nest sequences |
+| `CommandCenterItemFilter` | Shared Input/Normal list filtering for root + nests |
 | `CommandCenterItem` / `CommandCenterAction` | Palette rows / run actions |
 | `CommandContext` | Small availability snapshot — `hasFocusedSession`, `overlayVisible` — with a `@MainActor` init from `WorktreeController` + `OverlayController` |
 | `Command` | Stable string `id`, title, optional subtitle/group, `defaultSequence`, `isEnabled(CommandContext) -> Bool`, wraps a `CommandCenterAction` |
