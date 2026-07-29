@@ -26,9 +26,8 @@ extension CommandContext {
 /// A first-class app action exported by an app area and invoked
 /// from Command Center (ADR 0021 / CONTEXT.md "Command").
 ///
-/// `run` wraps the existing `CommandModeAction` enum so today's `CommandModeController`
-/// stays the single place that knows how to execute an action — the registry only adds
-/// discovery and a default Normal-mode sequence on top.
+/// `action` wraps `CommandModeAction` so `CommandModeController` stays the place that
+/// executes; the registry adds discovery and a default Normal-mode sequence on top.
 struct Command: Identifiable {
     /// Stable id, e.g. `"overlay.openEditor"`. Never shown to the Operator; used for
     /// Settings overrides (CC.3) and conflict checks (CC.4).
@@ -37,12 +36,8 @@ struct Command: Identifiable {
     let subtitle: String?
     /// Loose grouping for palette sections / Settings list (e.g. `"Overlay"`).
     let group: String?
-    /// Legacy unused field (ADR 0022 emptied defaults; aliases UI removed).
-    let defaultAliases: [String]
     /// Normal-mode sequence. `nil` → derive from title (fallback). `""` → no sequence (ADR 0022).
     let defaultSequence: String?
-    /// Legacy unused field. Fixed Hotkeys live in `KeymapBindings` (ADR 0022).
-    let defaultShortcut: String?
     /// Existing Command Center action this Command runs.
     let action: CommandModeAction
     /// Whether this Command is available given the current `CommandContext`.
@@ -53,9 +48,7 @@ struct Command: Identifiable {
         title: String,
         subtitle: String? = nil,
         group: String? = nil,
-        defaultAliases: [String] = [],
         defaultSequence: String? = nil,
-        defaultShortcut: String? = nil,
         action: CommandModeAction,
         isEnabled: @escaping (CommandContext) -> Bool = { _ in true }
     ) {
@@ -63,9 +56,7 @@ struct Command: Identifiable {
         self.title = title
         self.subtitle = subtitle
         self.group = group
-        self.defaultAliases = defaultAliases
         self.defaultSequence = defaultSequence
-        self.defaultShortcut = defaultShortcut
         self.action = action
         self.isEnabled = isEnabled
     }

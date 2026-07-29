@@ -37,12 +37,10 @@
 		C1D2E3F405162738495A6B03 /* WorkspaceConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B04 /* WorkspaceConfig.swift */; };
 		C1D2E3F405162738495A6B05 /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B06 /* WorkspaceStore.swift */; };
 		C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B08 /* WorkspaceController.swift */; };
-		C1D2E3F405162738495A6B09 /* WorkspaceScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */; };
 		D2E3F405162738495A6B0B01 /* ThreeWordName.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B02 /* ThreeWordName.swift */; };
 		D2E3F405162738495A6B0B03 /* WorktreeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B04 /* WorktreeStore.swift */; };
 		D2E3F405162738495A6B0B05 /* WorktreeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B06 /* WorktreeController.swift */; };
 		B8C405162738495A6B0F010F /* WorktreeBranchWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C405162738495A6B0F0110 /* WorktreeBranchWatcher.swift */; };
-		D2E3F405162738495A6B0B07 /* WorktreeScaffoldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E3F405162738495A6B0B08 /* WorktreeScaffoldView.swift */; };
 		E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0102 /* SecretStoreModels.swift */; };
 		E5F405162738495A6B0C0103 /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0104 /* SecretStore.swift */; };
 		E5F405162738495A6B0C0105 /* SecretStoreController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F405162738495A6B0C0106 /* SecretStoreController.swift */; };
@@ -64,6 +62,7 @@
 		CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */; };
 		5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */; };
 		9B1E4F2A6D3C4A8E9F0B1C2D /* CommandBindingOverride.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */; };
+		K1M2B1N3D4S60718293A4B01 /* KeymapBindings.swift in Sources */ = {isa = PBXBuildFile; fileRef = K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */; };
 		9B1E4F2A6D3C4A8E9F0B1C2F /* CommandBindingsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */; };
 		A8B0UT001ABOUT0001 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT001ABOUT0002 /* AboutView.swift */; };
 		A8B0UT002ONBOARD01 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT002ONBOARD02 /* OnboardingView.swift */; };
@@ -107,12 +106,10 @@
 		C1D2E3F405162738495A6B04 /* WorkspaceConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceConfig.swift; sourceTree = "<group>"; };
 		C1D2E3F405162738495A6B06 /* WorkspaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStore.swift; sourceTree = "<group>"; };
 		C1D2E3F405162738495A6B08 /* WorkspaceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceController.swift; sourceTree = "<group>"; };
-		C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceScaffoldView.swift; sourceTree = "<group>"; };
 		D2E3F405162738495A6B0B02 /* ThreeWordName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreeWordName.swift; sourceTree = "<group>"; };
 		D2E3F405162738495A6B0B04 /* WorktreeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeStore.swift; sourceTree = "<group>"; };
 		D2E3F405162738495A6B0B06 /* WorktreeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeController.swift; sourceTree = "<group>"; };
 		B8C405162738495A6B0F0110 /* WorktreeBranchWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeBranchWatcher.swift; sourceTree = "<group>"; };
-		D2E3F405162738495A6B0B08 /* WorktreeScaffoldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeScaffoldView.swift; sourceTree = "<group>"; };
 		E5F405162738495A6B0C0102 /* SecretStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStoreModels.swift; sourceTree = "<group>"; };
 		E5F405162738495A6B0C0104 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
 		E5F405162738495A6B0C0106 /* SecretStoreController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStoreController.swift; sourceTree = "<group>"; };
@@ -135,6 +132,7 @@
 		2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayCommandProvider.swift; sourceTree = "<group>"; };
 		3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceCommandProvider.swift; sourceTree = "<group>"; };
 		9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBindingOverride.swift; sourceTree = "<group>"; };
+		K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymapBindings.swift; sourceTree = "<group>"; };
 		9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBindingsSettingsView.swift; sourceTree = "<group>"; };
 		A8B0UT001ABOUT0002 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		A8B0UT002ONBOARD02 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -217,8 +215,6 @@
 				A8B0UT007PUBKEY01 /* SUPublicEDKey.txt */,
 				620CC0292595445B9FD787B4 /* ContentView.swift */,
 				B8C405162738495A6B0F0102 /* WorkspaceSidebarView.swift */,
-				C1D2E3F405162738495A6B0A /* WorkspaceScaffoldView.swift */,
-				D2E3F405162738495A6B0B08 /* WorktreeScaffoldView.swift */,
 				E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */,
 				F6A405162738495A6B0D0106 /* OverlayHostView.swift */,
 				A7B405162738495A6B0E0108 /* CommandModeView.swift */,
@@ -282,6 +278,7 @@
 				2151C6A50B4B4DFAB10274A4 /* OverlayCommandProvider.swift */,
 				3F2A8B914E7D4C6A9B10AC33 /* WorkspaceCommandProvider.swift */,
 				9B1E4F2A6D3C4A8E9F0B1C2E /* CommandBindingOverride.swift */,
+				K1M2B1N3D4S60718293A4B02 /* KeymapBindings.swift */,
 			);
 			path = CommandCenter;
 			sourceTree = "<group>";
@@ -474,7 +471,6 @@
 				C1D2E3F405162738495A6B03 /* WorkspaceConfig.swift in Sources */,
 				C1D2E3F405162738495A6B05 /* WorkspaceStore.swift in Sources */,
 				C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */,
-				C1D2E3F405162738495A6B09 /* WorkspaceScaffoldView.swift in Sources */,
 				D2E3F405162738495A6B0B01 /* ThreeWordName.swift in Sources */,
 				D2E3F405162738495A6B0B03 /* WorktreeStore.swift in Sources */,
 				D2E3F405162738495A6B0B05 /* WorktreeController.swift in Sources */,
@@ -482,7 +478,6 @@
 				B8C405162738495A6B0F0103 /* FocusedSession.swift in Sources */,
 				B8C405162738495A6B0F0105 /* MainCLISurfaceSlot.swift in Sources */,
 				B8C405162738495A6B0F0107 /* CLISpawnEnvironment.swift in Sources */,
-				D2E3F405162738495A6B0B07 /* WorktreeScaffoldView.swift in Sources */,
 				B8C405162738495A6B0F0101 /* WorkspaceSidebarView.swift in Sources */,
 				E5F405162738495A6B0C0101 /* SecretStoreModels.swift in Sources */,
 				E5F405162738495A6B0C0103 /* SecretStore.swift in Sources */,
@@ -499,6 +494,7 @@
 				CC92E4CF29534C15BBBF1D60 /* OverlayCommandProvider.swift in Sources */,
 				5D1E7C4A8F9B4D2E9C33B071 /* WorkspaceCommandProvider.swift in Sources */,
 				9B1E4F2A6D3C4A8E9F0B1C2D /* CommandBindingOverride.swift in Sources */,
+				K1M2B1N3D4S60718293A4B01 /* KeymapBindings.swift in Sources */,
 				9B1E4F2A6D3C4A8E9F0B1C2F /* CommandBindingsSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

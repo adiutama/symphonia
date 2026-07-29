@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Command Center chrome — Path B **D · Minimal strip**, Peek nest **E · Nest bar**.
+/// Command Center chrome — minimal strip + Peek nest bar.
 struct CommandModeView: View {
     @EnvironmentObject private var commandMode: CommandModeController
     @EnvironmentObject private var preferences: PreferencesController

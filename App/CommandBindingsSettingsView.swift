@@ -376,9 +376,6 @@ struct ShortcutsSettingsView: View {
                 } else {
                     override.sequence = CommandSequence.sanitize(trimmed)
                 }
-                // Hotkeys live in KeymapBindings; never persist shortcut/alias overrides.
-                override.shortcut = nil
-                override.aliases = nil
                 persist(commandId, override)
             }
         )

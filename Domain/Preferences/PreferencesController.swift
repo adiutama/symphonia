@@ -50,8 +50,7 @@ final class PreferencesController: ObservableObject {
         }
     }
 
-    /// Drop legacy alias/shortcut override fields. Hotkeys live in `KeymapBindings` (ADR 0022);
-    /// only Normal-mode `sequence` overrides remain Operator-editable.
+    /// Drop binding rows that only carried removed alias/shortcut keys (no sequence).
     @discardableResult
     private static func stripLegacyBindingFields(in preferences: inout GlobalPreferences) -> Bool {
         var cleaned: [String: CommandBindingOverride] = [:]
