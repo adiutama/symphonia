@@ -25,8 +25,6 @@ enum CLISpawnEnvironment {
         for pair in secrets {
             map[pair.key] = pair.value
         }
-        return map.keys.sorted().map { key in
-            (key: key, value: map[key]!)
-        }
+        return map.sorted { $0.key < $1.key }.map { (key: $0.key, value: $0.value) }
     }
 }

@@ -39,7 +39,7 @@ final class PreferencesController: ObservableObject {
         let didMigrateIds = Self.migrateCommandIds(in: &loaded)
         let didMigrateLeader = Self.migrateLeaderAndCtrlDefaults(in: &loaded)
         self.preferences = loaded
-        self.effective = EffectiveSettings.resolve(global: loaded, workspace: .none)
+        self.effective = EffectiveSettings.resolve(global: loaded)
         if didMigrateShortcuts || didMigrateIds || didMigrateLeader {
             do {
                 try store.save(loaded)

@@ -477,14 +477,7 @@ final class CommandModeController: ObservableObject {
 
     private func worktreePickerItemsRaw() -> [CommandModeItem] {
         var list: [CommandModeItem] = []
-        if workspaces.current == nil {
-            list.append(CommandModeItem(
-                id: "wt-nows",
-                title: "(select a Workspace first)",
-                action: .back
-            ))
-        } else {
-            let current = workspaces.current!
+        if let current = workspaces.current {
             let mainFocused = worktrees.focusedSession?.isMainRepo == true
             list.append(CommandModeItem(
                 id: "wt-main",
@@ -509,6 +502,12 @@ final class CommandModeController: ObservableObject {
                     ))
                 }
             }
+        } else {
+            list.append(CommandModeItem(
+                id: "wt-nows",
+                title: "(select a Workspace first)",
+                action: .back
+            ))
         }
         return list
     }

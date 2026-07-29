@@ -6,7 +6,7 @@ import Foundation
 /// Worktree checkout — both are git repos/checkouts that sit as siblings under the Workspace
 /// Data Dir (ADR 0014, P1.5); the Workspace Data Dir itself never is.
 /// Legacy `secrets.json` / non-empty `secrets.env` are ignored (no migration).
-struct SecretStore: Sendable {
+struct SecretStore: @unchecked Sendable {
     enum StoreError: LocalizedError, Equatable {
         case missingWorkspace
         case invalidKey(String)

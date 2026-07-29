@@ -103,8 +103,9 @@ enum CommandSequence {
 
     private static func uniqueRandom(excluding used: Set<String>) -> String {
         for _ in 0..<500 {
-            let a = alphabet.randomElement()!
-            let b = alphabet.randomElement()!
+            guard let a = alphabet.randomElement(), let b = alphabet.randomElement() else {
+                return "xx"
+            }
             let candidate = String([a, b])
             if !used.contains(candidate) {
                 return candidate
@@ -113,7 +114,9 @@ enum CommandSequence {
         // Exhausted 2-letter space — extend.
         for len in 3...4 {
             for _ in 0..<200 {
-                let candidate = String((0..<len).map { _ in alphabet.randomElement()! })
+                let chars = (0..<len).compactMap { _ in alphabet.randomElement() }
+                guard chars.count == len else { continue }
+                let candidate = String(chars)
                 if !used.contains(candidate) {
                     return candidate
                 }

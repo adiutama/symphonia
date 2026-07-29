@@ -133,17 +133,9 @@ struct WorkspaceSidebarView: View {
     @ViewBuilder
     private var sidebarChrome: some View {
         if preferences.preferences.chromeGlass {
-            ZStack {
-                ChromeGlassBackground(
-                    tintColor: NSColor(ghosttyTheme.sidebar).withAlphaComponent(
-                        ChromeGlassBackground.supportsLiquidGlass ? 0.55 : 1
-                    ),
-                    fallbackMaterial: .hudWindow
-                )
-                if !ChromeGlassBackground.supportsLiquidGlass {
-                    ghosttyTheme.sidebar.opacity(0.22)
-                }
-            }
+            ChromeGlassBackground(
+                tintColor: NSColor(ghosttyTheme.sidebar).withAlphaComponent(0.55)
+            )
         } else {
             ghosttyTheme.sidebar
         }

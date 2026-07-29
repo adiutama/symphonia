@@ -44,8 +44,8 @@ struct LeaderKeyBinding: Equatable {
                     keyToken = token
                 } else if Self.modifierNames.contains(token) {
                     continue
-                } else if token.count > 1 {
-                    keyToken = String(token.last!)
+                } else if token.count > 1, let last = token.last {
+                    keyToken = String(last)
                 }
             }
         }
