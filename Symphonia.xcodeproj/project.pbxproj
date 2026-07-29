@@ -69,6 +69,9 @@
 		F1L2T3E4R5F6A60718293A01 /* CommandCenterItemFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1L2T3E4R5F6A60718293A02 /* CommandCenterItemFilter.swift */; };
 		G1H2O3S4T5Y6I60718293A01 /* GhosttyInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = G1H2O3S4T5Y6I60718293A02 /* GhosttyInput.swift */; };
 		G1H2O3S4T5Y6P60718293A01 /* GhosttyPasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = G1H2O3S4T5Y6P60718293A02 /* GhosttyPasteboard.swift */; };
+		T1S2L3I4F5E6C60718293A01 /* TerminalSurface+Lifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1S2L3I4F5E6C60718293A02 /* TerminalSurface+Lifecycle.swift */; };
+		T1S2C3L4I5P6B60718293A01 /* TerminalSurface+Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1S2C3L4I5P6B60718293A02 /* TerminalSurface+Clipboard.swift */; };
+		T1S2M3O4U5S6E60718293A01 /* TerminalSurface+Mouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1S2M3O4U5S6E60718293A02 /* TerminalSurface+Mouse.swift */; };
 		9B1E4F2A6D3C4A8E9F0B1C2F /* CommandBindingsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1E4F2A6D3C4A8E9F0B1C30 /* CommandBindingsSettingsView.swift */; };
 		A8B0UT001ABOUT0001 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT001ABOUT0002 /* AboutView.swift */; };
 		A8B0UT002ONBOARD01 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT002ONBOARD02 /* OnboardingView.swift */; };
@@ -98,6 +101,9 @@
 		C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurfaceView.swift; sourceTree = "<group>"; };
 		G1H2O3S4T5Y6I60718293A02 /* GhosttyInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyInput.swift; sourceTree = "<group>"; };
 		G1H2O3S4T5Y6P60718293A02 /* GhosttyPasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyPasteboard.swift; sourceTree = "<group>"; };
+		T1S2L3I4F5E6C60718293A02 /* TerminalSurface+Lifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalSurface+Lifecycle.swift"; sourceTree = "<group>"; };
+		T1S2C3L4I5P6B60718293A02 /* TerminalSurface+Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalSurface+Clipboard.swift"; sourceTree = "<group>"; };
+		T1S2M3O4U5S6E60718293A02 /* TerminalSurface+Mouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalSurface+Mouse.swift"; sourceTree = "<group>"; };
 		E7A41C2A9F7D4E6B8C1A0D25 /* GhosttyChromeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyChromeTheme.swift; sourceTree = "<group>"; };
 		E7A41C2A9F7D4E6B8C1A0D27 /* GhosttyWindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyWindowChrome.swift; sourceTree = "<group>"; };
 		E37F70031D6C42AEBC6226D2 /* DomainModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModule.swift; sourceTree = "<group>"; };
@@ -255,6 +261,9 @@
 				C3D52E7B1A904F8E9B6C4D12 /* TerminalSurfaceView.swift */,
 				G1H2O3S4T5Y6I60718293A02 /* GhosttyInput.swift */,
 				G1H2O3S4T5Y6P60718293A02 /* GhosttyPasteboard.swift */,
+				T1S2L3I4F5E6C60718293A02 /* TerminalSurface+Lifecycle.swift */,
+				T1S2C3L4I5P6B60718293A02 /* TerminalSurface+Clipboard.swift */,
+				T1S2M3O4U5S6E60718293A02 /* TerminalSurface+Mouse.swift */,
 				E4A11B0C0D1E4F8A9B2C3D41 /* GhosttyKit.xcframework */,
 				A8B0UT004SPARKLE04 /* Sparkle.framework */,
 			);
@@ -469,6 +478,9 @@
 				B8E41C2A9F7D4E6B8C1A0D23 /* TerminalSurfaceView.swift in Sources */,
 				G1H2O3S4T5Y6I60718293A01 /* GhosttyInput.swift in Sources */,
 				G1H2O3S4T5Y6P60718293A01 /* GhosttyPasteboard.swift in Sources */,
+				T1S2L3I4F5E6C60718293A01 /* TerminalSurface+Lifecycle.swift in Sources */,
+				T1S2C3L4I5P6B60718293A01 /* TerminalSurface+Clipboard.swift in Sources */,
+				T1S2M3O4U5S6E60718293A01 /* TerminalSurface+Mouse.swift in Sources */,
 				1A2313927860493CBAACEF77 /* DomainModule.swift in Sources */,
 				B0C1D2E3F405162738495A6B /* SymphoniaPaths.swift in Sources */,
 				B0C1D2E3F405162738495A6D /* GlobalPreferences.swift in Sources */,
