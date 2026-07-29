@@ -4,4 +4,4 @@ Primary control uses a **leader key** that enters Command Center (Switch Workspa
 
 **Default Leader:** `⌘⇧P` (`cmd+shift+p`, VS Code / Cursor Command Palette convention). The binding is configurable so the Operator can overwrite it.
 
-Product UI name is **Command Center**. Commands themselves, aliases, and empty-filter shortcuts are defined in [0021](0021-command-center-registry.md). Some Swift types still use the name `CommandMode*` (implementation only).
+Product UI name is **Command Center**. Commands themselves and sequences are defined in [0021](0021-command-center-registry.md) / [0022](0022-keyboard-keymap.md).

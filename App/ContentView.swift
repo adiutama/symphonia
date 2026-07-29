@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var commandMode: CommandModeController
+    @EnvironmentObject private var commandCenter: CommandCenterController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var workspaces: WorkspaceController
@@ -46,14 +46,14 @@ struct ContentView: View {
             }
             .frame(minWidth: 720, minHeight: 420)
 
-            if commandMode.isActive {
+            if commandCenter.isActive {
                 Color.black.opacity(0.28)
                     .ignoresSafeArea()
                     .onTapGesture {
-                        commandMode.dismiss()
+                        commandCenter.dismiss()
                     }
 
-                CommandModeView()
+                CommandCenterView()
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
@@ -81,7 +81,7 @@ struct ContentView: View {
             .sharedBackgroundVisibility(.hidden)
         }
         .symphoniaTitlebarChrome()
-        .animation(.easeOut(duration: 0.12), value: commandMode.isActive)
+        .animation(.easeOut(duration: 0.12), value: commandCenter.isActive)
         .animation(.easeOut(duration: 0.14), value: showGlance)
         .background(SettingsWindowPresenter())
         .sheet(isPresented: Binding(

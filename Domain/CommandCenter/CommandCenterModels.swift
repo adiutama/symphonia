@@ -127,20 +127,20 @@ enum CommandSequence {
 }
 
 /// One row in the Command Center palette.
-struct CommandModeItem: Identifiable, Equatable {
+struct CommandCenterItem: Identifiable, Equatable {
     let id: String
     let title: String
     let subtitle: String?
     /// Sequence chord shown on the row (Normal mode / nest). Replaces empty-filter modifier shortcuts.
     let sequence: String?
-    let action: CommandModeAction
+    let action: CommandCenterAction
 
     init(
         id: String,
         title: String,
         subtitle: String? = nil,
         sequence: String? = nil,
-        action: CommandModeAction
+        action: CommandCenterAction
     ) {
         self.id = id
         self.title = title
@@ -151,7 +151,7 @@ struct CommandModeItem: Identifiable, Equatable {
 }
 
 /// Actions runnable from Command Center (ADR 0009 / 0022).
-enum CommandModeAction: Equatable {
+enum CommandCenterAction: Equatable {
     case dismiss
     case back
     case openSettings
@@ -185,7 +185,7 @@ enum CommandModeAction: Equatable {
 }
 
 /// Nested palette phase after Leader (root list or a picker).
-enum CommandModePhase: Equatable {
+enum CommandCenterPhase: Equatable {
     case root
     case pickWorkspace
     case pickWorktree

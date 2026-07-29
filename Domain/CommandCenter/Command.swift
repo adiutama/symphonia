@@ -26,7 +26,7 @@ extension CommandContext {
 /// A first-class app action exported by an app area and invoked
 /// from Command Center (ADR 0021 / CONTEXT.md "Command").
 ///
-/// `action` wraps `CommandModeAction` so `CommandModeController` stays the place that
+/// `action` wraps `CommandCenterAction` so `CommandCenterController` stays the place that
 /// executes; the registry adds discovery and a default Normal-mode sequence on top.
 struct Command: Identifiable {
     /// Stable id, e.g. `"overlay.openEditor"`. Never shown to the Operator; used for
@@ -39,7 +39,7 @@ struct Command: Identifiable {
     /// Normal-mode sequence. `nil` → derive from title (fallback). `""` → no sequence (ADR 0022).
     let defaultSequence: String?
     /// Existing Command Center action this Command runs.
-    let action: CommandModeAction
+    let action: CommandCenterAction
     /// Whether this Command is available given the current `CommandContext`.
     let isEnabled: (CommandContext) -> Bool
 
@@ -49,7 +49,7 @@ struct Command: Identifiable {
         subtitle: String? = nil,
         group: String? = nil,
         defaultSequence: String? = nil,
-        action: CommandModeAction,
+        action: CommandCenterAction,
         isEnabled: @escaping (CommandContext) -> Bool = { _ in true }
     ) {
         self.id = id
