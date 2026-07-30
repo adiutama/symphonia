@@ -40,7 +40,7 @@ fi
 
 mkdir -p "$TOOLS" "$OUT_DIR"
 if [[ ! -x "$TOOLS/bin/generate_appcast" ]]; then
-  echo "==> Downloading Sparkle tools"
+  echo "==> Downloading Sparkle tools" >&2
   TMP="$(mktemp -d)"
   curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz" \
     -o "$TMP/Sparkle.tar.xz"
@@ -76,11 +76,12 @@ rm -rf "$STAGE"
 mkdir -p "$STAGE"
 cp "$DMG" "$STAGE/"
 
-echo "==> generate_appcast"
+echo "==> generate_appcast" >&2
+# Tool chatter stays on stderr so command substitution only gets the path.
 "$TOOLS/bin/generate_appcast" \
   --ed-key-file "$KEY_FILE" \
   --download-url-prefix "$DOWNLOAD_PREFIX" \
-  "$STAGE"
+  "$STAGE" >&2
 
 APPCAST="$(find "$STAGE" -name 'appcast.xml' -type f | head -n 1 || true)"
 if [[ -z "$APPCAST" ]]; then
