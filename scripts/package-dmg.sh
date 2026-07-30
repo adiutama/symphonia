@@ -26,11 +26,12 @@ ln -s /Applications "$STAGE/Applications"
 
 DMG="Symphonia-${VERSION}.dmg"
 rm -f "$DMG"
+# hdiutil prints "created: …" on stdout — keep that off the captured path.
 hdiutil create \
   -volname "Symphonia" \
   -srcfolder "$STAGE" \
   -ov \
   -format UDZO \
-  "$DMG"
+  "$DMG" >&2
 
 echo "$DMG"
