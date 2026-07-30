@@ -61,10 +61,10 @@ Active only while Command Center is open (PTY blocked).
 |--------|-----|
 | Switch Workspace… | ⌘O |
 | Switch Worktree… | ⌘⇧F |
-| Rename Slug | ⌘⇧R |
-| Rename Tree | ⌘⌥R |
-| Discard Tree | ⌘⇧⌫ |
-| Discard Workspace | ⌘⌥⌫ |
+| Rename Workspace | ⌘⇧R |
+| Rename Worktree | ⌘⌥R |
+| Remove Worktree | ⌘⇧⌫ |
+| Remove Workspace | ⌘⌥⌫ |
 
 ---
 
@@ -88,11 +88,11 @@ Min length 2; `j` / `k` reserved. Hot Commands use doubles; others use object + 
 | Seq | Command |
 |-----|---------|
 | wn | New Workspace |
-| wr | Rename Slug |
-| wd | Discard Workspace |
+| wr | Rename Workspace |
+| wd | Remove Workspace |
 | tn | New Worktree |
-| tr | Rename Tree |
-| td | Discard Tree |
+| tr | Rename Worktree |
+| td | Remove Worktree |
 | ot | Overlay Terminal |
 | os | Overlay Switcher |
 | so | Settings |

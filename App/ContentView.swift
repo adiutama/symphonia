@@ -97,7 +97,7 @@ struct ContentView: View {
         }
     }
 
-    /// Project slug + path — content titlebar leading edge, no toolbar pill wrapper.
+    /// Workspace slug + path — content titlebar leading edge, no toolbar pill wrapper.
     @ViewBuilder
     private var projectMetaLayer: some View {
         if let workspace = workspaces.current {

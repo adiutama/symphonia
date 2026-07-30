@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Collapsible left sidebar: Projects → Main Repo + Worktrees.
+/// Collapsible left sidebar: Workspaces → Main Repo + Worktrees.
 struct WorkspaceSidebarView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var worktrees: WorktreeController
@@ -67,14 +67,14 @@ struct WorkspaceSidebarView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Delete Project permanently", role: .destructive) {
+            Button("Delete Workspace permanently", role: .destructive) {
                 workspaces.confirmRemove()
             }
             Button("Cancel", role: .cancel) {
                 workspaces.cancelRemove()
             }
         } message: {
-            Text("Deletes the project folder on disk (Main, Worktrees, secrets, config) and removes it from Symphonia’s index. This cannot be undone.")
+            Text("Deletes the Workspace Data Dir on disk (Main, Worktrees, secrets, config) and removes it from Symphonia’s index. This cannot be undone.")
         }
         .sheet(isPresented: Binding(
             get: { workspaces.pendingCreateWorkspace },
@@ -137,7 +137,7 @@ struct WorkspaceSidebarView: View {
         }
     }
 
-    /// Titlebar strip over the sidebar: drag region + New Project pinned to the trailing edge
+    /// Titlebar strip over the sidebar: drag region + New Workspace pinned to the trailing edge
     /// so it tracks sidebar resize (not a window-toolbar item next to the traffic lights).
     private var sidebarTitlebarBand: some View {
         HStack(spacing: 0) {
@@ -152,7 +152,7 @@ struct WorkspaceSidebarView: View {
                     .foregroundStyle(ghosttyTheme.foreground)
             }
             .buttonStyle(.borderless)
-            .help("New Project")
+            .help("New Workspace")
             .padding(.trailing, titlebarEdgeInset)
         }
         .frame(height: titlebarBandHeight)
@@ -173,7 +173,7 @@ struct WorkspaceSidebarView: View {
     private var projectList: some View {
         List {
             if workspaces.workspaces.isEmpty {
-                Text("No Projects yet")
+                Text("No Workspaces yet")
                     .foregroundStyle(ghosttyTheme.secondaryText)
                     .font(.caption)
             } else {
@@ -206,7 +206,7 @@ struct WorkspaceSidebarView: View {
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
         .contextMenu {
-            Button("New Project…") {
+            Button("New Workspace…") {
                 beginCreateWorkspace()
             }
             Button("Refresh") {
@@ -374,7 +374,7 @@ struct WorkspaceSidebarView: View {
             selectWorkspace(workspace)
             beginCreateWorktree()
         }
-        Button("Rename Project…") {
+        Button("Rename Workspace…") {
             beginRenameWorkspace(workspace)
         }
         Divider()
@@ -410,7 +410,7 @@ struct WorkspaceSidebarView: View {
             archivedSheetWorkspace = workspace
         }
         Divider()
-        Button("Remove Project…", role: .destructive) {
+        Button("Remove Workspace…", role: .destructive) {
             workspaces.requestRemove(workspace)
         }
     }
@@ -503,8 +503,8 @@ struct WorkspaceSidebarView: View {
 
     private var removeWorkspaceDialogTitle: String {
         if let slug = workspaces.pendingRemoveWorkspace?.slug {
-            return "Remove Project “\(slug)”?"
+            return "Remove Workspace “\(slug)”?"
         }
-        return "Remove Project?"
+        return "Remove Workspace?"
     }
 }

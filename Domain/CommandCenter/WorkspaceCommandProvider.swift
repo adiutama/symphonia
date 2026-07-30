@@ -53,7 +53,7 @@ struct WorkspaceCommandProvider: CommandProvider {
             ),
             Command(
                 id: "workspace.rename",
-                title: "Rename Slug",
+                title: "Rename Workspace",
                 subtitle: workspaces.current.map(\.slug) ?? "needs Workspace",
                 group: "Workspace",
                 defaultSequence: "wr",
@@ -62,7 +62,7 @@ struct WorkspaceCommandProvider: CommandProvider {
             ),
             Command(
                 id: "workspace.remove",
-                title: "Discard Workspace",
+                title: "Remove Workspace",
                 subtitle: workspaces.current.map { "delete \u{201C}\($0.slug)\u{201D} from disk" } ?? "needs Workspace",
                 group: "Workspace",
                 defaultSequence: "wd",
@@ -106,7 +106,7 @@ struct WorkspaceCommandProvider: CommandProvider {
             ),
             Command(
                 id: "worktree.renameFocused",
-                title: "Rename Tree",
+                title: "Rename Worktree",
                 subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
                 defaultSequence: "tr",
@@ -132,7 +132,7 @@ struct WorkspaceCommandProvider: CommandProvider {
             ),
             Command(
                 id: "worktree.removeFocused",
-                title: "Discard Tree",
+                title: "Remove Worktree",
                 subtitle: worktrees.focused.map(\.primaryLabel) ?? "needs focused Worktree",
                 group: "Worktree",
                 defaultSequence: "td",

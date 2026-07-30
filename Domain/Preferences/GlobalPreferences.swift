@@ -2,7 +2,7 @@ import Foundation
 
 /// Operator-wide Global Setting persisted at `~/.symphonia/preferences.toml` (T.1).
 ///
-/// Workspace Setting may override these per project; see ``EffectiveSettings`` (ADR 0016).
+/// Workspace Setting may override these per Workspace; see ``EffectiveSettings`` (ADR 0016).
 struct GlobalPreferences: Codable, Equatable, Sendable {
     /// Default Main CLI command (coding agent). Empty = bare shell / login CLI (ADR 0005).
     /// Workspace may override with a concrete agent command.
