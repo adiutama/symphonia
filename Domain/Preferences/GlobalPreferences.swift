@@ -38,6 +38,9 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// Frosted glass sidebar + light window blur. Missing key → `true`.
     var chromeGlass: Bool
 
+    /// Sparkle update channel (Stable vs Nightly). Missing key → Stable.
+    var updateChannel: UpdateChannel
+
     /// Sensible Global Setting defaults when `preferences.toml` is missing.
     static let `default` = GlobalPreferences(
         mainCLICommand: "",
@@ -48,12 +51,14 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         baseRef: "main",
         commandBindings: [:],
         onboardingCompleted: false,
-        chromeGlass: true
+        chromeGlass: true,
+        updateChannel: .stable
     )
 
     enum CodingKeys: String, CodingKey {
         case mainCLICommand, editorCommand, leaderKey, commandCenterPreferredMode
         case workspacesRoot, baseRef, commandBindings, onboardingCompleted, chromeGlass
+        case updateChannel
     }
 
     init(
@@ -65,7 +70,8 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         baseRef: String,
         commandBindings: [String: CommandBindingOverride] = [:],
         onboardingCompleted: Bool = false,
-        chromeGlass: Bool = true
+        chromeGlass: Bool = true,
+        updateChannel: UpdateChannel = .stable
     ) {
         self.mainCLICommand = mainCLICommand
         self.editorCommand = editorCommand
@@ -76,6 +82,7 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         self.commandBindings = commandBindings
         self.onboardingCompleted = onboardingCompleted
         self.chromeGlass = chromeGlass
+        self.updateChannel = updateChannel
     }
 
     init(from decoder: Decoder) throws {
@@ -97,5 +104,6 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         // Existing installs (key absent) skip the sheet; brand-new defaults use `false`.
         onboardingCompleted = try container.decodeIfPresent(Bool.self, forKey: .onboardingCompleted) ?? true
         chromeGlass = try container.decodeIfPresent(Bool.self, forKey: .chromeGlass) ?? true
+        updateChannel = try container.decodeIfPresent(UpdateChannel.self, forKey: .updateChannel) ?? .stable
     }
 }

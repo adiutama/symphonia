@@ -1,0 +1,150 @@
+name: Nightly
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build nightly DMG and appcast
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Setup build deps
+        uses: ./.github/actions/setup-build-deps
+
+      - name: Resolve nightly version
+        id: ver
+        run: |
+          set -euo pipefail
+          DATE_UTC="$(date -u +%Y%m%d)"
+          SHA="$(git rev-parse --short HEAD)"
+          BASE="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+          if [[ -n "$BASE" && "$BASE" == v* ]]; then
+            BASE="${BASE#v}"
+          else
+            BASE="0.0.0"
+          fi
+          # Marketing version shown in About; Sparkle compares CFBundleVersion (build).
+          VERSION="${BASE}-nightly.${DATE_UTC}.${SHA}"
+          # Monotonic build number (UTC timestamp) so nightlies sort above small release run numbers.
+          BUILD="$(date -u +%Y%m%d%H%M%S)"
+          {
+            echo "version=$VERSION"
+            echo "build=$BUILD"
+            echo "sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building Symphonia nightly $VERSION (build $BUILD)"
+
+      - name: Build (GhosttyKit + Symphonia Release)
+        id: build
+        env:
+          MARKETING_VERSION: ${{ steps.ver.outputs.version }}
+          CURRENT_PROJECT_VERSION: ${{ steps.ver.outputs.build }}
+        run: ./scripts/ci-build.sh
+
+      - name: Optional Developer ID sign + notarize
+        id: notarize
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APP_PATH: ${{ steps.build.outputs.APP_PATH }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${MACOS_CERTIFICATE:-}" || -z "${APPLE_API_KEY:-}" ]]; then
+            echo "Apple signing secrets not set — shipping unsigned DMG."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ./scripts/notarize-app.sh "$APP_PATH"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Package DMG
+        run: |
+          set -euo pipefail
+          APP_PATH="${{ steps.build.outputs.APP_PATH }}"
+          # Stable asset name so the nightly feed URL stays fixed.
+          DMG="$(./scripts/package-dmg.sh "$APP_PATH" "nightly")"
+          ls -lh "$DMG"
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
+
+      - name: Generate Sparkle appcast
+        id: appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          CURRENT_PROJECT_VERSION: ${{ steps.ver.outputs.build }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SPARKLE_ED_PRIVATE_KEY:-}" ]]; then
+            echo "SPARKLE_ED_PRIVATE_KEY not set — skipping appcast (run scripts/sparkle-setup-keys.sh)."
+            echo "has_appcast=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          VERSION="${{ steps.ver.outputs.version }}"
+          SPARKLE_DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/nightly/$(basename "$DMG")"
+          export SPARKLE_DOWNLOAD_URL
+          APPCAST="$(./scripts/sparkle-generate-appcast.sh "$DMG" "$VERSION")"
+          echo "APPCAST=$APPCAST" >> "$GITHUB_ENV"
+          echo "has_appcast=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish nightly GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="nightly"
+          SIGNED="${{ steps.notarize.outputs.signed }}"
+          VERSION="${{ steps.ver.outputs.version }}"
+          SHA="${{ steps.ver.outputs.sha }}"
+          NOTES="$(mktemp)"
+          {
+            echo "Symphonia **nightly** build (\`${VERSION}\`)."
+            echo
+            echo "Built from \`main\` at \`${SHA}\`. Pre-release — expect rough edges."
+            echo
+            echo "Open the DMG and drag **Symphonia** to Applications."
+            echo
+            echo "In the app: **Settings → Updates → Channel → Nightly**, then **Check for Updates…**."
+            echo
+            if [[ "$SIGNED" == "true" ]]; then
+              echo "Developer ID signed and notarized."
+            else
+              echo "**Unsigned build.** macOS may warn when opening. Right-click → Open, or build from source (see README)."
+            fi
+          } > "$NOTES"
+
+          ASSETS=("$DMG")
+          if [[ "${{ steps.appcast.outputs.has_appcast }}" == "true" && -n "${APPCAST:-}" && -f "$APPCAST" ]]; then
+            ASSETS+=("$APPCAST")
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Fixed names (Symphonia-nightly.dmg, appcast.xml) — clobber replaces them.
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            gh release edit "$TAG" \
+              --title "Symphonia Nightly (${VERSION})" \
+              --notes-file "$NOTES" \
+              --prerelease \
+              || true
+          else
+            gh release create "$TAG" "${ASSETS[@]}" \
+              --title "Symphonia Nightly (${VERSION})" \
+              --notes-file "$NOTES" \
+              --prerelease
+          fi

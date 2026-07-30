@@ -1,2 +1,1 @@
-# Placeholder created by sparkle-setup-keys.sh — do not edit by hand.
-# After setup, this file holds the Sparkle EdDSA public key (one line, base64).
+CSyAE4KkW1dBVn9pz4r5F9dytzJpDYLS4OdaG8oPzCI=

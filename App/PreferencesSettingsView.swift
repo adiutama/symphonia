@@ -8,6 +8,7 @@ struct PreferencesSettingsView: View {
     @EnvironmentObject private var workspaces: WorkspaceController
     @EnvironmentObject private var settingsNavigation: SettingsNavigation
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
+    @EnvironmentObject private var sparkle: SparkleUpdateController
 
     @State private var selection: SettingsNavItem? = .globalGeneral
     /// Draft overrides for the Workspace Settings pane (may differ from Main’s current Workspace).
@@ -240,6 +241,27 @@ struct PreferencesSettingsView: View {
                             .toggleStyle(.switch)
                     }
                 }
+            }
+
+            SettingsSection(title: "Updates") {
+                SettingsCard {
+                    SettingsRow(
+                        title: "Channel",
+                        description: "Stable uses tagged releases. Nightly is a pre-release build from main — may be rough."
+                    ) {
+                        Picker("", selection: $preferences.preferences.updateChannel) {
+                            ForEach(UpdateChannel.allCases) { channel in
+                                Text(channel.displayName).tag(channel)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: 180)
+                    }
+                }
+            }
+            .onChange(of: preferences.preferences.updateChannel) { _, _ in
+                sparkle.noteChannelChanged()
             }
 
             if let lastError = preferences.lastError {

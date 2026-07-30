@@ -15,18 +15,20 @@ struct SymphoniaApp: App {
     @StateObject private var commandRegistry: CommandRegistry
     /// Ghostty config colors for chrome (bg/fg/scheme). Load once at launch.
     @StateObject private var ghosttyTheme: GhosttyChromeTheme
-
-    private let updaterController: SPUStandardUpdaterController
+    @StateObject private var sparkle: SparkleUpdateController
 
     init() {
-        // Sparkle: start updater; feed URL + EdDSA public key come from Info.plist.
-        updaterController = SPUStandardUpdaterController(
+        let updaterDelegate = SparkleUpdaterDelegate()
+        let preferences = PreferencesController()
+        updaterDelegate.channelProvider = { preferences.preferences.updateChannel }
+
+        // Sparkle: feed URL comes from UpdateChannel via the delegate (Info.plist is fallback).
+        let updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
-            updaterDelegate: nil,
+            updaterDelegate: updaterDelegate,
             userDriverDelegate: nil
         )
 
-        let preferences = PreferencesController()
         let workspaces = WorkspaceController(preferences: preferences)
         let secrets = SecretStoreController(workspaces: workspaces)
         let settingsNavigation = SettingsNavigation()
@@ -62,6 +64,12 @@ struct SymphoniaApp: App {
         _commandCenter = StateObject(wrappedValue: commandCenter)
         _commandRegistry = StateObject(wrappedValue: commandRegistry)
         _ghosttyTheme = StateObject(wrappedValue: GhosttyChromeTheme.shared)
+        _sparkle = StateObject(
+            wrappedValue: SparkleUpdateController(
+                delegate: updaterDelegate,
+                updaterController: updaterController
+            )
+        )
     }
 
     var body: some Scene {
@@ -76,6 +84,7 @@ struct SymphoniaApp: App {
                 .environmentObject(commandCenter)
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
+                .environmentObject(sparkle)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .tint(ghosttyTheme.accent)
                 .ghosttyWindowChrome(ghosttyTheme, glass: preferences.preferences.chromeGlass)
@@ -89,7 +98,7 @@ struct SymphoniaApp: App {
                 }
             }
             CommandGroup(after: .appInfo) {
-                CheckForUpdatesView(updater: updaterController.updater)
+                CheckForUpdatesView(updater: sparkle.updater)
             }
             CommandGroup(replacing: .help) {
                 Button("Welcome to Symphonia…") {
@@ -172,6 +181,7 @@ struct SymphoniaApp: App {
                 .environmentObject(settingsNavigation)
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
+                .environmentObject(sparkle)
                 .preferredColorScheme(ghosttyTheme.colorScheme)
                 .tint(ghosttyTheme.accent)
                 .ghosttyWindowChrome(ghosttyTheme, glass: preferences.preferences.chromeGlass)
