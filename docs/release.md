@@ -20,6 +20,7 @@ Release DMGs are **unsigned by default** (no paid Apple Developer ID). When Appl
 |------|------|---------------|-----------|
 | Everyday check (CI) | Every PR / push to `main` — lint only (fast) | No | No |
 | Compile + package | **`v*` tag** (Release workflow) | Already tagged | Yes (DMG) |
+| Nightly showcase | **You** run the “Nightly” workflow (Actions → Run workflow) | No (pre-release tag `nightly`) | Yes (`Symphonia-nightly.dmg`) |
 | Draft Release PR | **You** run the “Release Please” workflow (Actions → Run workflow) | Only on that draft PR | No |
 | Ship | **You** merge the Release PR | Yes (lands on `main` + tag) | Yes (DMG on GitHub Releases) |
 
@@ -40,11 +41,24 @@ The app’s marketing version (`MARKETING_VERSION` in Xcode) tracks the Git tag 
 
 ## Sparkle auto-updates
 
-The app embeds [Sparkle](https://sparkle-project.org/) 2.x. Feed URL (in [`App/Info.plist`](../App/Info.plist)):
+The app embeds [Sparkle](https://sparkle-project.org/) 2.x. Feed URLs are chosen by **Settings → Updates → Channel**:
 
-`https://github.com/adiutama/symphonia/releases/latest/download/appcast.xml`
+| Channel | Feed |
+|---------|------|
+| **Stable** (default) | `https://github.com/adiutama/symphonia/releases/latest/download/appcast.xml` |
+| **Nightly** | `https://github.com/adiutama/symphonia/releases/download/nightly/appcast.xml` |
+
+`SUFeedURL` in [`App/Info.plist`](../App/Info.plist) is the Stable fallback; the in-app channel picker overrides it via `SPUUpdaterDelegate`.
 
 Each release may attach `appcast.xml` next to the DMG. Operators use **Check for Updates…** in the app menu.
+
+### Nightly builds (manual)
+
+1. **Actions → Nightly → Run workflow** (builds current `main`).
+2. Publishes/updates the **`nightly`** GitHub pre-release with `Symphonia-nightly.dmg` (+ appcast when EdDSA is configured).
+3. Friends install the DMG once, set **Channel → Nightly**, then use **Check for Updates…**.
+
+Nightlies are pre-release: unfinished pieces and regressions are more likely than Stable. Scheduling (cron) can be added later on the same workflow.
 
 ### One-time EdDSA keys (required for signed updates)
 
@@ -117,6 +131,7 @@ That creates the first GitHub Release (DMG once the release workflow finishes). 
 | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Fast lint on PR / `main` (ShellCheck, actionlint, SwiftLint) |
 | [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) | Manual: draft Release PR / tag (workflow_dispatch only) |
 | [`.github/workflows/release.yml`](../.github/workflows/release.yml) | On `v*` tag: full macOS build, DMG, optional notarize, optional Sparkle appcast |
+| [`.github/workflows/nightly.yml`](../.github/workflows/nightly.yml) | Manual: build `main` → `nightly` pre-release DMG + appcast |
 
 Local lint: [`scripts/lint.sh`](../scripts/lint.sh). Full compile helper: [`scripts/ci-build.sh`](../scripts/ci-build.sh) (GhosttyKit + Sparkle + Symphonia). Zig: [`scripts/install-zig.sh`](../scripts/install-zig.sh). DMG: [`scripts/package-dmg.sh`](../scripts/package-dmg.sh).
 

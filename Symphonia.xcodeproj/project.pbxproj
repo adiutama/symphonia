@@ -78,6 +78,8 @@
 		A8B0UT009GIFVIEW01 /* AnimatedGIFView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT009GIFVIEW02 /* AnimatedGIFView.swift */; };
 		A8B0UT00AMEDIA0001 /* OnboardingMedia in Resources */ = {isa = PBXBuildFile; fileRef = A8B0UT00AMEDIA0002 /* OnboardingMedia */; };
 		A8B0UT003UPDATES01 /* CheckForUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT003UPDATES02 /* CheckForUpdatesView.swift */; };
+		A8B0UT005UPDATES01 /* SparkleUpdaterDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT005UPDATES02 /* SparkleUpdaterDelegate.swift */; };
+		A8B0UT006UPDATES01 /* UpdateChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT006UPDATES02 /* UpdateChannel.swift */; };
 		A8B0UT004SPARKLE01 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8B0UT004SPARKLE04 /* Sparkle.framework */; };
 		A8B0UT004SPARKLE06 /* Sparkle.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A8B0UT004SPARKLE04 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A8B0UT008BRAND0001 /* SymphoniaBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT008BRAND0002 /* SymphoniaBrand.swift */; };
@@ -157,6 +159,8 @@
 		A8B0UT009GIFVIEW02 /* AnimatedGIFView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedGIFView.swift; sourceTree = "<group>"; };
 		A8B0UT00AMEDIA0002 /* OnboardingMedia */ = {isa = PBXFileReference; lastKnownFileType = folder; path = OnboardingMedia; sourceTree = "<group>"; };
 		A8B0UT003UPDATES02 /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
+		A8B0UT005UPDATES02 /* SparkleUpdaterDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdaterDelegate.swift; sourceTree = "<group>"; };
+		A8B0UT006UPDATES02 /* UpdateChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChannel.swift; sourceTree = "<group>"; };
 		A8B0UT005INFOPL01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A8B0UT006ENTITL01 /* Symphonia.Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Symphonia.Debug.entitlements; sourceTree = "<group>"; };
 		A8B0UT007PUBKEY01 /* SUPublicEDKey.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = SUPublicEDKey.txt; sourceTree = "<group>"; };
@@ -228,6 +232,7 @@
 				A8B0UT009GIFVIEW02 /* AnimatedGIFView.swift */,
 				A8B0UT00AMEDIA0002 /* OnboardingMedia */,
 				A8B0UT003UPDATES02 /* CheckForUpdatesView.swift */,
+				A8B0UT005UPDATES02 /* SparkleUpdaterDelegate.swift */,
 				A8B0UT005INFOPL01 /* Info.plist */,
 				A8B0UT006ENTITL01 /* Symphonia.Debug.entitlements */,
 				A8B0UT007PUBKEY01 /* SUPublicEDKey.txt */,
@@ -350,6 +355,7 @@
 			children = (
 				B0C1D2E3F405162738495A6C /* SymphoniaPaths.swift */,
 				B0C1D2E3F405162738495A6E /* GlobalPreferences.swift */,
+				A8B0UT006UPDATES02 /* UpdateChannel.swift */,
 				B0C1D2E3F405162738495A78 /* EditorCommandResolver.swift */,
 				B0C1D2E3F405162738495A7A /* LoginShellEnvironment.swift */,
 				B8C405162738495A6B0F0108 /* CLISpawnEnvironment.swift */,
@@ -462,6 +468,8 @@
 				A8B0UT002ONBOARD01 /* OnboardingView.swift in Sources */,
 				A8B0UT009GIFVIEW01 /* AnimatedGIFView.swift in Sources */,
 				A8B0UT003UPDATES01 /* CheckForUpdatesView.swift in Sources */,
+				A8B0UT005UPDATES01 /* SparkleUpdaterDelegate.swift in Sources */,
+				A8B0UT006UPDATES01 /* UpdateChannel.swift in Sources */,
 				2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* PreferencesSettingsView.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5E /* SettingsNavigation.swift in Sources */,

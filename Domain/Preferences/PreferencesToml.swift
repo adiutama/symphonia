@@ -21,6 +21,7 @@ enum PreferencesToml {
             "baseRef = \(stringLiteral(preferences.baseRef))",
             "onboardingCompleted = \(boolLiteral(preferences.onboardingCompleted))",
             "chromeGlass = \(boolLiteral(preferences.chromeGlass))",
+            "updateChannel = \(stringLiteral(preferences.updateChannel.rawValue))",
         ]
 
         let bindingKeys = preferences.commandBindings.keys.sorted()
@@ -63,6 +64,8 @@ enum PreferencesToml {
         let onboardingCompleted = root.bools["onboardingCompleted"] ?? true
         // Missing key → glass on (Sequence C default).
         let chromeGlass = root.bools["chromeGlass"] ?? true
+        let updateChannelRaw = root.strings["updateChannel"] ?? ""
+        let updateChannel = UpdateChannel(rawValue: updateChannelRaw) ?? .stable
 
         return GlobalPreferences(
             mainCLICommand: root.strings["mainCLICommand"] ?? "",
@@ -73,7 +76,8 @@ enum PreferencesToml {
             baseRef: root.strings["baseRef"] ?? GlobalPreferences.default.baseRef,
             commandBindings: bindings,
             onboardingCompleted: onboardingCompleted,
-            chromeGlass: chromeGlass
+            chromeGlass: chromeGlass,
+            updateChannel: updateChannel
         )
     }
 
