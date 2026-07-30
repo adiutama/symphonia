@@ -112,6 +112,12 @@ final class OverlayController: ObservableObject {
         }
     }
 
+    /// Overlay PTY exited (`:q`, `exit`, …): hide back to Main and drop the dead session.
+    func handleProcessExit(_ id: UUID) {
+        close(id)
+        lastError = nil
+    }
+
     // MARK: - Editor (P6.2)
 
     /// Open Effective Editor: TUI → Overlay PTY; GUI → external launch (no Overlay trap).

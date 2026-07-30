@@ -244,9 +244,12 @@ extension TerminalSurfaceNSView {
     }
 
     private func handleSurfaceCloseRequest() {
-        // P1.2: map to Symphonia session teardown instead of freeing immediately if shared.
         tearDownGhostty()
-        showStatus("Surface closed")
+        if let onProcessExit {
+            onProcessExit()
+        } else {
+            showStatus("Surface closed")
+        }
     }
 
     private func showStatus(_ message: String) {
