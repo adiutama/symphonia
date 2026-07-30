@@ -42,6 +42,9 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     /// Observes window screen changes (Retina ↔ external) so we re-sync scale/size.
     var screenChangeObserver: NSObjectProtocol?
 
+    /// Fired on the main queue when Ghostty reports the surface process exited (`exit`, `:q`, …).
+    var onProcessExit: (() -> Void)?
+
     override var acceptsFirstResponder: Bool { true }
 
     override init(frame frameRect: NSRect) {
@@ -372,9 +375,12 @@ struct TerminalSurfaceView: NSViewRepresentable {
     var spawnEnvironment: [(key: String, value: String)] = []
     /// Visible / keyboard-owning surface (Main CLI or peeked Overlay).
     var isActive: Bool = true
+    /// Domain policy for PTY exit (Main auto-reload, Overlay close, …).
+    var onProcessExit: (() -> Void)? = nil
 
     func makeNSView(context: Context) -> TerminalSurfaceNSView {
         let view = TerminalSurfaceNSView(frame: .zero)
+        view.onProcessExit = onProcessExit
         view.applySpawnConfig(
             workingDirectory: workingDirectory,
             command: command,
@@ -384,6 +390,7 @@ struct TerminalSurfaceView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: TerminalSurfaceNSView, context: Context) {
+        nsView.onProcessExit = onProcessExit
         nsView.applySpawnConfig(
             workingDirectory: workingDirectory,
             command: command,

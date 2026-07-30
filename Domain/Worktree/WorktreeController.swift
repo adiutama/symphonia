@@ -38,6 +38,11 @@ final class WorktreeController: ObservableObject {
     /// New Worktree sheet (sidebar + Command Center parity).
     @Published var pendingCreateWorktree = false
 
+    /// Recent Main CLI process-exit timestamps per session id (crash-loop guard).
+    private var recentMainCLIExitTimestamps: [String: [Date]] = [:]
+    private let mainCLICrashLoopWindow: TimeInterval = 2
+    private let mainCLICrashLoopThreshold = 3
+
     init(
         preferences: PreferencesController,
         workspaces: WorkspaceController,
@@ -271,6 +276,46 @@ final class WorktreeController: ObservableObject {
         applyFocus(focusedSession, forceRespawn: true)
     }
 
+    /// Ghostty reported the Main CLI PTY exited (`exit`, agent quit, …).
+    /// Auto-reloads unless exits are looping; then marks the slot dead for Reload CLI.
+    func handleMainCLIProcessExit(sessionId: String) {
+        guard openedMainCLISessions.contains(where: { $0.id == sessionId }) else { return }
+
+        let now = Date()
+        var times = (recentMainCLIExitTimestamps[sessionId] ?? []).filter {
+            now.timeIntervalSince($0) < mainCLICrashLoopWindow
+        }
+        times.append(now)
+        recentMainCLIExitTimestamps[sessionId] = times
+
+        if times.count >= mainCLICrashLoopThreshold {
+            markMainCLIProcessExited(sessionId: sessionId)
+            return
+        }
+
+        reloadOpenedMainCLI(sessionId: sessionId)
+    }
+
+    /// Respawn an opened Main CLI slot (Operator Reload after crash-loop, or auto-reload).
+    func reloadOpenedMainCLI(sessionId: String) {
+        recentMainCLIExitTimestamps[sessionId] = []
+        guard let idx = openedMainCLISessions.firstIndex(where: { $0.id == sessionId }) else { return }
+        let existing = openedMainCLISessions[idx]
+        let env = currentSpawnEnvironment()
+        if focusedSession?.id == sessionId {
+            focusedSpawnEnvironment = env
+        }
+        lastError = nil
+        openedMainCLISessions[idx] = MainCLISurfaceSlot(
+            id: existing.id,
+            workingDirectory: existing.workingDirectory,
+            command: existing.command,
+            spawnEnvironment: env,
+            generation: existing.generation + 1,
+            processExited: false
+        )
+    }
+
     func clearFocus() {
         focusedSession = nil
         focusedSpawnEnvironment = []
@@ -412,13 +457,15 @@ final class WorktreeController: ObservableObject {
 
         if let idx = openedMainCLISessions.firstIndex(where: { $0.id == session.id }) {
             if forceRespawn {
+                recentMainCLIExitTimestamps[session.id] = []
                 let generation = openedMainCLISessions[idx].generation + 1
                 openedMainCLISessions[idx] = MainCLISurfaceSlot(
                     id: session.id,
                     workingDirectory: session.workingDirectory,
                     command: command,
                     spawnEnvironment: env,
-                    generation: generation
+                    generation: generation,
+                    processExited: false
                 )
             }
             return
@@ -430,9 +477,17 @@ final class WorktreeController: ObservableObject {
                 workingDirectory: session.workingDirectory,
                 command: command,
                 spawnEnvironment: env,
-                generation: 0
+                generation: 0,
+                processExited: false
             )
         )
+    }
+
+    private func markMainCLIProcessExited(sessionId: String) {
+        guard let idx = openedMainCLISessions.firstIndex(where: { $0.id == sessionId }) else { return }
+        var slot = openedMainCLISessions[idx]
+        slot.processExited = true
+        openedMainCLISessions[idx] = slot
     }
 
     /// Resolve latest cwd / slug from live Workspace + Worktree state (rename, heal, refresh).
@@ -458,6 +513,7 @@ final class WorktreeController: ObservableObject {
     private func pruneOpenedSessionsToLiveSet() {
         let live = liveOverlaySessionIDs
         openedMainCLISessions.removeAll { !live.contains($0.id) }
+        recentMainCLIExitTimestamps = recentMainCLIExitTimestamps.filter { live.contains($0.key) }
     }
 
     private func reconcileFocusedSession(workspace: WorkspaceSummary) {
@@ -501,8 +557,12 @@ final class WorktreeController: ObservableObject {
             workingDirectory: updated.worktreeURL.path,
             command: slot.command,
             spawnEnvironment: slot.spawnEnvironment,
-            generation: slot.generation
+            generation: slot.generation,
+            processExited: slot.processExited
         )
+        if let times = recentMainCLIExitTimestamps.removeValue(forKey: oldID) {
+            recentMainCLIExitTimestamps[newID] = times
+        }
     }
 
     private func onWorkspaceChanged() {
@@ -511,6 +571,7 @@ final class WorktreeController: ObservableObject {
         pendingRename = nil
         pendingCreateWorktree = false
         openedMainCLISessions = []
+        recentMainCLIExitTimestamps = [:]
         guard let current = workspaces.current else {
             worktrees = []
             branchWatcher.stopAll()

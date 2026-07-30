@@ -18,13 +18,22 @@ struct OverlayHostView: View {
 
             ForEach(worktrees.openedMainCLISessions) { slot in
                 let isVisible = worktrees.focusedSession?.id == slot.id && !overlays.isShowingOverlay
-                TerminalSurfaceView(
-                    workingDirectory: slot.workingDirectory,
-                    command: slot.command,
-                    spawnEnvironment: slot.spawnEnvironment,
-                    isActive: isVisible
-                )
-                .id(slot.viewIdentity)
+                ZStack {
+                    TerminalSurfaceView(
+                        workingDirectory: slot.workingDirectory,
+                        command: slot.command,
+                        spawnEnvironment: slot.spawnEnvironment,
+                        isActive: isVisible && !slot.processExited,
+                        onProcessExit: {
+                            worktrees.handleMainCLIProcessExit(sessionId: slot.id)
+                        }
+                    )
+                    .id(slot.viewIdentity)
+
+                    if slot.processExited {
+                        mainCLIExitedState(sessionId: slot.id)
+                    }
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(worktrees.focusedSession?.id == slot.id ? 1 : 0)
                 .allowsHitTesting(isVisible)
@@ -130,7 +139,10 @@ struct OverlayHostView: View {
                 workingDirectory: session.workingDirectory,
                 command: session.command,
                 spawnEnvironment: session.spawnEnvironment,
-                isActive: isVisible
+                isActive: isVisible,
+                onProcessExit: {
+                    overlays.handleProcessExit(session.id)
+                }
             )
             .id(session.id)
         }
@@ -140,6 +152,29 @@ struct OverlayHostView: View {
             cornerRadius: 12
         )
         .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
+    }
+
+    private func mainCLIExitedState(sessionId: String) -> some View {
+        VStack(spacing: 14) {
+            Text("Main CLI exited")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(ghosttyTheme.foreground)
+            Text("The process quit repeatedly. Reload to start again.")
+                .font(.subheadline)
+                .foregroundStyle(ghosttyTheme.secondaryText)
+                .multilineTextAlignment(.center)
+            Button("Reload CLI") {
+                worktrees.reloadOpenedMainCLI(sessionId: sessionId)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(ghosttyTheme.accent)
+            .keyboardShortcut("r", modifiers: .command)
+            .padding(.top, 4)
+        }
+        .frame(maxWidth: 360)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
+        .background(ghosttyTheme.background.opacity(0.92))
     }
 
     private func sheetHeader(_ session: OverlaySession) -> some View {
