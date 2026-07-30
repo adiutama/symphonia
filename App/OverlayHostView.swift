@@ -79,16 +79,16 @@ struct OverlayHostView: View {
     private var mainEmptyState: some View {
         VStack(spacing: 14) {
             if workspaces.workspaces.isEmpty {
-                Text("No project yet")
+                Text("No Workspace yet")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(ghosttyTheme.foreground)
-                Text("Create a project to open its Main CLI.")
+                Text("Create a Workspace to open its Main CLI.")
                     .font(.subheadline)
                     .foregroundStyle(ghosttyTheme.secondaryText)
                     .multilineTextAlignment(.center)
 
                 HStack(spacing: 12) {
-                    Button("Create Project") {
+                    Button("Create Workspace") {
                         workspaces.beginCreateWorkspace()
                     }
                     .buttonStyle(.borderedProminent)
@@ -101,15 +101,15 @@ struct OverlayHostView: View {
                 }
                 .padding(.top, 4)
             } else {
-                Text("Select a project")
+                Text("Select a Workspace")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(ghosttyTheme.foreground)
-                Text("Pick a project in the sidebar, then open Main or a Worktree.")
+                Text("Pick a Workspace in the sidebar, then open Main or a Worktree.")
                     .font(.subheadline)
                     .foregroundStyle(ghosttyTheme.secondaryText)
                     .multilineTextAlignment(.center)
 
-                Button("Create Project") {
+                Button("Create Workspace") {
                     workspaces.beginCreateWorkspace()
                 }
                 .buttonStyle(.borderedProminent)

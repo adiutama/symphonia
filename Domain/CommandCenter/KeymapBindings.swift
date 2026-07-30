@@ -106,16 +106,16 @@ enum KeymapBindings {
         chord("⌘⇧F", "Switch Worktree", .showWorktreePicker, .commandCenterOnly) { e in
             cmdOnly(e) && shift(e) && !opt(e) && char(e) == "f"
         },
-        chord("⌘⇧R", "Rename Slug", .renameWorkspace, .commandCenterOnly) { e in
+        chord("⌘⇧R", "Rename Workspace", .renameWorkspace, .commandCenterOnly) { e in
             cmdOnly(e) && shift(e) && !opt(e) && char(e) == "r"
         },
-        chord("⌘⌥R", "Rename Tree", .renameFocusedWorktree, .commandCenterOnly) { e in
+        chord("⌘⌥R", "Rename Worktree", .renameFocusedWorktree, .commandCenterOnly) { e in
             cmdOnly(e) && !shift(e) && opt(e) && char(e) == "r"
         },
-        chord("⌘⇧⌫", "Discard Tree", .removeFocusedWorktree, .commandCenterOnly) { e in
+        chord("⌘⇧⌫", "Remove Worktree", .removeFocusedWorktree, .commandCenterOnly) { e in
             cmdOnly(e) && shift(e) && !opt(e) && e.keyCode == 51
         },
-        chord("⌘⌥⌫", "Discard Workspace", .removeCurrentWorkspace, .commandCenterOnly) { e in
+        chord("⌘⌥⌫", "Remove Workspace", .removeCurrentWorkspace, .commandCenterOnly) { e in
             cmdOnly(e) && !shift(e) && opt(e) && e.keyCode == 51
         },
     ]

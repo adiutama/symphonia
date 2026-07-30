@@ -13,7 +13,7 @@ enum WorkspaceSidebarSheets {
 
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Create Project")
+                Text("Create Workspace")
                     .font(.headline)
                 TextField("slug", text: $slug)
                     .textFieldStyle(.roundedBorder)
@@ -141,7 +141,7 @@ enum WorkspaceSidebarSheets {
                 workspacesRoot: workspaces.workspacesRoot
             )
             return VStack(alignment: .leading, spacing: 12) {
-                Text("Rename Project")
+                Text("Rename Workspace")
                     .font(.headline)
                 TextField("slug", text: $slug)
                     .textFieldStyle(.roundedBorder)

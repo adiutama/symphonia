@@ -152,7 +152,7 @@ When a session is **first opened**, spawn env = English locale defaults (`LANG` 
 | `CommandProvider` | Protocol an app area implements to export `[Command]` (ADR 0021) |
 | `CommandRegistry` | Aggregates providers; `allCommands`, `availableCommands(context:)`, `command(id:)` |
 | `OverlayCommandProvider` | Open Editor (`ee`), Toggle Overlay (`oo`), Overlay Terminal (`ot`), Overlay Switcher (`os`) |
-| `WorkspaceCommandProvider` | Switch Workspace / Worktree, Focus Main, New/Discard Worktree / Workspace, … |
+| `WorkspaceCommandProvider` | Switch Workspace / Worktree, Focus Main, New/Remove Worktree / Workspace, … |
 | `ChromeCommandProvider` | Settings, Keymap, Dismiss Command Center — no context gating |
 | `KeymapBindings` | Fixed global / Command Center–only Hotkeys (ADR 0022); cheatsheet + runtime match |
 | `CommandBindingOverride` | Codable Global Setting override for one Command's **sequence**, keyed by Command `id` |
