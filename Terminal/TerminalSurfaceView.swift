@@ -303,13 +303,17 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
 
     /// Route Ghostty keybindings (⌘C/V, ⌘+/−/0 font zoom, …) through `keyDown`
     /// before the Edit/View menu consumes them — same seam as Ghostty `SurfaceView_AppKit`.
+    ///
+    /// Menu / window shortcuts (⌘W close, ⌘Q quit, ⌘,, …) always defer to AppKit so
+    /// Ghostty surface bindings cannot swallow Symphonia chrome shortcuts.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard event.type == .keyDown else { return false }
-        // App menu Settings (⌘,) must reach SwiftUI's Settings scene even when the
-        // terminal is first responder — Ghostty must not claim it as a surface binding.
-        if Self.isAppSettingsKeyEquivalent(event) {
+
+        // App menu wins over libghostty bindings (Close Window, Settings, Quit, …).
+        if Self.mainMenuHasKeyEquivalent(event) {
             return false
         }
+
         guard surfaceFocused, let surface else { return false }
 
         var ghosttyEvent = event.ghosttyKeyEvent(GHOSTTY_ACTION_PRESS)
@@ -325,15 +329,37 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         return false
     }
 
-    /// macOS standard Settings shortcut: ⌘, (no ctrl/opt).
-    private static func isAppSettingsKeyEquivalent(_ event: NSEvent) -> Bool {
-        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard mods.contains(.command),
-              !mods.contains(.control),
-              !mods.contains(.option)
-        else { return false }
+    /// True when `NSApp.mainMenu` has an enabled item for this key equivalent.
+    private static func mainMenuHasKeyEquivalent(_ event: NSEvent) -> Bool {
+        guard let menu = NSApp.mainMenu else { return false }
+        return menuItemMatchingKeyEquivalent(event, in: menu) != nil
+    }
+
+    private static func menuItemMatchingKeyEquivalent(_ event: NSEvent, in menu: NSMenu) -> NSMenuItem? {
+        let eventMods = event.modifierFlags
+            .intersection(.deviceIndependentFlagsMask)
+            .intersection([.command, .option, .control, .shift])
         let chars = event.charactersIgnoringModifiers ?? ""
-        return chars == "," || event.keyCode == 43
+        guard !chars.isEmpty else { return nil }
+
+        for item in menu.items {
+            if let submenu = item.submenu,
+               let found = menuItemMatchingKeyEquivalent(event, in: submenu)
+            {
+                return found
+            }
+            let equiv = item.keyEquivalent
+            guard !equiv.isEmpty else { continue }
+            let itemMods = item.keyEquivalentModifierMask
+                .intersection(.deviceIndependentFlagsMask)
+                .intersection([.command, .option, .control, .shift])
+            guard itemMods == eventMods else { continue }
+            // Menu keyEquivalents are typically lowercase; compare case-insensitively.
+            if equiv.compare(chars, options: [.caseInsensitive, .literal]) == .orderedSame {
+                return item
+            }
+        }
+        return nil
     }
 
     @discardableResult

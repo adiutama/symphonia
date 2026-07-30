@@ -40,10 +40,16 @@ xcodebuild -scheme Symphonia -configuration Debug \
 
 Or open `Symphonia.xcodeproj` and run the **Symphonia** scheme.
 
-The **Copy Ghostty Resources** build phase installs `terminfo` + `ghostty/themes` into
-`Symphonia.app/Contents/Resources` (from `Vendor/ghostty/zig-out/share`, or Ghostty.app).
-Without that, `theme = …` in `~/.config/ghostty/config` cannot resolve and surfaces fall
-back to the default near-black palette.
+Chrome and terminals load the Operator’s Ghostty config (`~/.config/ghostty`, etc.).
+Theme files resolve from, in order:
+
+1. `GHOSTTY_RESOURCES_DIR` if already set  
+2. Optional bundled `Symphonia.app/Contents/Resources/ghostty` (Copy Ghostty Resources build phase)  
+3. Installed **Ghostty.app** (`Contents/Resources/ghostty`)
+
+Nightly/Release DMGs do **not** need to ship themes — installing Ghostty.app (or pointing
+`GHOSTTY_RESOURCES_DIR` at a themes root) is enough for `theme = …` to resolve.
+Without any of those, surfaces fall back to the default near-black palette.
 
 ## Status
 

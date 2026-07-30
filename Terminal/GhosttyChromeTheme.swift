@@ -316,15 +316,68 @@ enum GhosttyBootstrap {
         }
     }
 
-    /// Point libghostty at bundled themes (`Contents/Resources/ghostty`) when present.
-    /// Terminfo under Resources is the primary discovery path; this env is a Debug fallback.
+    /// Point libghostty at a resources root that contains `themes/` (and usually
+    /// `shell-integration/`). Prefer an already-set env, then optional bundled
+    /// `Contents/Resources/ghostty`, then the installed Ghostty.app — so nightlies
+    /// can honor `~/.config/ghostty` `theme = …` without shipping theme files.
     private static func exportResourcesDirIfNeeded() {
         if ProcessInfo.processInfo.environment["GHOSTTY_RESOURCES_DIR"] != nil { return }
-        guard let resources = Bundle.main.resourceURL?
+        guard let resources = Self.resolveGhosttyResourcesDir() else {
+            NSLog(
+                "Ghostty resources not found — theme= in config will not resolve. Install Ghostty.app or set GHOSTTY_RESOURCES_DIR."
+            )
+            return
+        }
+        setenv("GHOSTTY_RESOURCES_DIR", resources, 0)
+    }
+
+    /// Directory that contains `themes/` (Ghostty’s `…/ghostty` resources root).
+    private static func resolveGhosttyResourcesDir() -> String? {
+        let fm = FileManager.default
+
+        // Optional: themes copied into Symphonia.app (local/dev packaging).
+        if let bundled = Bundle.main.resourceURL?
             .appendingPathComponent("ghostty", isDirectory: true)
             .path,
-            FileManager.default.fileExists(atPath: resources)
-        else { return }
-        setenv("GHOSTTY_RESOURCES_DIR", resources, 0)
+            fm.fileExists(atPath: (bundled as NSString).appendingPathComponent("themes"))
+        {
+            return bundled
+        }
+
+        // Installed Ghostty client — same themes the Operator’s config refers to.
+        for appURL in Self.ghosttyAppURLs() {
+            let candidate = appURL
+                .appendingPathComponent("Contents/Resources/ghostty", isDirectory: true)
+                .path
+            if fm.fileExists(atPath: (candidate as NSString).appendingPathComponent("themes")) {
+                return candidate
+            }
+        }
+
+        return nil
+    }
+
+    /// Likely Ghostty.app locations (bundle-id lookup, then common install dirs).
+    private static func ghosttyAppURLs() -> [URL] {
+        var urls: [URL] = []
+        let fm = FileManager.default
+
+        if let running = NSWorkspace.shared.urlForApplication(
+            withBundleIdentifier: "com.mitchellh.ghostty"
+        ) {
+            urls.append(running)
+        }
+
+        let home = fm.homeDirectoryForCurrentUser
+        let fallbacks = [
+            URL(fileURLWithPath: "/Applications/Ghostty.app", isDirectory: true),
+            home.appendingPathComponent("Applications/Ghostty.app", isDirectory: true),
+        ]
+        for url in fallbacks where fm.fileExists(atPath: url.path) {
+            if !urls.contains(url) {
+                urls.append(url)
+            }
+        }
+        return urls
     }
 }
