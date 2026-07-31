@@ -28,3 +28,37 @@ enum CLISpawnEnvironment {
         return map.sorted { $0.key < $1.key }.map { (key: $0.key, value: $0.value) }
     }
 }
+
+/// Formats Operator command strings for Ghostty surface `command` (macOS).
+///
+/// Ghostty wraps as `login … bash --noprofile --norc -c exec -l <command>`. The first
+/// token after `exec -l` must be a real executable — not a bare tool alone in a way that
+/// breaks `-c`, and not shell builtins like `set`. Wrapping in `/bin/zsh -c '…'` matches
+/// Create Project bootstrap.
+enum GhosttySpawnCommand {
+    /// Wrap a freeform command for Ghostty. Empty → nil (bare shell).
+    static func wrap(_ command: String?) -> String? {
+        guard let command else { return nil }
+        let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if isAlreadyWrapped(trimmed) {
+            return trimmed
+        }
+        return "/bin/zsh -c \(shellSingleQuoted(trimmed))"
+    }
+
+    /// Non-optional wrap for known non-empty scripts.
+    static func wrapScript(_ script: String) -> String {
+        wrap(script) ?? "/bin/zsh -c \(shellSingleQuoted(script))"
+    }
+
+    static func shellSingleQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    private static func isAlreadyWrapped(_ command: String) -> Bool {
+        command.hasPrefix("/bin/zsh -c ")
+            || command.hasPrefix("/bin/bash -c ")
+            || command.hasPrefix("/bin/sh -c ")
+    }
+}

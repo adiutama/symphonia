@@ -208,13 +208,13 @@ final class WorkspaceController: ObservableObject {
 
     /// POSIX single-quoted string for `/bin/sh -c` (Ghostty runs surface commands in a shell).
     private static func shellSingleQuoted(_ value: String) -> String {
-        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        GhosttySpawnCommand.shellSingleQuoted(value)
     }
 
     /// Ghostty on macOS wraps shell commands as `exec -l <command>`, so the first
     /// token must be a real binary — not a shell builtin like `set`.
     private static func wrapBootstrapScript(_ script: String) -> String {
-        "/bin/zsh -c \(shellSingleQuoted(script))"
+        GhosttySpawnCommand.wrapScript(script)
     }
 
     /// Visible setup script: `mkdir` → `cd` → `git init`.

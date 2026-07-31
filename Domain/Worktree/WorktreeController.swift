@@ -483,8 +483,7 @@ final class WorktreeController: ObservableObject {
     // MARK: - Internals
 
     private func spawnCommandValue() -> String? {
-        let cmd = preferences.effective.mainCLICommand.trimmingCharacters(in: .whitespacesAndNewlines)
-        return cmd.isEmpty ? nil : cmd
+        GhosttySpawnCommand.wrap(preferences.effective.mainCLICommand)
     }
 
     private func currentSpawnEnvironment() -> [(key: String, value: String)] {
