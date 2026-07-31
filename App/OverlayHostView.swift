@@ -188,7 +188,7 @@ struct OverlayHostView: View {
 
     private func sheetHeader(_ session: OverlaySession) -> some View {
         HStack(spacing: 8) {
-            Text(session.kind == .editor ? "Editor" : "Shell")
+            Text(session.displayKindLabel)
                 .font(.caption2.weight(.semibold).monospaced())
                 .foregroundStyle(ghosttyTheme.secondaryText)
                 .tracking(0.4)

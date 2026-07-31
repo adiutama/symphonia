@@ -1,15 +1,34 @@
 import Foundation
 
-/// How Symphonia should open the configured Editor (ADR 0006).
+/// How Symphonia should open the configured Editor (ADR 0006 / 0023).
 ///
-/// Overlay PTY suits TUI editors (`vim`, `nano`, …). GUI editors (`code`, `cursor`, …)
-/// should launch externally so they do not sit inside a terminal Overlay. Phase 6 will
-/// honor this; scaffolding only records the inference.
-enum EditorPresentation: String, Equatable, Sendable {
-    /// Run inside an Editor Overlay PTY (hide ≠ quit).
+/// Overlay PTY suits TUI editors (`vim`, `nano`, …). GUI editors launch as External
+/// Activities (Focus / End — no peek/hide).
+enum EditorPresentation: String, Equatable, Sendable, Codable {
+    /// Run inside an Overlay PTY (hide ≠ quit).
     case terminalOverlay
-    /// Launch outside the terminal (GUI / `open`-style tools).
+    /// Launch outside Symphonia as an External Activity.
     case externalApp
+
+    /// TOML / Settings vocabulary: `overlay` | `external`.
+    static func fromToml(_ raw: String?) -> EditorPresentation? {
+        guard let raw else { return nil }
+        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "overlay", "terminaloverlay", "terminal_overlay", "tui":
+            return .terminalOverlay
+        case "external", "externalapp", "external_app", "gui":
+            return .externalApp
+        default:
+            return nil
+        }
+    }
+
+    var tomlValue: String {
+        switch self {
+        case .terminalOverlay: return "overlay"
+        case .externalApp: return "external"
+        }
+    }
 }
 
 /// Resolves the Editor command string and a best-effort presentation hint.

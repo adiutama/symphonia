@@ -5,11 +5,26 @@ struct EffectiveSettings: Equatable, Sendable {
     /// Resolved Main CLI command (ADR 0005). Empty means bare shell / default login CLI.
     var mainCLICommand: String
 
+    /// Resolved Shell Activity default command. Empty = login shell Overlay.
+    var shellCommand: String
+
     /// Resolved Editor command after applying `$EDITOR` when Global/Workspace value is empty.
     var editorCommand: String
 
-    /// Best-effort: Overlay TUI vs external GUI (Phase 6 will branch on this).
+    /// Resolved Editor Presentation (explicit or legacy heuristic).
     var editorPresentation: EditorPresentation
+
+    /// Resolved External Editor bundle id.
+    var editorBundleID: String
+
+    /// Resolved File manager Presentation.
+    var fileManagerPresentation: EditorPresentation
+
+    /// Resolved Overlay file manager command.
+    var fileManagerCommand: String
+
+    /// Resolved External file manager bundle id.
+    var fileManagerBundleID: String
 
     /// Resolved Leader binding (ADR 0009).
     var leaderKey: String
@@ -33,10 +48,28 @@ struct EffectiveSettings: Equatable, Sendable {
         let configuredEditor = overrides.editorCommand ?? global.editorCommand
         let editorCommand = EditorCommandResolver.resolveCommand(configured: configuredEditor)
 
+        let explicitPresentation = overrides.editorPresentation ?? global.editorPresentation
+        let editorPresentation: EditorPresentation
+        if let explicitPresentation {
+            editorPresentation = explicitPresentation
+        } else {
+            editorPresentation = EditorCommandResolver.presentation(forCommand: editorCommand)
+        }
+
+        let editorBundleID = overrides.editorBundleID ?? global.editorBundleID
+        let fileManagerPresentation = overrides.fileManagerPresentation ?? global.fileManagerPresentation
+        let fileManagerCommand = overrides.fileManagerCommand ?? global.fileManagerCommand
+        let fileManagerBundleID = overrides.fileManagerBundleID ?? global.fileManagerBundleID
+
         return EffectiveSettings(
             mainCLICommand: overrides.mainCLICommand ?? global.mainCLICommand,
+            shellCommand: overrides.shellCommand ?? global.shellCommand,
             editorCommand: editorCommand,
-            editorPresentation: EditorCommandResolver.presentation(forCommand: editorCommand),
+            editorPresentation: editorPresentation,
+            editorBundleID: editorBundleID,
+            fileManagerPresentation: fileManagerPresentation,
+            fileManagerCommand: fileManagerCommand,
+            fileManagerBundleID: fileManagerBundleID,
             leaderKey: Self.resolvedLeaderKey(global: global.leaderKey, workspace: overrides.leaderKey),
             workspacesRoot: workspacesRoot,
             workspacesRootURL: SymphoniaPaths.expandingTildeInPath(workspacesRoot),

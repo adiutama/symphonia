@@ -150,7 +150,7 @@ struct CommandCenterNestCatalog {
         } else {
             for session in sessions {
                 let mark = overlays.visibleOverlayID == session.id ? " ●" : ""
-                let kindLabel = session.kind == .editor ? "Editor" : "Shell"
+                let kindLabel = session.displayKindLabel
                 list.append(CommandCenterItem(
                     id: "bg-\(session.id.uuidString)",
                     title: session.title + mark,

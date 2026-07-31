@@ -13,6 +13,7 @@ final class CommandCenterController: ObservableObject {
     private let workspaces: WorkspaceController
     private let worktrees: WorktreeController
     private let overlays: OverlayController
+    private let activities: ActivityManager
     private let settingsNavigation: SettingsNavigation
 
     @Published private(set) var isActive = false
@@ -36,6 +37,7 @@ final class CommandCenterController: ObservableObject {
         workspaces: WorkspaceController,
         worktrees: WorktreeController,
         overlays: OverlayController,
+        activities: ActivityManager,
         settingsNavigation: SettingsNavigation,
         commandRegistry: CommandRegistry
     ) {
@@ -43,6 +45,7 @@ final class CommandCenterController: ObservableObject {
         self.workspaces = workspaces
         self.worktrees = worktrees
         self.overlays = overlays
+        self.activities = activities
         self.settingsNavigation = settingsNavigation
         self.nestCatalog = CommandCenterNestCatalog(
             workspaces: workspaces,
@@ -255,7 +258,7 @@ final class CommandCenterController: ObservableObject {
             dismiss()
 
         case .openEditor:
-            overlays.openEditor()
+            activities.openEditor()
             dismiss()
 
         case .createBackground:

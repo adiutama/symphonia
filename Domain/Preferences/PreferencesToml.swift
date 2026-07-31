@@ -14,7 +14,18 @@ enum PreferencesToml {
             "# Legacy preferences.json is ignored (no migration).",
             "",
             "mainCLICommand = \(stringLiteral(preferences.mainCLICommand))",
+            "shellCommand = \(stringLiteral(preferences.shellCommand))",
             "editorCommand = \(stringLiteral(preferences.editorCommand))",
+        ]
+        if let presentation = preferences.editorPresentation {
+            lines.append("editorPresentation = \(stringLiteral(presentation.tomlValue))")
+        }
+        lines += [
+            "editorBundleID = \(stringLiteral(preferences.editorBundleID))",
+            "fileManagerPresentation = \(stringLiteral(preferences.fileManagerPresentation.tomlValue))",
+            "fileManagerCommand = \(stringLiteral(preferences.fileManagerCommand))",
+            "fileManagerBundleID = \(stringLiteral(preferences.fileManagerBundleID))",
+            "hasSeenExternalEditorReminder = \(boolLiteral(preferences.hasSeenExternalEditorReminder))",
             "leaderKey = \(stringLiteral(preferences.leaderKey))",
             "commandCenterPreferredMode = \(stringLiteral(preferences.commandCenterPreferredMode.rawValue))",
             "workspacesRoot = \(stringLiteral(preferences.workspacesRoot))",
@@ -70,6 +81,14 @@ enum PreferencesToml {
         return GlobalPreferences(
             mainCLICommand: root.strings["mainCLICommand"] ?? "",
             editorCommand: root.strings["editorCommand"] ?? "",
+            shellCommand: root.strings["shellCommand"] ?? "",
+            editorPresentation: EditorPresentation.fromToml(root.strings["editorPresentation"]),
+            editorBundleID: root.strings["editorBundleID"] ?? ActivityDefaults.editorBundleID,
+            fileManagerPresentation: EditorPresentation.fromToml(root.strings["fileManagerPresentation"])
+                ?? ActivityDefaults.fileManagerPresentation,
+            fileManagerCommand: root.strings["fileManagerCommand"] ?? "",
+            fileManagerBundleID: root.strings["fileManagerBundleID"] ?? ActivityDefaults.fileManagerBundleID,
+            hasSeenExternalEditorReminder: root.bools["hasSeenExternalEditorReminder"] ?? false,
             leaderKey: root.strings["leaderKey"] ?? GlobalPreferences.default.leaderKey,
             commandCenterPreferredMode: preferredMode,
             workspacesRoot: root.strings["workspacesRoot"] ?? GlobalPreferences.default.workspacesRoot,
@@ -98,6 +117,24 @@ enum PreferencesToml {
         if let editorCommand = config.editorCommand {
             lines.append("editorCommand = \(stringLiteral(editorCommand))")
         }
+        if let shellCommand = config.shellCommand {
+            lines.append("shellCommand = \(stringLiteral(shellCommand))")
+        }
+        if let editorPresentation = config.editorPresentation {
+            lines.append("editorPresentation = \(stringLiteral(editorPresentation.tomlValue))")
+        }
+        if let editorBundleID = config.editorBundleID {
+            lines.append("editorBundleID = \(stringLiteral(editorBundleID))")
+        }
+        if let fileManagerPresentation = config.fileManagerPresentation {
+            lines.append("fileManagerPresentation = \(stringLiteral(fileManagerPresentation.tomlValue))")
+        }
+        if let fileManagerCommand = config.fileManagerCommand {
+            lines.append("fileManagerCommand = \(stringLiteral(fileManagerCommand))")
+        }
+        if let fileManagerBundleID = config.fileManagerBundleID {
+            lines.append("fileManagerBundleID = \(stringLiteral(fileManagerBundleID))")
+        }
         if let leaderKey = config.leaderKey {
             lines.append("leaderKey = \(stringLiteral(leaderKey))")
         }
@@ -125,6 +162,12 @@ enum PreferencesToml {
             prefix: root.strings["prefix"],
             mainCLICommand: root.strings["mainCLICommand"],
             editorCommand: root.strings["editorCommand"],
+            shellCommand: root.strings["shellCommand"],
+            editorPresentation: EditorPresentation.fromToml(root.strings["editorPresentation"]),
+            editorBundleID: root.strings["editorBundleID"],
+            fileManagerPresentation: EditorPresentation.fromToml(root.strings["fileManagerPresentation"]),
+            fileManagerCommand: root.strings["fileManagerCommand"],
+            fileManagerBundleID: root.strings["fileManagerBundleID"],
             leaderKey: root.strings["leaderKey"],
             baseRef: root.strings["baseRef"],
             archivedThreeWordNames: root.arrays["archivedThreeWordNames"],

@@ -84,7 +84,8 @@ final class OverlayController: ObservableObject {
         lastError = nil
     }
 
-    /// Show or hide Overlay (ADR 0022). Visible → hide; hidden → last peeked, else Editor.
+    /// Show or hide Overlay (ADR 0022). Visible → hide; hidden → last peeked, else Overlay Editor.
+    /// Does not open External Editors — Toggle Overlay stays Overlay-scoped (ADR 0023).
     func toggle() {
         if isShowingOverlay {
             hide()
@@ -100,7 +101,10 @@ final class OverlayController: ObservableObject {
             peek(editor.id)
             return
         }
-        openEditor()
+        // Only spawn when Editor Presentation is Overlay; External is Open Editor / Glance.
+        if preferences.effective.editorPresentation == .terminalOverlay {
+            openEditorOverlay()
+        }
     }
 
     /// Explicit teardown (kills PTY when the host drops the surface).
@@ -114,6 +118,15 @@ final class OverlayController: ObservableObject {
         }
     }
 
+    /// Local Glance / Switcher label — does not change the running command.
+    func rename(_ id: UUID, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let index = sessions.firstIndex(where: { $0.id == id })
+        else { return }
+        sessions[index].title = trimmed
+    }
+
     /// Overlay PTY exited (`:q`, `exit`, …): hide back to Main and drop the dead session.
     func handleProcessExit(_ id: UUID) {
         close(id)
@@ -122,54 +135,83 @@ final class OverlayController: ObservableObject {
 
     // MARK: - Editor (P6.2)
 
-    /// Open Effective Editor: TUI → Overlay PTY; GUI → external launch (no Overlay trap).
-    func openEditor() {
+    /// Open Effective Editor as Overlay PTY (Activity Manager delegates External).
+    func openEditorOverlay() {
         guard let session = agents.focusedSession else {
             lastError = "Focus Main Repo or a Worktree before opening the Editor."
             return
         }
 
         let command = preferences.effective.editorCommand
-        let presentation = preferences.effective.editorPresentation
         let cwd = session.workingDirectory
         let env = CLISpawnEnvironment.mergingSecrets(secrets.enabledEnvironment)
 
-        switch presentation {
-        case .externalApp:
-            do {
-                try launchExternal(command: command, workingDirectory: cwd, environment: env)
-                lastError = nil
-            } catch {
-                lastError = error.localizedDescription
-            }
-
-        case .terminalOverlay:
-            if let existing = sessions.first(where: {
-                $0.kind == .editor && $0.sessionId == session.id
-            }) {
-                peek(existing.id)
-                lastError = nil
-                return
-            }
-
-            let overlay = OverlaySession(
-                id: UUID(),
-                kind: .editor,
-                sessionId: session.id,
-                title: shortCommand(command),
-                command: command,
-                workingDirectory: cwd,
-                spawnEnvironment: env
-            )
-            sessions.append(overlay)
-            peek(overlay.id)
+        if let existing = sessions.first(where: {
+            $0.kind == .editor && $0.sessionId == session.id
+        }) {
+            peek(existing.id)
             lastError = nil
+            return
         }
+
+        let overlay = OverlaySession(
+            id: UUID(),
+            kind: .editor,
+            sessionId: session.id,
+            title: shortCommand(command),
+            command: GhosttySpawnCommand.wrap(command),
+            workingDirectory: cwd,
+            spawnEnvironment: env
+        )
+        sessions.append(overlay)
+        peek(overlay.id)
+        lastError = nil
+    }
+
+    /// Open File manager as Overlay PTY when Presentation is Overlay/TUI.
+    func openFileManagerOverlay(command configuredCommand: String) {
+        guard let session = agents.focusedSession else {
+            lastError = "Focus Main Repo or a Worktree before opening Files."
+            return
+        }
+
+        let trimmed = configuredCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        let command: String? = trimmed.isEmpty ? nil : trimmed
+        let title = command.map(shortCommand) ?? "files"
+        let cwd = session.workingDirectory
+        let env = CLISpawnEnvironment.mergingSecrets(secrets.enabledEnvironment)
+
+        if let existing = sessions.first(where: {
+            $0.kind == .files && $0.sessionId == session.id
+        }) {
+            peek(existing.id)
+            lastError = nil
+            return
+        }
+
+        let overlay = OverlaySession(
+            id: UUID(),
+            kind: .files,
+            sessionId: session.id,
+            title: title,
+            command: GhosttySpawnCommand.wrap(command),
+            workingDirectory: cwd,
+            spawnEnvironment: env
+        )
+        sessions.append(overlay)
+        peek(overlay.id)
+        lastError = nil
+    }
+
+    /// Legacy entry — prefer ``ActivityManager/openEditor()``.
+    func openEditor() {
+        openEditorOverlay()
     }
 
     // MARK: - Background CLI (P6.3–P6.4)
 
-    /// Create a Background CLI Overlay and peek it. Empty draft → bare shell.
+    /// Create a Shell Activity Overlay and peek it.
+    /// Empty draft → Effective `shellCommand`, else login shell.
     func createBackgroundCLI() {
         guard let session = agents.focusedSession else {
             lastError = "Focus Main Repo or a Worktree before creating a Background CLI."
@@ -177,7 +219,16 @@ final class OverlayController: ObservableObject {
         }
 
         let trimmed = draftBackgroundCommand.trimmingCharacters(in: .whitespacesAndNewlines)
-        let command: String? = trimmed.isEmpty ? nil : trimmed
+        let configuredDefault = preferences.effective.shellCommand
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let command: String?
+        if !trimmed.isEmpty {
+            command = trimmed
+        } else if !configuredDefault.isEmpty {
+            command = configuredDefault
+        } else {
+            command = nil
+        }
         // Plain title — Glance / Switcher categorize via kind (shell vs editor), not a prefix.
         let title = command.map(shortCommand) ?? "shell"
 
@@ -186,7 +237,7 @@ final class OverlayController: ObservableObject {
             kind: .background,
             sessionId: session.id,
             title: title,
-            command: command,
+            command: GhosttySpawnCommand.wrap(command),
             workingDirectory: session.workingDirectory,
             spawnEnvironment: CLISpawnEnvironment.mergingSecrets(secrets.enabledEnvironment)
         )
@@ -228,26 +279,5 @@ final class OverlayController: ObservableObject {
     private func shortCommand(_ command: String) -> String {
         let first = command.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? command
         return URL(fileURLWithPath: first).lastPathComponent
-    }
-
-    /// Launch GUI / external editor outside the Overlay host.
-    private func launchExternal(
-        command: String,
-        workingDirectory: String,
-        environment: [(key: String, value: String)]
-    ) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = ["-lc", command]
-        process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
-
-        var env = ProcessInfo.processInfo.environment
-        for pair in CLISpawnEnvironment.mergingSecrets(environment) {
-            env[pair.key] = pair.value
-        }
-        process.environment = env
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try process.run()
     }
 }

@@ -85,6 +85,11 @@
 		A8B0UT004SPARKLE01 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8B0UT004SPARKLE04 /* Sparkle.framework */; };
 		A8B0UT004SPARKLE06 /* Sparkle.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A8B0UT004SPARKLE04 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A8B0UT008BRAND0001 /* SymphoniaBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B0UT008BRAND0002 /* SymphoniaBrand.swift */; };
+		A9C8D7E6F504132718293A01 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C8D7E6F504132718293A02 /* ActivityModels.swift */; };
+		A9C8D7E6F504132718293A03 /* ExternalAppLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C8D7E6F504132718293A04 /* ExternalAppLauncher.swift */; };
+		A9C8D7E6F504132718293A05 /* ActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C8D7E6F504132718293A06 /* ActivityManager.swift */; };
+		A9C8D7E6F504132718293A07 /* GitDiffStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C8D7E6F504132718293A08 /* GitDiffStats.swift */; };
+		A9C8D7E6F504132718293A09 /* PresentationSettingsControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C8D7E6F504132718293A0A /* PresentationSettingsControls.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -169,6 +174,11 @@
 		A8B0UT006ENTITL01 /* Symphonia.Debug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Symphonia.Debug.entitlements; sourceTree = "<group>"; };
 		A8B0UT007PUBKEY01 /* SUPublicEDKey.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = SUPublicEDKey.txt; sourceTree = "<group>"; };
 		A8B0UT008BRAND0002 /* SymphoniaBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymphoniaBrand.swift; sourceTree = "<group>"; };
+		A9C8D7E6F504132718293A02 /* ActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityModels.swift; sourceTree = "<group>"; };
+		A9C8D7E6F504132718293A04 /* ExternalAppLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalAppLauncher.swift; sourceTree = "<group>"; };
+		A9C8D7E6F504132718293A06 /* ActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityManager.swift; sourceTree = "<group>"; };
+		A9C8D7E6F504132718293A08 /* GitDiffStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitDiffStats.swift; sourceTree = "<group>"; };
+		A9C8D7E6F504132718293A0A /* PresentationSettingsControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationSettingsControls.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -248,6 +258,7 @@
 				C7R8E9A0T1E2P3R4O5J6C701 /* CreateProjectCanvas.swift */,
 				A7B405162738495A6B0E0108 /* CommandCenterView.swift */,
 				A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */,
+				A9C8D7E6F504132718293A0A /* PresentationSettingsControls.swift */,
 				A1B2C3D4E5F60718293A4B5F /* SettingsNavigation.swift */,
 				S1T2U3V4W5X60718293A4B08 /* SettingsWindowPresenter.swift */,
 				S1T2U3V4W5X60718293A4B02 /* SettingsChrome.swift */,
@@ -289,6 +300,7 @@
 				D2E3F405162738495A6B0B00 /* Worktree */,
 				E5F405162738495A6B0C0100 /* Secrets */,
 				F6A405162738495A6B0D0100 /* Overlay */,
+				A9C8D7E6F504132718293A10 /* Activity */,
 				265AAA08BB3045BCAFAB1721 /* CommandCenter */,
 			);
 			path = Domain;
@@ -321,6 +333,16 @@
 			path = Overlay;
 			sourceTree = "<group>";
 		};
+		A9C8D7E6F504132718293A10 /* Activity */ = {
+			isa = PBXGroup;
+			children = (
+				A9C8D7E6F504132718293A02 /* ActivityModels.swift */,
+				A9C8D7E6F504132718293A04 /* ExternalAppLauncher.swift */,
+				A9C8D7E6F504132718293A06 /* ActivityManager.swift */,
+			);
+			path = Activity;
+			sourceTree = "<group>";
+		};
 		E5F405162738495A6B0C0100 /* Secrets */ = {
 			isa = PBXGroup;
 			children = (
@@ -348,6 +370,7 @@
 			children = (
 				D2E3F405162738495A6B0B02 /* ThreeWordName.swift */,
 				D2E3F405162738495A6B0B04 /* WorktreeStore.swift */,
+				A9C8D7E6F504132718293A08 /* GitDiffStats.swift */,
 				B8C405162738495A6B0F0104 /* FocusedSession.swift */,
 				B8C405162738495A6B0F0106 /* MainCLISurfaceSlot.swift */,
 				D2E3F405162738495A6B0B06 /* WorktreeController.swift */,
@@ -478,6 +501,7 @@
 				A8B0UT006UPDATES01 /* UpdateChannel.swift in Sources */,
 				2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* PreferencesSettingsView.swift in Sources */,
+				A9C8D7E6F504132718293A09 /* PresentationSettingsControls.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5E /* SettingsNavigation.swift in Sources */,
 				S1T2U3V4W5X60718293A4B07 /* SettingsWindowPresenter.swift in Sources */,
 				S1T2U3V4W5X60718293A4B01 /* SettingsChrome.swift in Sources */,
@@ -512,6 +536,7 @@
 				C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */,
 				D2E3F405162738495A6B0B01 /* ThreeWordName.swift in Sources */,
 				D2E3F405162738495A6B0B03 /* WorktreeStore.swift in Sources */,
+				A9C8D7E6F504132718293A07 /* GitDiffStats.swift in Sources */,
 				D2E3F405162738495A6B0B05 /* WorktreeController.swift in Sources */,
 				B8C405162738495A6B0F010F /* WorktreeBranchWatcher.swift in Sources */,
 				B8C405162738495A6B0F0103 /* FocusedSession.swift in Sources */,
@@ -525,6 +550,9 @@
 				E5F405162738495A6B0C0107 /* SecretStoreScaffoldView.swift in Sources */,
 				F6A405162738495A6B0D0101 /* OverlayModels.swift in Sources */,
 				F6A405162738495A6B0D0103 /* OverlayController.swift in Sources */,
+				A9C8D7E6F504132718293A01 /* ActivityModels.swift in Sources */,
+				A9C8D7E6F504132718293A03 /* ExternalAppLauncher.swift in Sources */,
+				A9C8D7E6F504132718293A05 /* ActivityManager.swift in Sources */,
 				F6A405162738495A6B0D0105 /* OverlayHostView.swift in Sources */,
 				C7R8E9A0T1E2P3R4O5J6C702 /* CreateProjectCanvas.swift in Sources */,
 				A7B405162738495A6B0E0101 /* LeaderKeyBinding.swift in Sources */,

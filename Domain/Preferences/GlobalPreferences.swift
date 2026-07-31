@@ -8,10 +8,32 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// Workspace may override with a concrete agent command.
     var mainCLICommand: String
 
-    /// Editor command for the Editor Overlay (ADR 0006).
+    /// Editor command for Overlay Presentation (ADR 0006).
     /// Empty = resolve `$EDITOR` at Effective Setting time. Prefer TUI editors for Overlay;
-    /// GUI editors need external launch (see ``EditorPresentation``).
+    /// GUI editors use External Presentation.
     var editorCommand: String
+
+    /// Default command for Shell Activities (Overlay Terminal / Glance Open Shell).
+    /// Empty = login shell in the Worktree.
+    var shellCommand: String
+
+    /// Explicit Editor Presentation. `nil` = infer from command (legacy).
+    var editorPresentation: EditorPresentation?
+
+    /// Bundle id for External Editor (default TextEdit when External and empty).
+    var editorBundleID: String
+
+    /// File manager Presentation (default External / Finder).
+    var fileManagerPresentation: EditorPresentation
+
+    /// Overlay file manager command (TUI). Empty = bare shell in Overlay.
+    var fileManagerCommand: String
+
+    /// Bundle id for External file manager (default Finder).
+    var fileManagerBundleID: String
+
+    /// One-time reminder shown when Operator picks GUI Editor.
+    var hasSeenExternalEditorReminder: Bool
 
     /// Leader key binding that enters Command Center. Default `cmd+shift+p`
     /// (VS Code / Cursor Command Palette). Parsed by ``LeaderKeyBinding``.
@@ -45,6 +67,13 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     static let `default` = GlobalPreferences(
         mainCLICommand: "",
         editorCommand: "",
+        shellCommand: "",
+        editorPresentation: nil,
+        editorBundleID: ActivityDefaults.editorBundleID,
+        fileManagerPresentation: ActivityDefaults.fileManagerPresentation,
+        fileManagerCommand: "",
+        fileManagerBundleID: ActivityDefaults.fileManagerBundleID,
+        hasSeenExternalEditorReminder: false,
         leaderKey: "cmd+shift+p",
         commandCenterPreferredMode: .input,
         workspacesRoot: "~/.symphonia/workspaces",
@@ -56,7 +85,10 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     )
 
     enum CodingKeys: String, CodingKey {
-        case mainCLICommand, editorCommand, leaderKey, commandCenterPreferredMode
+        case mainCLICommand, editorCommand, shellCommand, editorPresentation, editorBundleID
+        case fileManagerPresentation, fileManagerCommand, fileManagerBundleID
+        case hasSeenExternalEditorReminder
+        case leaderKey, commandCenterPreferredMode
         case workspacesRoot, baseRef, commandBindings, onboardingCompleted, chromeGlass
         case updateChannel
     }
@@ -64,6 +96,13 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     init(
         mainCLICommand: String,
         editorCommand: String,
+        shellCommand: String = "",
+        editorPresentation: EditorPresentation? = nil,
+        editorBundleID: String = ActivityDefaults.editorBundleID,
+        fileManagerPresentation: EditorPresentation = ActivityDefaults.fileManagerPresentation,
+        fileManagerCommand: String = "",
+        fileManagerBundleID: String = ActivityDefaults.fileManagerBundleID,
+        hasSeenExternalEditorReminder: Bool = false,
         leaderKey: String,
         commandCenterPreferredMode: CommandCenterMode = .input,
         workspacesRoot: String,
@@ -75,6 +114,13 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     ) {
         self.mainCLICommand = mainCLICommand
         self.editorCommand = editorCommand
+        self.shellCommand = shellCommand
+        self.editorPresentation = editorPresentation
+        self.editorBundleID = editorBundleID
+        self.fileManagerPresentation = fileManagerPresentation
+        self.fileManagerCommand = fileManagerCommand
+        self.fileManagerBundleID = fileManagerBundleID
+        self.hasSeenExternalEditorReminder = hasSeenExternalEditorReminder
         self.leaderKey = leaderKey
         self.commandCenterPreferredMode = commandCenterPreferredMode
         self.workspacesRoot = workspacesRoot
@@ -89,6 +135,21 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         mainCLICommand = try container.decodeIfPresent(String.self, forKey: .mainCLICommand) ?? ""
         editorCommand = try container.decodeIfPresent(String.self, forKey: .editorCommand) ?? ""
+        shellCommand = try container.decodeIfPresent(String.self, forKey: .shellCommand) ?? ""
+        editorPresentation = try container.decodeIfPresent(EditorPresentation.self, forKey: .editorPresentation)
+        editorBundleID = try container.decodeIfPresent(String.self, forKey: .editorBundleID)
+            ?? ActivityDefaults.editorBundleID
+        fileManagerPresentation = try container.decodeIfPresent(
+            EditorPresentation.self,
+            forKey: .fileManagerPresentation
+        ) ?? ActivityDefaults.fileManagerPresentation
+        fileManagerCommand = try container.decodeIfPresent(String.self, forKey: .fileManagerCommand) ?? ""
+        fileManagerBundleID = try container.decodeIfPresent(String.self, forKey: .fileManagerBundleID)
+            ?? ActivityDefaults.fileManagerBundleID
+        hasSeenExternalEditorReminder = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .hasSeenExternalEditorReminder
+        ) ?? false
         leaderKey = try container.decodeIfPresent(String.self, forKey: .leaderKey) ?? Self.default.leaderKey
         commandCenterPreferredMode = try container.decodeIfPresent(
             CommandCenterMode.self,

@@ -14,6 +14,24 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     /// Workspace override for Editor command. Empty = `$EDITOR` at resolve.
     var editorCommand: String?
 
+    /// Workspace override for Shell Activity default command.
+    var shellCommand: String?
+
+    /// Workspace override for Editor Presentation.
+    var editorPresentation: EditorPresentation?
+
+    /// Workspace override for External Editor bundle id.
+    var editorBundleID: String?
+
+    /// Workspace override for File manager Presentation.
+    var fileManagerPresentation: EditorPresentation?
+
+    /// Workspace override for Overlay file manager command.
+    var fileManagerCommand: String?
+
+    /// Workspace override for External file manager bundle id.
+    var fileManagerBundleID: String?
+
     /// Workspace override for Leader.
     var leaderKey: String?
 
@@ -32,7 +50,9 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     var mainRemoteURL: String?
 
     enum CodingKeys: String, CodingKey {
-        case slug, prefix, mainCLICommand, editorCommand, leaderKey, baseRef, archivedThreeWordNames, mainRemoteURL
+        case slug, prefix, mainCLICommand, editorCommand, shellCommand, editorPresentation, editorBundleID
+        case fileManagerPresentation, fileManagerCommand, fileManagerBundleID
+        case leaderKey, baseRef, archivedThreeWordNames, mainRemoteURL
     }
 
     init(
@@ -40,6 +60,12 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
         prefix: String? = nil,
         mainCLICommand: String? = nil,
         editorCommand: String? = nil,
+        shellCommand: String? = nil,
+        editorPresentation: EditorPresentation? = nil,
+        editorBundleID: String? = nil,
+        fileManagerPresentation: EditorPresentation? = nil,
+        fileManagerCommand: String? = nil,
+        fileManagerBundleID: String? = nil,
         leaderKey: String? = nil,
         baseRef: String? = nil,
         archivedThreeWordNames: [String]? = nil,
@@ -49,6 +75,12 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
         self.prefix = prefix
         self.mainCLICommand = mainCLICommand
         self.editorCommand = editorCommand
+        self.shellCommand = shellCommand
+        self.editorPresentation = editorPresentation
+        self.editorBundleID = editorBundleID
+        self.fileManagerPresentation = fileManagerPresentation
+        self.fileManagerCommand = fileManagerCommand
+        self.fileManagerBundleID = fileManagerBundleID
         self.leaderKey = leaderKey
         self.baseRef = baseRef
         self.archivedThreeWordNames = archivedThreeWordNames
@@ -60,6 +92,12 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
         WorkspaceSettingOverrides(
             mainCLICommand: mainCLICommand,
             editorCommand: editorCommand,
+            shellCommand: shellCommand,
+            editorPresentation: editorPresentation,
+            editorBundleID: editorBundleID,
+            fileManagerPresentation: fileManagerPresentation,
+            fileManagerCommand: fileManagerCommand,
+            fileManagerBundleID: fileManagerBundleID,
             leaderKey: leaderKey,
             workspacesRoot: prefix,
             baseRef: baseRef
@@ -70,6 +108,12 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     mutating func apply(overrides: WorkspaceSettingOverrides) {
         mainCLICommand = overrides.mainCLICommand
         editorCommand = overrides.editorCommand
+        shellCommand = overrides.shellCommand
+        editorPresentation = overrides.editorPresentation
+        editorBundleID = overrides.editorBundleID
+        fileManagerPresentation = overrides.fileManagerPresentation
+        fileManagerCommand = overrides.fileManagerCommand
+        fileManagerBundleID = overrides.fileManagerBundleID
         leaderKey = overrides.leaderKey
         prefix = overrides.workspacesRoot
         baseRef = overrides.baseRef

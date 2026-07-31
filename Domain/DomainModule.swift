@@ -1,4 +1,5 @@
 /// Domain module: Global Setting, Workspace Setting, Effective Setting,
 /// Workspace containers, Worktree lifecycle, focused session (Main Repo / Worktree),
-/// Workspace Secret Store, Overlay (Editor / Background CLI) lifecycle, and Command Center (Leader).
+/// Workspace Secret Store, Activity Manager (Open · Focus · End), Overlay Presentation,
+/// and Command Center (Leader).
 enum DomainModule {}

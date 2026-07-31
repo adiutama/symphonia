@@ -9,6 +9,7 @@ struct SymphoniaApp: App {
     @StateObject private var settingsNavigation: SettingsNavigation
     @StateObject private var worktrees: WorktreeController
     @StateObject private var overlays: OverlayController
+    @StateObject private var activities: ActivityManager
     @StateObject private var commandCenter: CommandCenterController
     /// Command registry (ADR 0021). Drives `commandCenter`'s root palette (CC.2);
     /// constructed here so it's app-wide and testable.
@@ -42,6 +43,11 @@ struct SymphoniaApp: App {
             agents: worktrees,
             secrets: secrets
         )
+        let activities = ActivityManager(
+            preferences: preferences,
+            worktrees: worktrees,
+            overlays: overlays
+        )
         let commandRegistry = CommandRegistry(providers: [
             WorkspaceCommandProvider(workspaces: workspaces, worktrees: worktrees),
             OverlayCommandProvider(),
@@ -52,6 +58,7 @@ struct SymphoniaApp: App {
             workspaces: workspaces,
             worktrees: worktrees,
             overlays: overlays,
+            activities: activities,
             settingsNavigation: settingsNavigation,
             commandRegistry: commandRegistry
         )
@@ -61,6 +68,7 @@ struct SymphoniaApp: App {
         _settingsNavigation = StateObject(wrappedValue: settingsNavigation)
         _worktrees = StateObject(wrappedValue: worktrees)
         _overlays = StateObject(wrappedValue: overlays)
+        _activities = StateObject(wrappedValue: activities)
         _commandCenter = StateObject(wrappedValue: commandCenter)
         _commandRegistry = StateObject(wrappedValue: commandRegistry)
         _ghosttyTheme = StateObject(wrappedValue: GhosttyChromeTheme.shared)
@@ -81,6 +89,7 @@ struct SymphoniaApp: App {
                 .environmentObject(secrets)
                 .environmentObject(settingsNavigation)
                 .environmentObject(overlays)
+                .environmentObject(activities)
                 .environmentObject(commandCenter)
                 .environmentObject(commandRegistry)
                 .environmentObject(ghosttyTheme)
