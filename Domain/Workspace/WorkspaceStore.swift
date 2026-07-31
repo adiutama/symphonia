@@ -496,12 +496,40 @@ struct WorkspaceStore: @unchecked Sendable {
         let slug = config?.slug ?? fallbackSlug
         let prefix = config?.prefix ?? fallbackPrefix
         let mainDir = SymphoniaPaths.workspaceMainDirectory(in: dataDir)
+        let isRepo = isGitRepository(mainDir)
         return WorkspaceSummary(
             slug: slug,
             prefix: prefix,
             dataDirURL: dataDir.standardizedFileURL,
-            mainIsGitRepo: isGitRepository(mainDir)
+            mainIsGitRepo: isRepo,
+            mainHasCommits: isRepo && mainHasCommits(at: mainDir)
         )
+    }
+
+    /// Fast path: unborn HEAD has a symbolic ref whose tip file does not exist yet.
+    private func mainHasCommits(at mainDir: URL) -> Bool {
+        let gitURL = mainDir.appendingPathComponent(".git")
+        var isDir: ObjCBool = false
+        guard fileManager.fileExists(atPath: gitURL.path, isDirectory: &isDir) else { return false }
+
+        // Linked worktree `.git` file — treat as having commits if the checkout exists as a repo.
+        // Main is always a real git directory.
+        guard isDir.boolValue else { return true }
+
+        let headURL = gitURL.appendingPathComponent("HEAD")
+        guard let head = try? String(contentsOf: headURL, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !head.isEmpty
+        else { return false }
+
+        if head.hasPrefix("ref:") {
+            let ref = head.dropFirst(4).trimmingCharacters(in: .whitespacesAndNewlines)
+            let refURL = gitURL.appendingPathComponent(ref)
+            return fileManager.fileExists(atPath: refURL.path)
+        }
+
+        // Detached HEAD — a raw SHA means at least one commit exists.
+        return head.count >= 7
     }
 
     private func loadIndex() -> WorkspaceIndexDocument {

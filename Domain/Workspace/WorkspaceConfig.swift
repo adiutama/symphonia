@@ -87,4 +87,6 @@ struct WorkspaceSummary: Equatable, Identifiable, Sendable {
     var dataDirURL: URL
     /// Whether `main/` looks like a git repository (`.git` present).
     var mainIsGitRepo: Bool
+    /// Whether Main has at least one commit (false for fresh `git init` / unborn HEAD).
+    var mainHasCommits: Bool
 }

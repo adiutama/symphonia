@@ -272,10 +272,18 @@ struct WorkspaceSidebarView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.caption)
-                        .foregroundStyle(ghosttyTheme.accent)
+                        .foregroundStyle(
+                            worktrees.canCreateWorktree(in: workspace)
+                                ? ghosttyTheme.accent
+                                : ghosttyTheme.secondaryText.opacity(0.45)
+                        )
                 }
                 .buttonStyle(.borderless)
-                .help("New Worktree")
+                .help(
+                    worktrees.canCreateWorktree(in: workspace)
+                        ? "New Worktree"
+                        : "Main has no commits yet — click for details"
+                )
                 .accessibilityLabel("New Worktree")
             }
         }

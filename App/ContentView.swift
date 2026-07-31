@@ -95,6 +95,23 @@ struct ContentView: View {
         )) {
             OnboardingView()
         }
+        .alert(
+            "Cannot Create Worktree",
+            isPresented: Binding(
+                get: { worktrees.alertMessage != nil },
+                set: { presented in
+                    if !presented, worktrees.alertMessage != nil {
+                        worktrees.dismissAlert()
+                    }
+                }
+            )
+        ) {
+            Button("Okay", role: .cancel) {
+                worktrees.dismissAlert()
+            }
+        } message: {
+            Text(worktrees.alertMessage ?? "")
+        }
     }
 
     /// Workspace slug + path — content titlebar leading edge, no toolbar pill wrapper.

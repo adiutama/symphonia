@@ -16,6 +16,12 @@ struct WorkspaceCommandProvider: CommandProvider {
             }
         }()
 
+        let worktreeNewSubtitle: String = {
+            if workspaces.current == nil { return "needs Workspace" }
+            if !worktrees.canCreateWorktree { return "needs a commit in Main first" }
+            return "opens create canvas"
+        }()
+
         return [
             Command(
                 id: "workspace.switch",
@@ -125,10 +131,11 @@ struct WorkspaceCommandProvider: CommandProvider {
             Command(
                 id: "worktree.new",
                 title: "New Worktree",
-                subtitle: workspaces.current == nil ? "needs Workspace" : "opens create sheet",
+                subtitle: worktreeNewSubtitle,
                 group: "Worktree",
                 defaultSequence: "tn",
-                action: .newWorktree
+                action: .newWorktree,
+                isEnabled: { _ in workspaces.current != nil }
             ),
             Command(
                 id: "worktree.removeFocused",

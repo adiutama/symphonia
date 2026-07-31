@@ -38,6 +38,9 @@ final class WorktreeController: ObservableObject {
     /// New Worktree sheet (sidebar + Command Center parity).
     @Published var pendingCreateWorktree = false
 
+    /// Blocking alert (e.g. empty Main) — cleared only when the user dismisses it.
+    @Published var alertMessage: String?
+
     /// Recent Main CLI process-exit timestamps per session id (crash-loop guard).
     private var recentMainCLIExitTimestamps: [String: [Date]] = [:]
     private let mainCLICrashLoopWindow: TimeInterval = 2
@@ -216,10 +219,37 @@ final class WorktreeController: ObservableObject {
 
     // MARK: - Create Worktree
 
+    /// Whether New Worktree is allowed for the current Workspace (Main must have commits).
+    var canCreateWorktree: Bool {
+        guard let current = workspaces.current else { return false }
+        return canCreateWorktree(in: current)
+    }
+
+    func canCreateWorktree(in workspace: WorkspaceSummary) -> Bool {
+        // Read cached summary only — never run git during SwiftUI body updates
+        // (AttributeGraph: "setting value during update").
+        workspace.mainIsGitRepo && workspace.mainHasCommits
+    }
+
     /// Open the New Worktree sheet.
     func beginCreateWorktree() {
+        guard let current = workspaces.current else {
+            lastError = WorktreeStore.StoreError.noWorkspace.localizedDescription
+            return
+        }
+        // Live disk check at action time (summary may be stale after a just-made commit).
+        guard store.mainHasCommits(workspaceDataDir: current.dataDirURL) else {
+            // Refresh summary so the + button stays dimmed.
+            workspaces.refresh()
+            alertMessage = WorktreeStore.StoreError.mainHasNoCommits.localizedDescription
+            return
+        }
         lastError = nil
         pendingCreateWorktree = true
+    }
+
+    func dismissAlert() {
+        if alertMessage != nil { alertMessage = nil }
     }
 
     func cancelCreateWorktree() {

@@ -24,6 +24,7 @@ struct WorktreeStore: @unchecked Sendable {
         case alreadyExists(URL)
         case missingWorktree(URL)
         case baseRefNotFound(String)
+        case mainHasNoCommits
         case gitFailed(String)
         case invalidBranchName(String)
         case reservedName(String)
@@ -40,6 +41,8 @@ struct WorktreeStore: @unchecked Sendable {
                 return "Worktree not found: \(url.path)"
             case .baseRefNotFound(let ref):
                 return "Base Ref “\(ref)” not found in Main Repo. Commit or set Base Ref in Settings."
+            case .mainHasNoCommits:
+                return "Main has no commits yet — not a bug. Make a commit in Main CLI first, then try again."
             case .gitFailed(let detail):
                 return "git failed: \(detail)"
             case .invalidBranchName(let name):
@@ -162,6 +165,11 @@ struct WorktreeStore: @unchecked Sendable {
 
         if fileManager.fileExists(atPath: worktreeURL.path) {
             throw StoreError.alreadyExists(worktreeURL)
+        }
+
+        // `git worktree add` needs a real commit; fresh Local Main is unborn until first commit.
+        guard mainHasCommits(workspaceDataDir: workspaceDataDir) else {
+            throw StoreError.mainHasNoCommits
         }
 
         let startPoint = try resolveStartPoint(mainDir: mainDir, baseRef: baseRef)
@@ -318,6 +326,13 @@ struct WorktreeStore: @unchecked Sendable {
 
     // MARK: - Private
 
+    /// Whether Main has at least one commit (`HEAD` resolves). Fresh `git init` is unborn.
+    func mainHasCommits(workspaceDataDir: URL) -> Bool {
+        let mainDir = SymphoniaPaths.workspaceMainDirectory(in: workspaceDataDir)
+        guard isGitRepository(mainDir) else { return false }
+        return hasCommits(in: mainDir)
+    }
+
     private func resolveStartPoint(mainDir: URL, baseRef: String) throws -> String? {
         let trimmed = baseRef.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -326,11 +341,6 @@ struct WorktreeStore: @unchecked Sendable {
 
         if refExists(trimmed, in: mainDir) {
             return trimmed
-        }
-
-        // Unborn HEAD (fresh `git init`): allow `worktree add -b` without start-point.
-        if !hasCommits(in: mainDir) {
-            return nil
         }
 
         throw StoreError.baseRefNotFound(trimmed)
