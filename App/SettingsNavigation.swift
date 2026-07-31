@@ -13,6 +13,8 @@ final class SettingsNavigation: ObservableObject {
         case globalMainCLI
         /// Opens Global → General.
         case globalGeneral
+        /// Opens Global → Tools (Shell / Editor / Files).
+        case globalTools
         /// Opens Global → Shortcuts.
         case globalCommands
         case workspaceSettings(workspaceId: String)

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Settings (⌘,) — Global + per-Workspace settings and Secret Store (T.5).
 /// Detail chrome follows Supacode: page title → section → multi-row cards.
@@ -16,6 +17,8 @@ struct PreferencesSettingsView: View {
     @State private var draftWorkspaceId: String?
     /// Skip workspace autosave while selection loads overrides from disk.
     @State private var suppressWorkspaceAutosave = false
+    @State private var showExternalEditorReminder = false
+    @State private var showResetPreferencesConfirm = false
 
     /// Clearance under system traffic lights when titlebar is transparent / full-size content.
     private let trafficLightClearance: CGFloat = 52
@@ -74,6 +77,16 @@ struct PreferencesSettingsView: View {
             guard let remap else { return }
             healSelectionAfterWorkspaceRelocate(from: remap.from, to: remap.to)
         }
+        .alert("External Editor", isPresented: $showExternalEditorReminder) {
+            Button("OK") {
+                preferences.preferences.hasSeenExternalEditorReminder = true
+                preferences.scheduleSave()
+            }
+        } message: {
+            Text(
+                "GUI editors run as External Activities — Focus brings them forward, End quits. Full peek/hide needs a TUI editor."
+            )
+        }
     }
 
     private var settingsSidebar: some View {
@@ -129,7 +142,7 @@ struct PreferencesSettingsView: View {
 
     private var isEditingGlobal: Bool {
         switch selection {
-        case .globalGeneral, .globalCommands: return true
+        case .globalGeneral, .globalTools, .globalCommands: return true
         default: return false
         }
     }
@@ -147,6 +160,9 @@ struct PreferencesSettingsView: View {
         switch selection {
         case .globalGeneral:
             generalPage
+                .navigationTitle("")
+        case .globalTools:
+            toolsPage
                 .navigationTitle("")
         case .globalCommands:
             shortcutsPage
@@ -169,30 +185,10 @@ struct PreferencesSettingsView: View {
 
     private var generalPage: some View {
         SettingsPage(title: "General") {
-            SettingsSection(title: "Runtime") {
+            SettingsSection(title: "Command Center") {
                 SettingsCard {
                     SettingsRow(
-                        title: "Main CLI",
-                        description: "Empty runs a login shell. Set a command when you want a specific CLI on spawn."
-                    ) {
-                        TextField("Command", text: $preferences.preferences.mainCLICommand)
-                            .settingsControlField()
-                            .frame(minWidth: 160, idealWidth: 220)
-                            .frame(maxWidth: 280)
-                    }
-                    SettingsRowDivider()
-                    SettingsRow(
-                        title: "Editor",
-                        description: "Empty uses $EDITOR (fallback vi). TUI opens as Overlay; GUI apps are External (Focus only)."
-                    ) {
-                        TextField("Command", text: $preferences.preferences.editorCommand)
-                            .settingsControlField()
-                            .frame(minWidth: 160, idealWidth: 220)
-                            .frame(maxWidth: 280)
-                    }
-                    SettingsRowDivider()
-                    SettingsRow(
-                        title: "Command Center mode",
+                        title: "Mode",
                         description: "Applied when Leader opens Command Center. ⇧Tab toggles while open."
                     ) {
                         Picker(
@@ -264,12 +260,118 @@ struct PreferencesSettingsView: View {
                 sparkle.noteChannelChanged()
             }
 
+            SettingsSection(title: "Reset") {
+                SettingsCard {
+                    SettingsRow(
+                        title: "Reset Global preferences",
+                        description: "Restores ~/.symphonia/preferences.toml to factory defaults (Tools, Leader, chrome…). Workspace configs and Secret Stores are untouched. Onboarding runs again."
+                    ) {
+                        Button("Reset…") {
+                            showResetPreferencesConfirm = true
+                        }
+                    }
+                }
+            }
+
             if let lastError = preferences.lastError {
                 Text(lastError)
                     .font(.caption)
                     .foregroundStyle(.red)
             }
         }
+        .alert("Reset Global preferences?", isPresented: $showResetPreferencesConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset", role: .destructive) {
+                preferences.resetToDefaults()
+            }
+        } message: {
+            Text("This rewrites ~/.symphonia/preferences.toml. Workspace folders and secrets stay as they are.")
+        }
+    }
+
+    // MARK: - Tools
+
+    private var toolsPage: some View {
+        SettingsPage(title: "Tools") {
+            Text("Craft surfaces Glance opens for the focused Worktree. Overlay peeks; External Focus / End.")
+                .font(.callout)
+                .foregroundStyle(ghosttyTheme.secondaryText)
+                .padding(.bottom, 4)
+
+            ActivitySettingsSection(
+                title: "Shell",
+                systemImage: "terminal",
+                blurb: "Background CLIs and Overlay Terminal. Always Overlay — peek and hide without quitting.",
+                badge: "Overlay"
+            ) {
+                ShellActivityConfigurator(command: $preferences.preferences.shellCommand)
+            }
+
+            ActivitySettingsSection(
+                title: "Editor",
+                systemImage: "pencil",
+                blurb: "Open Editor from Glance or ⌘E. Choose TUI for the full peek/hide experience.",
+                badge: nil
+            ) {
+                ActivityPresentationConfigurator(
+                    presentation: globalEditorPresentationBinding,
+                    command: $preferences.preferences.editorCommand,
+                    bundleID: $preferences.preferences.editorBundleID,
+                    commandPlaceholder: "vi · $EDITOR",
+                    commandDetail: "Empty uses $VISUAL / $EDITOR, then vi.",
+                    bundlePlaceholder: ActivityDefaults.editorBundleID,
+                    bundleDetail: "Folder-capable: Cursor, VS Code, Zed, Xcode, Sublime, JetBrains. TextEdit launches only."
+                )
+            }
+
+            ActivitySettingsSection(
+                title: "Files",
+                systemImage: "folder",
+                blurb: "Open Files from Glance. Finder is the stock External default.",
+                badge: nil
+            ) {
+                ActivityPresentationConfigurator(
+                    presentation: $preferences.preferences.fileManagerPresentation,
+                    command: $preferences.preferences.fileManagerCommand,
+                    bundleID: $preferences.preferences.fileManagerBundleID,
+                    commandPlaceholder: "Command",
+                    commandDetail: "Empty opens a bare shell Overlay in the Worktree.",
+                    bundlePlaceholder: ActivityDefaults.fileManagerBundleID,
+                    bundleDetail: "Stock default is Finder."
+                )
+            }
+
+            if let lastError = preferences.lastError {
+                Text(lastError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+
+    // MARK: - Editor / Files (Global bindings)
+
+    private var resolvedGlobalEditorPresentation: EditorPresentation {
+        preferences.preferences.editorPresentation
+            ?? preferences.effective.editorPresentation
+    }
+
+    private var globalEditorPresentationBinding: Binding<EditorPresentation> {
+        Binding(
+            get: { resolvedGlobalEditorPresentation },
+            set: { newValue in
+                let wasOverlay = resolvedGlobalEditorPresentation == .terminalOverlay
+                preferences.preferences.editorPresentation = newValue
+                if newValue == .externalApp {
+                    if preferences.preferences.editorBundleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        preferences.preferences.editorBundleID = ActivityDefaults.editorBundleID
+                    }
+                    if wasOverlay, !preferences.preferences.hasSeenExternalEditorReminder {
+                        showExternalEditorReminder = true
+                    }
+                }
+            }
+        )
     }
 
     // MARK: - Shortcuts
@@ -299,51 +401,93 @@ struct PreferencesSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(ghosttyTheme.secondaryText)
 
-                SettingsSection(title: "Runtime") {
-                    SettingsCard {
-                        SettingsRow(
-                            title: "Main CLI",
-                            description: mainCLIOverrideDescription
-                        ) {
-                            VStack(alignment: .trailing, spacing: 6) {
-                                TextField(
-                                    "Command",
-                                    text: Binding(
-                                        get: { draftOverrides.mainCLICommand ?? "" },
-                                        set: { newValue in
-                                            if draftOverrides.mainCLICommand == nil {
-                                                if newValue.isEmpty { return }
-                                                draftOverrides.mainCLICommand = newValue
-                                            } else {
-                                                draftOverrides.mainCLICommand = newValue
-                                            }
-                                        }
-                                    )
-                                )
-                                .settingsControlField()
-                                .frame(minWidth: 160, idealWidth: 220)
-                                .frame(maxWidth: 280)
-
-                                mainCLIOverrideControls
+                SettingsSection(title: "Tools") {
+                    ActivitySettingsSection(
+                        title: "Shell",
+                        systemImage: "terminal",
+                        blurb: "Override Global Shell default. Always Overlay.",
+                        badge: "Overlay"
+                    ) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ShellActivityConfigurator(
+                                command: Binding(
+                                    get: {
+                                        draftOverrides.shellCommand
+                                            ?? preferences.preferences.shellCommand
+                                    },
+                                    set: { draftOverrides.shellCommand = $0 }
+                                ),
+                                detail: draftOverrides.shellCommand == nil
+                                    ? "Showing Global. Edit to override for this Workspace."
+                                    : "Empty opens a login shell in the Worktree."
+                            )
+                            if draftOverrides.shellCommand != nil {
+                                Button("Inherit Global") {
+                                    draftOverrides.shellCommand = nil
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.caption)
                             }
                         }
-                        SettingsRowDivider()
-                        SettingsRow(
-                            title: "Editor",
-                            description: "Empty inherits Global Editor."
-                        ) {
-                            TextField(
-                                "Command",
-                                text: Binding(
-                                    get: { draftOverrides.editorCommand ?? "" },
-                                    set: { draftOverrides.editorCommand = $0.isEmpty ? nil : $0 }
-                                )
-                            )
-                            .settingsControlField()
-                            .frame(minWidth: 160, idealWidth: 220)
-                            .frame(maxWidth: 280)
-                        }
-                        SettingsRowDivider()
+                    }
+
+                    ActivitySettingsSection(
+                        title: "Editor",
+                        systemImage: "pencil",
+                        blurb: "Empty inherits Global Editor Presentation and value.",
+                        badge: nil
+                    ) {
+                        OptionalActivityPresentationConfigurator(
+                            presentation: Binding(
+                                get: { draftOverrides.editorPresentation },
+                                set: { draftOverrides.editorPresentation = $0 }
+                            ),
+                            command: Binding(
+                                get: { draftOverrides.editorCommand },
+                                set: { draftOverrides.editorCommand = $0 }
+                            ),
+                            bundleID: Binding(
+                                get: { draftOverrides.editorBundleID },
+                                set: { draftOverrides.editorBundleID = $0 }
+                            ),
+                            resolvedPresentation: resolvedWorkspaceEditorPresentation,
+                            commandPlaceholder: "Command",
+                            commandDetail: "Empty inherits Global Editor command.",
+                            bundlePlaceholder: ActivityDefaults.editorBundleID,
+                            bundleDetail: "Empty inherits Global bundle id."
+                        )
+                    }
+
+                    ActivitySettingsSection(
+                        title: "Files",
+                        systemImage: "folder",
+                        blurb: "Empty inherits Global Files Presentation and value.",
+                        badge: nil
+                    ) {
+                        OptionalActivityPresentationConfigurator(
+                            presentation: Binding(
+                                get: { draftOverrides.fileManagerPresentation },
+                                set: { draftOverrides.fileManagerPresentation = $0 }
+                            ),
+                            command: Binding(
+                                get: { draftOverrides.fileManagerCommand },
+                                set: { draftOverrides.fileManagerCommand = $0 }
+                            ),
+                            bundleID: Binding(
+                                get: { draftOverrides.fileManagerBundleID },
+                                set: { draftOverrides.fileManagerBundleID = $0 }
+                            ),
+                            resolvedPresentation: resolvedWorkspaceFileManagerPresentation,
+                            commandPlaceholder: "Command",
+                            commandDetail: "Empty inherits Global file manager command.",
+                            bundlePlaceholder: ActivityDefaults.fileManagerBundleID,
+                            bundleDetail: "Empty inherits Global bundle id."
+                        )
+                    }
+                }
+
+                SettingsSection(title: "Control") {
+                    SettingsCard {
                         SettingsRow(
                             title: "Leader",
                             description: "Empty inherits Global Leader."
@@ -405,35 +549,23 @@ struct PreferencesSettingsView: View {
         )
     }
 
-    private var mainCLIOverrideDescription: String {
-        let override = draftOverrides.mainCLICommand
-        let global = preferences.preferences.mainCLICommand
-        let globalLabel = global.isEmpty ? "bare shell" : global
-        if override == nil {
-            return "Inherits Global (\(globalLabel))."
+    /// Resolve from draft + Global (not focused Workspace Effective) so Settings for any Workspace is correct.
+    private var resolvedWorkspaceEditorPresentation: EditorPresentation {
+        if let override = draftOverrides.editorPresentation {
+            return override
         }
-        if override?.isEmpty == true {
-            return "Bare shell (overrides Global)."
+        if let global = preferences.preferences.editorPresentation {
+            return global
         }
-        return "Overrides Global (\(globalLabel))."
+        let configured = draftOverrides.editorCommand ?? preferences.preferences.editorCommand
+        return EditorCommandResolver.presentation(
+            forCommand: EditorCommandResolver.resolveCommand(configured: configured)
+        )
     }
 
-    @ViewBuilder
-    private var mainCLIOverrideControls: some View {
-        let override = draftOverrides.mainCLICommand
-        if override == nil {
-            Button("Use bare shell") {
-                draftOverrides.mainCLICommand = ""
-            }
-            .buttonStyle(.borderless)
-            .font(.caption)
-        } else {
-            Button("Inherit Global") {
-                draftOverrides.mainCLICommand = nil
-            }
-            .buttonStyle(.borderless)
-            .font(.caption)
-        }
+    private var resolvedWorkspaceFileManagerPresentation: EditorPresentation {
+        draftOverrides.fileManagerPresentation
+            ?? preferences.preferences.fileManagerPresentation
     }
 
     // MARK: - Secret Store
@@ -455,6 +587,8 @@ struct PreferencesSettingsView: View {
         switch destination {
         case .globalMainCLI, .globalGeneral:
             selection = .globalGeneral
+        case .globalTools:
+            selection = .globalTools
         case .globalCommands:
             selection = .globalCommands
         case .workspaceSettings(let workspaceId):
@@ -502,6 +636,7 @@ struct PreferencesSettingsView: View {
 
 private enum SettingsNavItem: Hashable, Identifiable {
     case globalGeneral
+    case globalTools
     case globalCommands
     case workspaceSettings(String)
     case workspaceSecrets(String)
@@ -509,6 +644,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
     var id: String {
         switch self {
         case .globalGeneral: return "g-general"
+        case .globalTools: return "g-tools"
         case .globalCommands: return "g-commands"
         case .workspaceSettings(let id): return "wo-\(id)"
         case .workspaceSecrets(let id): return "ws-\(id)"
@@ -518,6 +654,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
     var title: String {
         switch self {
         case .globalGeneral: return "General"
+        case .globalTools: return "Tools"
         case .globalCommands: return "Shortcuts"
         case .workspaceSettings: return "Settings"
         case .workspaceSecrets: return "Secret Store"
@@ -527,6 +664,7 @@ private enum SettingsNavItem: Hashable, Identifiable {
     var systemImage: String {
         switch self {
         case .globalGeneral: return "gearshape"
+        case .globalTools: return "wrench.and.screwdriver"
         case .globalCommands: return "keyboard"
         case .workspaceSettings: return "slider.horizontal.3"
         case .workspaceSecrets: return "key"
@@ -534,6 +672,6 @@ private enum SettingsNavItem: Hashable, Identifiable {
     }
 
     static var globalItems: [SettingsNavItem] {
-        [.globalGeneral, .globalCommands]
+        [.globalGeneral, .globalTools, .globalCommands]
     }
 }
