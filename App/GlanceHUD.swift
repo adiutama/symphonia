@@ -1,139 +1,247 @@
 import AppKit
 import SwiftUI
 
-/// Floating Glance chip (option B) — content-sized glass card under the titlebar
-/// toggle, layered over Main CLI. Not a sidebar rail.
+/// Glance — Activity Manager UI (ADR 0023).
 ///
-/// Overlays are the first module. Git / other modules deferred.
+/// Compact inventory of Activities for the focused Worktree: Changes, Shells, Editors, Files.
+/// Overlay Activities support Focus (peek) / Hide; External Activities come later (Focus / End).
 struct GlanceHUD: View {
     @EnvironmentObject private var overlays: OverlayController
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var ghosttyTheme: GhosttyChromeTheme
 
-    private let chipWidth: CGFloat = 160
-    private let emptyMinHeight: CGFloat = 72
-    private let cornerRadius: CGFloat = 10
+    private let cardWidth: CGFloat = 240
+    private let cornerRadius: CGFloat = 16
 
-    private var chipShape: RoundedRectangle {
+    private var cardShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
-    private var isEmpty: Bool {
-        overlays.focusedSessions.isEmpty
+    /// Prototype placeholders until git overview is wired.
+    private let prototypeInserted = 12
+    private let prototypeDeleted = 3
+
+    /// Shell Activities with Overlay Presentation (Background CLIs).
+    private var shells: [OverlaySession] {
+        overlays.focusedSessions.filter { $0.kind == .background }
+    }
+
+    /// Editor Activities with Overlay Presentation.
+    private var editors: [OverlaySession] {
+        overlays.focusedSessions.filter { $0.kind == .editor }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            overlaysSection
-            // Future modules (git overview, …) stack here.
+        VStack(alignment: .leading, spacing: 0) {
+            changesSection
+            sectionDivider
+            categorySection(
+                title: "Shells",
+                systemImage: "terminal",
+                sessions: shells,
+                emptyLabel: "None",
+                addAction: {
+                    overlays.draftBackgroundCommand = ""
+                    overlays.createBackgroundCLI()
+                },
+                addHelp: "Open Shell"
+            )
+            sectionDivider
+            categorySection(
+                title: "Editors",
+                systemImage: "pencil",
+                sessions: editors,
+                emptyLabel: "None",
+                addAction: {
+                    overlays.openEditor()
+                },
+                addHelp: "Open Editor"
+            )
+            sectionDivider
+            filesSection
         }
-        .padding(9)
-        .frame(width: chipWidth, alignment: .topLeading)
-        .frame(minHeight: isEmpty ? emptyMinHeight : nil, alignment: .topLeading)
-        .background { chipVeil }
-        .clipShape(chipShape)
-        // Soft lift only — no stroke / glass rim.
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(width: cardWidth, alignment: .topLeading)
+        .background { cardVeil }
+        .clipShape(cardShape)
         .shadow(color: .black.opacity(0.38), radius: 22, y: 10)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Glance")
+        .accessibilityLabel("Glance, Activity Manager")
     }
 
-    /// Translucent blur over Main CLI — lighter than Command Center panels, no border.
-    @ViewBuilder
-    private var chipVeil: some View {
-        if preferences.preferences.chromeGlass {
-            ZStack {
-                ghosttyTheme.panel.opacity(0.14)
-                Color.clear
-                    .glassEffect(
-                        .clear.tint(ghosttyTheme.panel.opacity(0.2)),
-                        in: chipShape
-                    )
+    // MARK: - Changes
+
+    private var changesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Changes")
+
+            HStack(spacing: 8) {
+                Text("+\(prototypeInserted)")
+                    .foregroundStyle(Color(red: 0.45, green: 0.78, blue: 0.52))
+                Text("−\(prototypeDeleted)")
+                    .foregroundStyle(Color(red: 0.92, green: 0.45, blue: 0.45))
+                Spacer(minLength: 0)
             }
-        } else {
-            // Still translucent when glass chrome is off — Glance should read as a HUD.
-            ZStack {
-                ChromeGlassBackground(
-                    tintColor: NSColor(ghosttyTheme.panel).withAlphaComponent(0.22),
-                    cornerRadius: cornerRadius
-                )
-                ghosttyTheme.panel.opacity(0.24)
-            }
+            .font(.system(size: 13, weight: .medium, design: .monospaced))
+            .padding(.vertical, 1)
         }
+        .padding(.bottom, 12)
     }
 
-    // MARK: - Overlays
+    // MARK: - Category (Shells / Editors)
 
-    private var overlaysSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            sectionLabel("OVERLAYS")
+    private func categorySection(
+        title: String,
+        systemImage: String,
+        sessions: [OverlaySession],
+        emptyLabel: String,
+        addAction: (() -> Void)?,
+        addHelp: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                sectionLabel(title)
+                Spacer(minLength: 0)
+                if let addAction {
+                    Button(action: addAction) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(ghosttyTheme.secondaryText)
+                            .frame(width: 18, height: 18)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(addHelp)
+                    .accessibilityLabel(addHelp)
+                }
+            }
 
-            if overlays.focusedSessions.isEmpty {
-                Text("None")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(ghosttyTheme.tertiaryText.opacity(0.85))
-                    .padding(.leading, 2)
-                    .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+            if sessions.isEmpty {
+                Text(emptyLabel)
+                    .font(.system(size: 12))
+                    .foregroundStyle(ghosttyTheme.tertiaryText)
+                    .padding(.vertical, 3)
             } else {
-                ForEach(Array(overlays.focusedSessions.enumerated()), id: \.element.id) { index, session in
-                    overlayRow(session, index: index + 1)
+                ForEach(sessions) { session in
+                    sessionRow(session, systemImage: systemImage)
                 }
             }
         }
+        .padding(.vertical, 12)
     }
 
-    private func overlayRow(_ session: OverlaySession, index: Int) -> some View {
-        let isVisible = overlays.visibleOverlayID == session.id
+    private func sessionRow(_ session: OverlaySession, systemImage: String) -> some View {
+        let isFocused = overlays.visibleOverlayID == session.id
         return Button {
-            if isVisible {
+            if isFocused {
                 overlays.hide()
             } else {
                 overlays.peek(session.id)
             }
         } label: {
-            HStack(alignment: .center, spacing: 7) {
-                RoundedRectangle(cornerRadius: 1, style: .continuous)
-                    .fill(
-                        isVisible
-                            ? ghosttyTheme.accent.opacity(0.95)
-                            : ghosttyTheme.foreground.opacity(0.18)
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(
+                        isFocused
+                            ? ghosttyTheme.foreground.opacity(0.9)
+                            : ghosttyTheme.secondaryText
                     )
-                    .frame(width: 3, height: 20)
+                    .frame(width: 14, alignment: .center)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        Text(String(format: "%02d", index))
-                            .font(.system(size: 9, weight: .medium, design: .monospaced))
-                            .foregroundStyle(ghosttyTheme.tertiaryText)
-                        Text(session.kind == .editor ? "ED" : "BG")
-                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(ghosttyTheme.secondaryText)
-                    }
-                    Text(session.title)
-                        .font(.system(size: 11, weight: isVisible ? .semibold : .regular))
-                        .foregroundStyle(
-                            isVisible
-                                ? ghosttyTheme.foreground
-                                : ghosttyTheme.foreground.opacity(0.72)
-                        )
-                        .lineLimit(1)
-                }
+                Text(displayTitle(for: session))
+                    .font(.system(size: 12, weight: isFocused ? .medium : .regular))
+                    .foregroundStyle(
+                        isFocused
+                            ? ghosttyTheme.foreground
+                            : ghosttyTheme.foreground.opacity(0.88)
+                    )
+                    .lineLimit(1)
+                    .truncationMode(.middle)
 
                 Spacer(minLength: 0)
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, 3)
             .contentShape(Rectangle())
-            .opacity(isVisible ? 1 : 0.82)
         }
         .buttonStyle(.plain)
-        .help(session.kind == .editor ? "Peek Editor" : "Peek Background")
+        .help(isFocused ? "Hide (keeps running)" : "Focus")
+    }
+
+    // MARK: - Files (future External / Overlay file manager)
+
+    private var filesSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionLabel("Files")
+
+            HStack(spacing: 8) {
+                Image(systemName: "doc")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(ghosttyTheme.tertiaryText)
+                    .frame(width: 14, alignment: .center)
+
+                Text("None")
+                    .font(.system(size: 12))
+                    .foregroundStyle(ghosttyTheme.tertiaryText)
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 3)
+        }
+        .padding(.top, 12)
+    }
+
+    // MARK: - Chrome
+
+    @ViewBuilder
+    private var cardVeil: some View {
+        if preferences.preferences.chromeGlass {
+            ZStack {
+                ghosttyTheme.panel.opacity(0.16)
+                Color.clear
+                    .glassEffect(
+                        .clear.tint(ghosttyTheme.panel.opacity(0.24)),
+                        in: cardShape
+                    )
+            }
+        } else {
+            ZStack {
+                ChromeGlassBackground(
+                    tintColor: NSColor(ghosttyTheme.panel).withAlphaComponent(0.26),
+                    cornerRadius: cornerRadius
+                )
+                ghosttyTheme.panel.opacity(0.30)
+            }
+        }
+    }
+
+    private var sectionDivider: some View {
+        Rectangle()
+            .fill(ghosttyTheme.foreground.opacity(0.10))
+            .frame(height: 1)
     }
 
     private func sectionLabel(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-            .foregroundStyle(ghosttyTheme.secondaryText.opacity(0.9))
-            .tracking(0.8)
-            .padding(.leading, 2)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(ghosttyTheme.secondaryText.opacity(0.92))
+    }
+
+    /// Plain row label — category is the section; Presentation is Overlay today.
+    private func displayTitle(for session: OverlaySession) -> String {
+        var title = session.title
+        for prefix in ["BG: ", "Editor: ", "ED: "] {
+            if title.hasPrefix(prefix) {
+                title = String(title.dropFirst(prefix.count))
+                break
+            }
+        }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return session.kind == .editor ? "editor" : "shell"
+        }
+        return trimmed
     }
 }

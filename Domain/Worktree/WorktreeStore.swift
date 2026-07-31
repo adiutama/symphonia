@@ -393,17 +393,41 @@ struct WorktreeStore: @unchecked Sendable {
         process.standardOutput = stdout
         process.standardError = stderr
 
+        // Drain pipes while waiting so a chatty git can't fill the 64KB pipe buffer
+        // and deadlock (parent in waitUntilExit, child blocked on write).
+        let outBox = PipeDrain()
+        let errBox = PipeDrain()
+        stdout.fileHandleForReading.readabilityHandler = { handle in
+            outBox.append(handle.availableData)
+        }
+        stderr.fileHandleForReading.readabilityHandler = { handle in
+            errBox.append(handle.availableData)
+        }
+
         do {
             try process.run()
             process.waitUntilExit()
         } catch {
+            stdout.fileHandleForReading.readabilityHandler = nil
+            stderr.fileHandleForReading.readabilityHandler = nil
             throw StoreError.gitFailed(error.localizedDescription)
         }
 
-        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-        let out = String(data: outData, encoding: .utf8) ?? ""
-        let err = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        stdout.fileHandleForReading.readabilityHandler = nil
+        stderr.fileHandleForReading.readabilityHandler = nil
+        // Pick up any trailing bytes after handlers are cleared.
+        outBox.append(stdout.fileHandleForReading.readDataToEndOfFile())
+        errBox.append(stderr.fileHandleForReading.readDataToEndOfFile())
+
+        let out = String(data: outBox.data, encoding: .utf8) ?? ""
+        let err = String(data: errBox.data, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if process.terminationReason == .uncaughtSignal {
+            let signal = process.terminationStatus
+            let detail = err.isEmpty ? "git aborted (signal \(signal))" : "git aborted (signal \(signal)): \(err)"
+            throw StoreError.gitFailed(detail)
+        }
 
         guard process.terminationStatus == 0 else {
             let detail = err.isEmpty ? "exit \(process.terminationStatus)" : err
@@ -411,5 +435,24 @@ struct WorktreeStore: @unchecked Sendable {
         }
 
         return out
+    }
+}
+
+/// Thread-safe accumulator for `Pipe` readability handlers.
+private final class PipeDrain: @unchecked Sendable {
+    private let lock = NSLock()
+    private var buffer = Data()
+
+    var data: Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return buffer
+    }
+
+    func append(_ chunk: Data) {
+        guard !chunk.isEmpty else { return }
+        lock.lock()
+        buffer.append(chunk)
+        lock.unlock()
     }
 }

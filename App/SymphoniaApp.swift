@@ -118,14 +118,14 @@ struct SymphoniaApp: App {
                 .keyboardShortcut(",", modifiers: .command)
             }
             CommandMenu("Workspace") {
-                Button("New Workspace") {
+                Button("New Project") {
                     workspaces.beginCreateWorkspace()
                 }
-                .keyboardShortcut("n", modifiers: .command)
+                .keyboardShortcut("n", modifiers: [.command, .shift])
                 Button("New Worktree") {
                     commandCenter.run(.newWorktree)
                 }
-                .keyboardShortcut("t", modifiers: .command)
+                .keyboardShortcut("n", modifiers: .command)
                 Divider()
                 Button("Next Workspace") {
                     commandCenter.run(.cycleNextWorkspace)

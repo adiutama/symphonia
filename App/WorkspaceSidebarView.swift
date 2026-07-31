@@ -11,9 +11,6 @@ struct WorkspaceSidebarView: View {
 
     @State private var expandedWorkspaceIDs: Set<String> = []
     @State private var archivedSheetWorkspace: WorkspaceSummary?
-    @State private var createWorkspaceSlug = ""
-    @State private var createWorkspacePrefix = ""
-    @State private var createWorkspaceCloneURL = ""
     @State private var createWorktreeBranch = ""
     @State private var createWorktreeFolder = ""
     @State private var renameWorkspaceSlug = ""
@@ -29,6 +26,15 @@ struct WorkspaceSidebarView: View {
         VStack(spacing: 0) {
             sidebarTitlebarBand
             projectList
+            if let error = worktrees.lastError, !worktrees.pendingCreateWorktree {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(ghosttyTheme.sidebar.opacity(0.92))
+            }
         }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             // Glass / solid fills under the transparent titlebar; list content stays below the band.
@@ -84,19 +90,6 @@ struct WorkspaceSidebarView: View {
             }
         } message: {
             Text("Deletes the Workspace Data Dir on disk (Main, Worktrees, secrets, config) and removes it from Symphonia’s index. This cannot be undone.")
-        }
-        .sheet(isPresented: Binding(
-            get: { workspaces.pendingCreateWorkspace },
-            set: { presented in
-                if !presented { workspaces.cancelCreateWorkspace() }
-            }
-        )) {
-            WorkspaceSidebarSheets.CreateWorkspace(
-                slug: $createWorkspaceSlug,
-                prefix: $createWorkspacePrefix,
-                cloneURL: $createWorkspaceCloneURL,
-                onCreated: { expandedWorkspaceIDs.insert($0.id) }
-            )
         }
         .sheet(isPresented: Binding(
             get: { worktrees.pendingCreateWorktree },
@@ -157,18 +150,13 @@ struct WorkspaceSidebarView: View {
             )
         }
         .onAppear {
-            if let current = workspaces.current {
-                expandedWorkspaceIDs.insert(current.id)
-            }
-        }
-        .onChange(of: workspaces.current?.id) { _, newID in
-            if let newID {
-                expandedWorkspaceIDs.insert(newID)
+            if let id = workspaces.current?.id, !expandedWorkspaceIDs.contains(id) {
+                expandedWorkspaceIDs.insert(id)
             }
         }
     }
 
-    /// Titlebar strip over the sidebar: drag region + New Workspace pinned to the trailing edge
+    /// Titlebar strip over the sidebar: drag region + New Project pinned to the trailing edge
     /// so it tracks sidebar resize (not a window-toolbar item next to the traffic lights).
     private var sidebarTitlebarBand: some View {
         HStack(spacing: 0) {
@@ -183,7 +171,7 @@ struct WorkspaceSidebarView: View {
                     .foregroundStyle(ghosttyTheme.foreground)
             }
             .buttonStyle(.borderless)
-            .help("New Workspace")
+            .help("New Project")
             .padding(.trailing, titlebarEdgeInset)
         }
         .frame(height: titlebarBandHeight)
@@ -203,8 +191,12 @@ struct WorkspaceSidebarView: View {
 
     private var projectList: some View {
         List {
-            if workspaces.workspaces.isEmpty {
-                Text("No Workspaces yet")
+            if workspaces.pendingCreateWorkspace {
+                draftProjectRow
+            }
+
+            if workspaces.workspaces.isEmpty && !workspaces.isCreateFlowActive {
+                Text("No Projects yet")
                     .foregroundStyle(ghosttyTheme.secondaryText)
                     .font(.caption)
             } else {
@@ -237,7 +229,7 @@ struct WorkspaceSidebarView: View {
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
         .contextMenu {
-            Button("New Workspace…") {
+            Button("New Project…") {
                 beginCreateWorkspace()
             }
             Button("Refresh") {
@@ -248,10 +240,49 @@ struct WorkspaceSidebarView: View {
                 reveal(preferences.effective.workspacesRootURL)
             }
         }
+        .onChange(of: workspaces.pendingCreateWorkspace) { _, pending in
+            if pending, let current = workspaces.current {
+                // Keep current selected in data, but collapse highlight affordance via draft row.
+                expandedWorkspaceIDs.insert(current.id)
+            }
+        }
+        .onChange(of: workspaces.current?.id) { _, newID in
+            if let newID, !workspaces.isCreateFlowActive {
+                expandedWorkspaceIDs.insert(newID)
+            }
+        }
+        .onChange(of: workspaces.createBootstrap?.summary.id) { _, newID in
+            if let newID {
+                expandedWorkspaceIDs.insert(newID)
+            }
+        }
+    }
+
+    private var draftProjectRow: some View {
+        let title = workspaces.createDraftSidebarTitle
+        return HStack(spacing: 6) {
+            Image(systemName: "folder.fill")
+                .foregroundStyle(ghosttyTheme.secondaryText)
+                .font(.caption)
+            Text(displayLowercased(title))
+                .fontWeight(.semibold)
+                .foregroundStyle(ghosttyTheme.foreground)
+                .lineLimit(1)
+            Circle()
+                .fill(ghosttyTheme.accent)
+                .frame(width: 6, height: 6)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 2)
+        .listRowBackground(ghosttyTheme.selectionFill)
+        .accessibilityLabel("New project draft, \(title)")
     }
 
     private func workspaceLabel(_ workspace: WorkspaceSummary) -> some View {
-        let isCurrent = workspaces.current?.id == workspace.id
+        // While creating, draft/bootstrap owns selection chrome — dim the previous current.
+        let isBootstrap = workspaces.createBootstrap?.summary.id == workspace.id
+        let isCurrent = isBootstrap
+            || (workspaces.current?.id == workspace.id && !workspaces.isCreateFlowActive)
         return HStack(spacing: 6) {
             Image(systemName: "folder.fill")
                 .foregroundStyle(ghosttyTheme.secondaryText)
@@ -265,7 +296,7 @@ struct WorkspaceSidebarView: View {
                     .frame(width: 6, height: 6)
             }
             Spacer(minLength: 0)
-            if isCurrent {
+            if isCurrent && !isBootstrap {
                 Button {
                     selectWorkspace(workspace)
                     beginCreateWorktree()
@@ -342,7 +373,8 @@ struct WorkspaceSidebarView: View {
     }
 
     private func agentRow(_ agent: WorktreeSummary, workspace: WorkspaceSummary) -> some View {
-        let isFocused = worktrees.focusedSession?.worktree?.id == agent.id
+        let isFocused = !workspaces.isCreateFlowActive
+            && worktrees.focusedSession?.worktree?.id == agent.id
             && workspaces.current?.id == workspace.id
         // Branch is the real worktree label; folder is secondary and only shown when it
         // actually differs from the branch (case-insensitive — same name, calm single line).
@@ -474,6 +506,12 @@ struct WorkspaceSidebarView: View {
     }
 
     private func selectWorkspace(_ workspace: WorkspaceSummary) {
+        if workspaces.createBootstrap?.summary.id == workspace.id {
+            return
+        }
+        if workspaces.isCreateFlowActive {
+            workspaces.cancelCreateWorkspace()
+        }
         if workspaces.current?.id != workspace.id {
             workspaces.select(workspace)
         }
@@ -481,6 +519,8 @@ struct WorkspaceSidebarView: View {
     }
 
     private func isMainFocused(_ workspace: WorkspaceSummary) -> Bool {
+        // Draft/bootstrap owns selection chrome while creating — don't double-highlight Main.
+        guard !workspaces.isCreateFlowActive else { return false }
         guard workspaces.current?.id == workspace.id,
               let session = worktrees.focusedSession,
               case .mainRepo = session

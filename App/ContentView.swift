@@ -67,22 +67,23 @@ struct ContentView: View {
             }
         }
         .toolbar {
-            // Glance HUD toggle — trailing edge (not clustered with traffic lights).
+            // Expand Glance — trailing edge (not clustered with traffic lights).
             ToolbarSpacer(.flexible)
             ToolbarItem {
                 Button {
                     showGlance.toggle()
                 } label: {
-                    Image(systemName: "viewfinder")
+                    GlanceToggleIcon(isExpanded: showGlance)
                         .foregroundStyle(ghosttyTheme.foreground)
+                        .frame(width: 18, height: 14)
                 }
-                .help("Glance")
+                .help(showGlance ? "Collapse Glance" : "Expand Glance (Activity Manager)")
             }
             .sharedBackgroundVisibility(.hidden)
         }
         .symphoniaTitlebarChrome()
         .animation(.easeOut(duration: 0.12), value: commandCenter.isActive)
-        .animation(.easeOut(duration: 0.14), value: showGlance)
+        .animation(.spring(response: 0.28, dampingFraction: 0.86), value: showGlance)
         .background(SettingsWindowPresenter())
         .sheet(isPresented: Binding(
             get: { !preferences.preferences.onboardingCompleted },
@@ -114,10 +115,10 @@ struct ContentView: View {
         }
     }
 
-    /// Workspace slug + path — content titlebar leading edge, no toolbar pill wrapper.
+    /// Project slug + path — content titlebar leading edge, no toolbar pill wrapper.
     @ViewBuilder
     private var projectMetaLayer: some View {
-        if let workspace = workspaces.current {
+        if !workspaces.isCreateFlowActive, let workspace = workspaces.current {
             VStack(alignment: .leading, spacing: 1) {
                 Text(displayLowercased(workspace.slug))
                     .font(.headline)
@@ -133,10 +134,25 @@ struct ContentView: View {
             .padding(.leading, titlebarEdgeInset)
             .frame(height: titlebarBandHeight, alignment: .center)
             .windowDragRegion()
+        } else if let bootstrap = workspaces.createBootstrap {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(displayLowercased(bootstrap.summary.slug))
+                    .font(.headline)
+                    .foregroundStyle(ghosttyTheme.foreground)
+                    .lineLimit(1)
+                Text(bootstrap.failed ? "Setup failed" : bootstrap.title)
+                    .font(.caption)
+                    .foregroundStyle(ghosttyTheme.secondaryText)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: 280, alignment: .leading)
+            .padding(.leading, titlebarEdgeInset)
+            .frame(height: titlebarBandHeight, alignment: .center)
+            .windowDragRegion()
         }
     }
 
-    /// Floating Glance chip under the titlebar toggle (option B). Toggle only — no outside dismiss.
+    /// Expanded Glance under the titlebar toggle — grows from trailing edge; no outside dismiss.
     @ViewBuilder
     private var glanceLayer: some View {
         if showGlance {
@@ -144,7 +160,13 @@ struct ContentView: View {
                 .padding(.top, 6)
                 .padding(.trailing, 14)
                 .transition(
-                    .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing))
+                    .asymmetric(
+                        insertion: .opacity
+                            .combined(with: .scale(scale: 0.92, anchor: .topTrailing))
+                            .combined(with: .move(edge: .trailing)),
+                        removal: .opacity
+                            .combined(with: .scale(scale: 0.96, anchor: .topTrailing))
+                    )
                 )
         }
     }
@@ -191,5 +213,30 @@ struct ContentView: View {
                         dragStartWidth = nil
                     }
             )
+    }
+}
+
+/// Glance toggle — list glyph (Activity Manager expand/collapse).
+private struct GlanceToggleIcon: View {
+    var isExpanded: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3.5) {
+            row
+            row
+        }
+        .opacity(isExpanded ? 1 : 0.92)
+        .accessibilityHidden(true)
+    }
+
+    private var row: some View {
+        HStack(spacing: 3.5) {
+            Circle()
+                .fill(.primary)
+                .frame(width: 3.5, height: 3.5)
+            Capsule()
+                .fill(.primary)
+                .frame(width: 11, height: 2)
+        }
     }
 }

@@ -61,11 +61,11 @@ enum KeymapBindings {
             cmdOnly(e) && !shift(e) && char(e) == ","
         },
         chord("⌘⇧/", "Keymap", .openKeymap, .global, matches: isKeymapToggle),
-        chord("⌘N", "New Workspace", .newWorkspace, .global) { e in
-            cmdOnly(e) && !shift(e) && char(e) == "n"
+        chord("⌘⇧N", "New Project", .newWorkspace, .global) { e in
+            cmdOnly(e) && shift(e) && char(e) == "n"
         },
-        chord("⌘T", "New Worktree", .newWorktree, .global) { e in
-            cmdOnly(e) && !shift(e) && char(e) == "t"
+        chord("⌘N", "New Worktree", .newWorktree, .global) { e in
+            cmdOnly(e) && !shift(e) && char(e) == "n"
         },
         chord("⌃⇥", "Next Workspace", .cycleNextWorkspace, .global) { e in
             ctrlTab(e) && !shift(e)

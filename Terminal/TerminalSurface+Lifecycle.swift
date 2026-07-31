@@ -29,7 +29,9 @@ extension TerminalSurfaceNSView {
                     view.tick()
                 }
             },
-            action_cb: { _, _, _ in false },
+            action_cb: { _, target, action in
+                TerminalSurfaceNSView.handleRuntimeAction(target: target, action: action)
+            },
             read_clipboard_cb: { userdata, location, state in
                 TerminalSurfaceNSView.readClipboard(userdata, location: location, state: state)
             },
@@ -250,6 +252,26 @@ extension TerminalSurfaceNSView {
         } else {
             showStatus("Surface closed")
         }
+    }
+
+    /// Ghostty reports the child exited (forced wait-after-command when `command` is set).
+    func handleChildExited(exitCode: UInt32) {
+        onChildExited?(exitCode)
+    }
+
+    /// Runtime `action_cb` — currently only surfaces child-exit for create-progress.
+    static func handleRuntimeAction(target: ghostty_target_s, action: ghostty_action_s) -> Bool {
+        guard action.tag == GHOSTTY_ACTION_SHOW_CHILD_EXITED else { return false }
+        guard target.tag == GHOSTTY_TARGET_SURFACE else { return false }
+        let surface = target.target.surface
+        guard let userdata = ghostty_surface_userdata(surface) else { return false }
+        let view = Unmanaged<TerminalSurfaceNSView>.fromOpaque(userdata).takeUnretainedValue()
+        let exitCode = action.action.child_exited.exit_code
+        DispatchQueue.main.async {
+            view.handleChildExited(exitCode: exitCode)
+        }
+        // Handled — host decides whether to tear down (success) or keep scrollback (failure).
+        return view.onChildExited != nil
     }
 
     private func showStatus(_ message: String) {

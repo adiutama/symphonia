@@ -129,7 +129,6 @@ final class WorktreeController: ObservableObject {
             let all = try store.list(workspaceDataDir: current.dataDirURL)
             let archived = workspaces.archivedWorktreeNames(for: current)
             worktrees = all.filter { !archived.contains($0.threeWordName) }
-            lastError = nil
             reconcileFocusedSession(workspace: current)
             pruneOpenedSessionsToLiveSet()
             syncBranchWatchers()

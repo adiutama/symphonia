@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		G1T2R3E4M5O6T7E809URL02 /* GitRemoteURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = G1T2R3E4M5O6T7E809URL01 /* GitRemoteURL.swift */; };
+		C7R8E9A0T1E2P3R4O5J6C702 /* CreateProjectCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7R8E9A0T1E2P3R4O5J6C701 /* CreateProjectCanvas.swift */; };
 		AF7C75C00D054D2DB25BABAE /* SymphoniaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C18422568CB4106B12E7202 /* SymphoniaApp.swift */; };
 		2A72F089057E40A49CBAC6A2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 620CC0292595445B9FD787B4 /* ContentView.swift */; };
 		A1B2C3D4E5F60718293A4B5C /* PreferencesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */; };
@@ -86,6 +88,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		G1T2R3E4M5O6T7E809URL01 /* GitRemoteURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRemoteURL.swift; sourceTree = "<group>"; };
+		C7R8E9A0T1E2P3R4O5J6C701 /* CreateProjectCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateProjectCanvas.swift; sourceTree = "<group>"; };
 		7FE8084FD8124194B3CC9CEC /* Symphonia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Symphonia.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C18422568CB4106B12E7202 /* SymphoniaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymphoniaApp.swift; sourceTree = "<group>"; };
 		620CC0292595445B9FD787B4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -241,6 +245,7 @@
 				W1S2I3D4E5B6A60718293A02 /* WorkspaceSidebarSheets.swift */,
 				E5F405162738495A6B0C0108 /* SecretStoreScaffoldView.swift */,
 				F6A405162738495A6B0D0106 /* OverlayHostView.swift */,
+				C7R8E9A0T1E2P3R4O5J6C701 /* CreateProjectCanvas.swift */,
 				A7B405162738495A6B0E0108 /* CommandCenterView.swift */,
 				A1B2C3D4E5F60718293A4B5D /* PreferencesSettingsView.swift */,
 				A1B2C3D4E5F60718293A4B5F /* SettingsNavigation.swift */,
@@ -330,6 +335,7 @@
 			isa = PBXGroup;
 			children = (
 				C1D2E3F405162738495A6B02 /* WorkspaceSlug.swift */,
+				G1T2R3E4M5O6T7E809URL01 /* GitRemoteURL.swift */,
 				C1D2E3F405162738495A6B04 /* WorkspaceConfig.swift */,
 				C1D2E3F405162738495A6B06 /* WorkspaceStore.swift */,
 				C1D2E3F405162738495A6B08 /* WorkspaceController.swift */,
@@ -500,6 +506,7 @@
 				B0C1D2E3F405162738495A7B /* PreferencesToml.swift in Sources */,
 				B0C1D2E3F405162738495A75 /* PreferencesController.swift in Sources */,
 				C1D2E3F405162738495A6B01 /* WorkspaceSlug.swift in Sources */,
+				G1T2R3E4M5O6T7E809URL02 /* GitRemoteURL.swift in Sources */,
 				C1D2E3F405162738495A6B03 /* WorkspaceConfig.swift in Sources */,
 				C1D2E3F405162738495A6B05 /* WorkspaceStore.swift in Sources */,
 				C1D2E3F405162738495A6B07 /* WorkspaceController.swift in Sources */,
@@ -519,6 +526,7 @@
 				F6A405162738495A6B0D0101 /* OverlayModels.swift in Sources */,
 				F6A405162738495A6B0D0103 /* OverlayController.swift in Sources */,
 				F6A405162738495A6B0D0105 /* OverlayHostView.swift in Sources */,
+				C7R8E9A0T1E2P3R4O5J6C702 /* CreateProjectCanvas.swift in Sources */,
 				A7B405162738495A6B0E0101 /* LeaderKeyBinding.swift in Sources */,
 				A7B405162738495A6B0E0103 /* CommandCenterModels.swift in Sources */,
 				A7B405162738495A6B0E0105 /* CommandCenterController.swift in Sources */,

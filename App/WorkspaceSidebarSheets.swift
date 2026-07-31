@@ -3,64 +3,6 @@ import SwiftUI
 
 /// Create / rename / archive sheets for `WorkspaceSidebarView`.
 enum WorkspaceSidebarSheets {
-    struct CreateWorkspace: View {
-        @EnvironmentObject private var workspaces: WorkspaceController
-        @EnvironmentObject private var worktrees: WorktreeController
-        @Binding var slug: String
-        @Binding var prefix: String
-        @Binding var cloneURL: String
-        let onCreated: (WorkspaceSummary) -> Void
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Create Workspace")
-                    .font(.headline)
-                TextField("slug", text: $slug)
-                    .textFieldStyle(.roundedBorder)
-                TextField("prefix (optional)", text: $prefix)
-                    .textFieldStyle(.roundedBorder)
-                VStack(alignment: .leading, spacing: 4) {
-                    TextField("clone URL (optional)", text: $cloneURL)
-                        .textFieldStyle(.roundedBorder)
-                    Text("Leave empty to start an empty repo (`git init`). Set a URL to clone Main from it.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                HStack {
-                    Spacer()
-                    Button("Cancel") { workspaces.cancelCreateWorkspace() }
-                    Button("Create") {
-                        workspaces.createWorkspace(
-                            slug: slug,
-                            prefix: prefix,
-                            cloneURL: cloneURL
-                        )
-                        if workspaces.lastError == nil, let current = workspaces.current {
-                            onCreated(current)
-                            worktrees.focusMain(for: current)
-                        }
-                    }
-                    .disabled(slug.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .keyboardShortcut(.defaultAction)
-                }
-                if let error = workspaces.lastError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(20)
-            .frame(width: 380)
-            .onAppear {
-                slug = ""
-                prefix = ""
-                cloneURL = ""
-                workspaces.lastError = nil
-            }
-        }
-    }
-
     struct CreateWorktree: View {
         @EnvironmentObject private var workspaces: WorkspaceController
         @EnvironmentObject private var worktrees: WorktreeController

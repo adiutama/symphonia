@@ -51,28 +51,48 @@ _Avoid_: Default branch (when meaning the setting), trunk
 ### Terminals
 
 **Main CLI**:
-The foreground terminal running the coding-agent command the Operator steers. Resolved as Workspace override if set, otherwise the Operator-wide default.
+The foreground terminal running the coding-agent command the Operator steers. Resolved as Workspace override if set, otherwise the Operator-wide default. Home context — not listed as an Activity in Glance.
 _Avoid_: Agent terminal, primary shell, coding shell
 
+**Activity**:
+A craft surface Symphonia opened for the focused Main Repo or Worktree — shell, editor, file manager, and later peers. Tracked so the Operator can Open, Focus, and End it.
+_Avoid_: Overlay (when meaning any opened tool), tab, window, session (when meaning one craft surface)
+
+**Activity Manager**:
+The system that opens, focuses, and ends Activities — whether hosted internally or externally. Mini launcher + process/app inventory for the current Worktree context.
+_Avoid_: Overlay manager, task manager, dock, app switcher (when meaning Symphonia’s inventory)
+
+**Glance**:
+The floating Activity Manager UI — compact session card (e.g. Changes, Shells, Editors, Files). Lists Activities Symphonia opened or adopted; not a project About panel.
+_Avoid_: Overlay list, sidebar, inspector, HUD chip (as the product noun)
+
+**Presentation**:
+How an Activity is hosted: **Overlay** (internal) or **External** (outside Symphonia). Chosen when configuring the tool (TUI command vs GUI app), not guessed only from a basename list.
+_Avoid_: Mode, backend, target (when meaning host kind)
+
+**Overlay**:
+A Presentation state: the Activity runs in a peekable PTY over Main CLI. Only one Overlay is visible at a time; **Toggle Overlay** / Switch Worktree **hide** without killing; **End** (Close Overlay) tears the PTY down. Overlay PTYs are as durable as Main CLI until End, owner removal, or app quit.
+_Avoid_: Modal, popup, window, split pane, Peek (as a product noun), Hide Overlay (as the primary Command — use Toggle Overlay); Activity Manager (Overlay is not the manager)
+
+**External**:
+A Presentation state: the Activity runs outside Symphonia (typically a GUI app). Open launches or reuses the app (e.g. already-running Cursor); Focus activates it; End quits/terminates with care — no peek/hide.
+_Avoid_: Overlay, native (when meaning macOS host), GUI-only (External is the Presentation name)
+
 **Background CLI**:
-A secondary terminal on the same Worktree for long-running or ancillary processes (servers, watchers, scripts) — not the coding agent itself. A Worktree may have many; each is easy to create. Shown by peeking an Overlay; hide keeps the process alive. Operator-facing create Command title is **Overlay Terminal**.
+A secondary shell Activity on the same Worktree for long-running or ancillary processes (servers, watchers, scripts) — not the coding agent itself. Usually Overlay Presentation; Operator-facing create title remains **Overlay Terminal** until Commands are renamed.
 _Avoid_: Side terminal, aux shell, job
 
 **Overlay Terminal**:
-The Command / action that creates (or peeks) a Background CLI Overlay — freeform command, empty = shell.
+The Command / action that creates (or peeks) a shell Activity as an Overlay — freeform command, empty = shell.
 _Avoid_: Background (as the Command title), New Background
 
 **Editor**:
-A terminal editor (e.g. vim, nano) running in an Overlay on the Worktree — not a peer of the Main CLI. Same peek/hide rules as Background CLIs; quitting the editor is explicit. Operator-facing open Command title is **Open Editor**.
-_Avoid_: IDE, pane, split (when meaning the overlay editor)
-
-**Overlay**:
-A full-focus layer over the Worktree’s Main CLI — used for the Editor and for Background CLIs. Only one Overlay is visible at a time; a switcher jumps between live ones. **Toggle Overlay** and **Switch Worktree** show or hide without destroying the process — Overlay PTYs are as durable as Main CLI until the Operator **Close Overlay**s, the owning Worktree / Workspace is removed, or the app quits. Editor Overlays are high-attention; Background Overlays are lighter — same mechanics, different UI weight. You *peek* an Overlay (verb); Overlay is the product noun.
-_Avoid_: Modal, popup, window, split pane, Peek (as a product noun), Hide Overlay (as the primary Command — use Toggle Overlay)
+The configured editor Activity for the Worktree — TUI (Overlay, e.g. vim/helix) or GUI (External, e.g. Cursor). Full peek/hide Glance experience is Overlay; External is an escape hatch with Focus/Open/End only. Operator-facing open title is **Open Editor**.
+_Avoid_: IDE, pane, split (when meaning Symphonia’s editor Activity)
 
 **Overlay Switcher**:
-The Command / nest that lists live Editor and Background Overlays so the Operator can jump to one.
-_Avoid_: Peek Overlay (as the Command title), Background picker
+The Command / nest that lists live Overlay Activities so the Operator can jump to one. Distinct from Glance (broader Activity inventory including External).
+_Avoid_: Peek Overlay (as the Command title), Background picker, Activity Switcher (until renamed deliberately)
 
 ### Secrets
 

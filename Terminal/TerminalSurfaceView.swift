@@ -44,8 +44,15 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
 
     /// Fired on the main queue when Ghostty reports the surface process exited (`exit`, `:q`, …).
     var onProcessExit: (() -> Void)?
+    /// Fired when Ghostty reports the child command exited (wait-after-command / SHOW_CHILD_EXITED).
+    var onChildExited: ((UInt32) -> Void)?
+    /// When set, accept first-responder and invoke on any key (does not write to the PTY).
+    var onContinueKey: (() -> Void)?
+    /// When true, swallow keyboard input and decline first-responder (scroll/select still work).
+    /// Ignored for first-responder when `onContinueKey` is set.
+    var isReadOnly = false
 
-    override var acceptsFirstResponder: Bool { true }
+    override var acceptsFirstResponder: Bool { !isReadOnly || onContinueKey != nil }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -84,7 +91,30 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         startGhostty()
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window else { return }
+            guard !self.isReadOnly || self.onContinueKey != nil else { return }
             window.makeFirstResponder(self)
+        }
+    }
+
+    /// Toggle host-side read-only (does not respawn).
+    func setReadOnly(_ readOnly: Bool) {
+        isReadOnly = readOnly
+        if readOnly, onContinueKey == nil, window?.firstResponder === self {
+            window?.makeFirstResponder(nil)
+            setSurfaceFocus(false)
+        }
+    }
+
+    /// Arm/disarm “press any key to continue” without writing to the PTY.
+    func setContinueKey(_ handler: (() -> Void)?) {
+        onContinueKey = handler
+        guard window != nil else { return }
+        if handler != nil {
+            window?.makeFirstResponder(self)
+            setSurfaceFocus(false)
+        } else if isReadOnly, window?.firstResponder === self {
+            window?.makeFirstResponder(nil)
+            setSurfaceFocus(false)
         }
     }
 
@@ -94,9 +124,9 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         if active {
             if window?.firstResponder !== self {
                 window?.makeFirstResponder(self)
-            } else {
-                setSurfaceFocus(true)
             }
+            // Continue-key capture owns AppKit focus without Ghostty PTY focus.
+            setSurfaceFocus(onContinueKey == nil)
         } else {
             setSurfaceFocus(false)
         }
@@ -130,6 +160,7 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         // Become key once the window is ready so typing works without an extra click.
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window else { return }
+            guard !self.isReadOnly || self.onContinueKey != nil else { return }
             window.makeFirstResponder(self)
             self.syncSurfaceGeometry()
         }
@@ -188,6 +219,11 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     // MARK: - Keyboard (Ghostty SurfaceView_AppKit key path, slimmed)
 
     override func keyDown(with event: NSEvent) {
+        if let onContinueKey {
+            onContinueKey()
+            return
+        }
+        guard !isReadOnly else { return }
         guard let surface else {
             super.keyDown(with: event)
             return
@@ -253,10 +289,14 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
     }
 
     override func keyUp(with event: NSEvent) {
+        if onContinueKey != nil { return }
+        guard !isReadOnly else { return }
         _ = sendKey(GHOSTTY_ACTION_RELEASE, event: event)
     }
 
     override func flagsChanged(with event: NSEvent) {
+        if onContinueKey != nil { return }
+        guard !isReadOnly else { return }
         let mod: UInt32
         switch event.keyCode {
         case 0x39: mod = GHOSTTY_MODS_CAPS.rawValue
@@ -275,6 +315,8 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
 
     /// `NSTextInputClient`-style insert during `interpretKeyEvents`.
     override func insertText(_ insertString: Any) {
+        if onContinueKey != nil { return }
+        guard !isReadOnly else { return }
         let chars: String
         switch insertString {
         case let v as NSAttributedString:
@@ -313,6 +355,10 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
         if Self.mainMenuHasKeyEquivalent(event) {
             return false
         }
+        if onContinueKey != nil {
+            return false // deliver as keyDown → continue
+        }
+        guard !isReadOnly else { return false }
 
         guard surfaceFocused, let surface else { return false }
 
@@ -401,12 +447,21 @@ struct TerminalSurfaceView: NSViewRepresentable {
     var spawnEnvironment: [(key: String, value: String)] = []
     /// Visible / keyboard-owning surface (Main CLI or peeked Overlay).
     var isActive: Bool = true
+    /// Swallow keyboard → PTY (scroll/select still work). Used for create-progress.
+    var isReadOnly: Bool = false
     /// Domain policy for PTY exit (Main auto-reload, Overlay close, …).
     var onProcessExit: (() -> Void)? = nil
+    /// Fired when the surface child command exits (includes exit code).
+    var onChildExited: ((UInt32) -> Void)? = nil
+    /// When set, any key continues (host-side; no PTY write). Used after create-progress succeeds.
+    var onContinueKey: (() -> Void)? = nil
 
     func makeNSView(context: Context) -> TerminalSurfaceNSView {
         let view = TerminalSurfaceNSView(frame: .zero)
         view.onProcessExit = onProcessExit
+        view.onChildExited = onChildExited
+        view.onContinueKey = onContinueKey
+        view.isReadOnly = isReadOnly
         view.applySpawnConfig(
             workingDirectory: workingDirectory,
             command: command,
@@ -417,11 +472,15 @@ struct TerminalSurfaceView: NSViewRepresentable {
 
     func updateNSView(_ nsView: TerminalSurfaceNSView, context: Context) {
         nsView.onProcessExit = onProcessExit
+        nsView.onChildExited = onChildExited
+        nsView.setContinueKey(onContinueKey)
+        nsView.setReadOnly(isReadOnly)
         nsView.applySpawnConfig(
             workingDirectory: workingDirectory,
             command: command,
             spawnEnvironment: spawnEnvironment
         )
-        nsView.setActive(isActive)
+        let wantsKeys = isActive || onContinueKey != nil
+        nsView.setActive(wantsKeys && (!isReadOnly || onContinueKey != nil))
     }
 }

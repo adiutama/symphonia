@@ -70,15 +70,19 @@ struct WorkspaceStore: @unchecked Sendable {
 
     /// Create a Workspace container: layout files/dirs, optional Prefix in config.
     ///
-    /// When `cloneURL` is non-empty, `main/` is populated with `git clone <cloneURL>` and the
-    /// remote URL is persisted on `config.toml` (`mainRemoteURL`) for future heal-on-open
-    /// (P1.5). Otherwise `main/` is `git init`’d as before.
+    /// When `cloneURL` is non-empty, the remote URL is persisted on `config.toml`
+    /// (`mainRemoteURL`) for future heal-on-open (P1.5).
+    ///
+    /// When `deferGit` is true, `main/` is left empty so a visible terminal can run
+    /// `git clone` / `git init`. Callers must not `open`/`select` until git succeeds
+    /// (heal would otherwise sync-clone and race the progress terminal).
     @discardableResult
     func create(
         slug rawSlug: String,
         prefix rawPrefix: String?,
         workspacesRoot: String,
-        cloneURL rawCloneURL: String? = nil
+        cloneURL rawCloneURL: String? = nil,
+        deferGit: Bool = false
     ) throws -> WorkspaceSummary {
         let slug = try validatedSlug(rawSlug)
         let prefix = normalizedOptionalPath(rawPrefix)
@@ -93,17 +97,35 @@ struct WorkspaceStore: @unchecked Sendable {
 
         let config = WorkspaceConfig(slug: slug, prefix: prefix, mainRemoteURL: cloneURL)
         try writeConfig(config, to: dataDir)
-        try ensureLayout(at: dataDir, initializeMainRepo: cloneURL == nil, cloneRemoteURL: cloneURL)
+        try ensureLayout(
+            at: dataDir,
+            initializeMainRepo: !deferGit && cloneURL == nil,
+            cloneRemoteURL: deferGit ? nil : cloneURL,
+            ensureMainDirectory: !deferGit
+        )
 
         try registerInIndex(slug: slug, prefix: prefix)
         return try summary(for: dataDir, fallbackSlug: slug, fallbackPrefix: prefix)
     }
 
-    /// Ensure `config.toml`, `secrets.toml` (0600), and `main/` exist (P1.5: no `worktrees/`
+    /// Remove `main/` so a failed create-bootstrap can retry with a visible `mkdir`.
+    func resetMainDirectory(at dataDir: URL) throws {
+        let mainDir = SymphoniaPaths.workspaceMainDirectory(in: dataDir)
+        if fileManager.fileExists(atPath: mainDir.path) {
+            try fileManager.removeItem(at: mainDir)
+        }
+    }
+
+    /// Ensure `config.toml`, `secrets.toml` (0600), and optionally `main/` exist (P1.5: no `worktrees/`
     /// parent — Worktree checkouts are created lazily as siblings of `main/` by `WorktreeStore`).
     /// When `main/` is not yet a git repo: clone `cloneRemoteURL` if given, else `git init` when
     /// `initializeMainRepo` is true.
-    func ensureLayout(at dataDir: URL, initializeMainRepo: Bool, cloneRemoteURL: String? = nil) throws {
+    func ensureLayout(
+        at dataDir: URL,
+        initializeMainRepo: Bool,
+        cloneRemoteURL: String? = nil,
+        ensureMainDirectory: Bool = true
+    ) throws {
         try fileManager.createDirectory(at: dataDir, withIntermediateDirectories: true)
 
         let configURL = SymphoniaPaths.workspaceConfigFile(in: dataDir)
@@ -113,6 +135,9 @@ struct WorkspaceStore: @unchecked Sendable {
         }
 
         try SecretStore().ensureStoreFile(in: dataDir)
+
+        // When deferring git to a visible terminal, leave `main/` for the setup script.
+        guard ensureMainDirectory else { return }
 
         let mainDir = SymphoniaPaths.workspaceMainDirectory(in: dataDir)
         try fileManager.createDirectory(at: mainDir, withIntermediateDirectories: true)

@@ -55,3 +55,4 @@ Committed templates stay in sync with the product; your `.local/` copies hold du
 | [0020](adr/0020-remove-agent-keep-branch-default.md) | Remove Worktree: confirm; default keep branch |
 | [0021](adr/0021-command-center-registry.md) | Command Center registry; configurable aliases |
 | [0022](adr/0022-keyboard-keymap.md) | Keymap decisions (see [keymap.md](keymap.md) for tables) |
+| [0023](adr/0023-activity-manager-overlay-presentation.md) | Activity Manager; Overlay is a Presentation; TUI-first, GUI escape |

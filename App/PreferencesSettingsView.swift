@@ -183,7 +183,7 @@ struct PreferencesSettingsView: View {
                     SettingsRowDivider()
                     SettingsRow(
                         title: "Editor",
-                        description: "Empty uses $EDITOR (fallback vi). GUI editors launch externally."
+                        description: "Empty uses $EDITOR (fallback vi). TUI opens as Overlay; GUI apps are External (Focus only)."
                     ) {
                         TextField("Command", text: $preferences.preferences.editorCommand)
                             .settingsControlField()
@@ -234,7 +234,7 @@ struct PreferencesSettingsView: View {
                 SettingsCard {
                     SettingsRow(
                         title: "Glass chrome",
-                        description: "Liquid Glass sidebar, Command Center, and Overlay peeks."
+                        description: "Liquid Glass sidebar, Command Center, Glance, and Overlay peeks."
                     ) {
                         Toggle("", isOn: $preferences.preferences.chromeGlass)
                             .labelsHidden()

@@ -26,7 +26,7 @@ struct OnboardingView: View {
             gifName: "onboarding-main-cli",
             symbol: "terminal",
             title: "Main CLI is home",
-            body: "Your agent lives in the Main CLI. Need an editor or a side process? Open an Overlay on top. Hide it when you are done. The process keeps running. Nothing gets killed by accident."
+            body: "Your agent lives in the Main CLI. Need an editor or a shell? Open an Activity — Overlay peeks on top of Main, or an External GUI when you choose one. Hide an Overlay when you are done; the process keeps running until you End it."
         ),
         OnboardingStep(
             gifName: "onboarding-secrets",

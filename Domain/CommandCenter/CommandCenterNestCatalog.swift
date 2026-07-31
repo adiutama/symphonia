@@ -150,7 +150,7 @@ struct CommandCenterNestCatalog {
         } else {
             for session in sessions {
                 let mark = overlays.visibleOverlayID == session.id ? " ●" : ""
-                let kindLabel = session.kind == .editor ? "EDITOR" : "BG"
+                let kindLabel = session.kind == .editor ? "Editor" : "Shell"
                 list.append(CommandCenterItem(
                     id: "bg-\(session.id.uuidString)",
                     title: session.title + mark,
@@ -164,7 +164,7 @@ struct CommandCenterNestCatalog {
         list.append(CommandCenterItem(
             id: "bg-hide",
             title: "Back",
-            subtitle: "Main CLI · process stays alive",
+            subtitle: "Main CLI · hide (keeps running)",
             action: .hideOverlay
         ))
 

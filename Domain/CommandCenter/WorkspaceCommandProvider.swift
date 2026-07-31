@@ -33,8 +33,8 @@ struct WorkspaceCommandProvider: CommandProvider {
             ),
             Command(
                 id: "workspace.new",
-                title: "New Workspace",
-                subtitle: "opens create sheet",
+                title: "New Project",
+                subtitle: "opens create canvas",
                 group: "Workspace",
                 defaultSequence: "wn",
                 action: .newWorkspace

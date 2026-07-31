@@ -156,7 +156,7 @@ final class OverlayController: ObservableObject {
                 id: UUID(),
                 kind: .editor,
                 sessionId: session.id,
-                title: "Editor: \(shortCommand(command))",
+                title: shortCommand(command),
                 command: command,
                 workingDirectory: cwd,
                 spawnEnvironment: env
@@ -178,12 +178,8 @@ final class OverlayController: ObservableObject {
 
         let trimmed = draftBackgroundCommand.trimmingCharacters(in: .whitespacesAndNewlines)
         let command: String? = trimmed.isEmpty ? nil : trimmed
-        let title: String
-        if let command {
-            title = "BG: \(shortCommand(command))"
-        } else {
-            title = "BG: shell"
-        }
+        // Plain title — Glance / Switcher categorize via kind (shell vs editor), not a prefix.
+        let title = command.map(shortCommand) ?? "shell"
 
         let overlay = OverlaySession(
             id: UUID(),

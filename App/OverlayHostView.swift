@@ -17,7 +17,8 @@ struct OverlayHostView: View {
             ghosttyTheme.background
 
             ForEach(worktrees.openedMainCLISessions) { slot in
-                let isVisible = worktrees.focusedSession?.id == slot.id && !overlays.isShowingOverlay
+                let isFocused = worktrees.focusedSession?.id == slot.id
+                let isVisible = isFocused && !overlays.isShowingOverlay && !workspaces.isCreateFlowActive
                 ZStack {
                     TerminalSurfaceView(
                         workingDirectory: slot.workingDirectory,
@@ -35,14 +36,21 @@ struct OverlayHostView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(worktrees.focusedSession?.id == slot.id ? 1 : 0)
+                .opacity(isFocused && !workspaces.isCreateFlowActive ? 1 : 0)
                 .allowsHitTesting(isVisible)
-                .zIndex(worktrees.focusedSession?.id == slot.id ? 0 : -1)
+                .zIndex(isFocused ? 0 : -1)
             }
 
-            if worktrees.openedMainCLISessions.isEmpty {
+            if let bootstrap = workspaces.createBootstrap {
+                CreateProjectBootstrapPane(session: bootstrap)
+                    .zIndex(0)
+            } else if workspaces.pendingCreateWorkspace {
+                CreateProjectCanvas()
+                    .zIndex(0)
+            } else if worktrees.openedMainCLISessions.isEmpty {
+                // Above the solid background fill; overlays use zIndex ≥ 1.
                 mainEmptyState
-                    .zIndex(-1)
+                    .zIndex(0)
             }
 
             if overlays.isShowingOverlay {
@@ -86,49 +94,50 @@ struct OverlayHostView: View {
     }
 
     private var mainEmptyState: some View {
-        VStack(spacing: 14) {
-            if workspaces.workspaces.isEmpty {
-                Text("No Workspace yet")
+        let hasWorkspaces = !workspaces.workspaces.isEmpty
+        return VStack(spacing: 16) {
+            Image(systemName: hasWorkspaces ? "sidebar.left" : "square.stack.3d.up")
+                .font(.system(size: 40, weight: .medium))
+                .foregroundStyle(ghosttyTheme.accent)
+                .symbolRenderingMode(.hierarchical)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 8) {
+                Text(hasWorkspaces ? "Select a Project" : "No Project yet")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(ghosttyTheme.foreground)
-                Text("Create a Workspace to open its Main CLI.")
-                    .font(.subheadline)
-                    .foregroundStyle(ghosttyTheme.secondaryText)
-                    .multilineTextAlignment(.center)
+                Text(
+                    hasWorkspaces
+                        ? "Pick a Project in the sidebar to open its Main CLI."
+                        : "Create a Project to open its Main CLI — your agent’s home stage."
+                )
+                .font(.subheadline)
+                .foregroundStyle(ghosttyTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            }
 
-                HStack(spacing: 12) {
-                    Button("Create Workspace") {
-                        workspaces.beginCreateWorkspace()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(ghosttyTheme.accent)
+            HStack(spacing: 12) {
+                Button("New Project") {
+                    workspaces.beginCreateWorkspace()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(ghosttyTheme.accent)
+                .keyboardShortcut("n", modifiers: [.command, .shift])
 
+                if !hasWorkspaces {
                     Button("Open Settings") {
                         settingsNavigation.openSettings()
                     }
                     .buttonStyle(.bordered)
                 }
-                .padding(.top, 4)
-            } else {
-                Text("Select a Workspace")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(ghosttyTheme.foreground)
-                Text("Pick a Workspace in the sidebar, then open Main or a Worktree.")
-                    .font(.subheadline)
-                    .foregroundStyle(ghosttyTheme.secondaryText)
-                    .multilineTextAlignment(.center)
-
-                Button("Create Workspace") {
-                    workspaces.beginCreateWorkspace()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(ghosttyTheme.accent)
-                .padding(.top, 4)
             }
+            .padding(.top, 2)
         }
-        .frame(maxWidth: 360)
+        .frame(maxWidth: 380)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
+        .accessibilityElement(children: .combine)
     }
 
     private func overlayPane(session: OverlaySession, isVisible: Bool) -> some View {
@@ -179,7 +188,7 @@ struct OverlayHostView: View {
 
     private func sheetHeader(_ session: OverlaySession) -> some View {
         HStack(spacing: 8) {
-            Text(session.kind == .editor ? "EDITOR" : "BG")
+            Text(session.kind == .editor ? "Editor" : "Shell")
                 .font(.caption2.weight(.semibold).monospaced())
                 .foregroundStyle(ghosttyTheme.secondaryText)
                 .tracking(0.4)
@@ -197,7 +206,7 @@ struct OverlayHostView: View {
             .font(.caption.weight(.medium))
             .buttonStyle(.plain)
             .foregroundStyle(ghosttyTheme.secondaryText)
-            .help("Toggle Overlay (process stays alive); kill via Overlay Switcher")
+            .help("Hide Overlay (keeps running); End via Overlay Switcher")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)

@@ -15,8 +15,17 @@ final class WorkspaceController: ObservableObject {
     /// Pending Workspace remove for confirm UI (deletes Data Dir + index entry).
     @Published var pendingRemoveWorkspace: WorkspaceSummary?
 
-    /// Pending New Workspace sheet (sidebar / Command Center / ⌘N).
+    /// Inline New Project canvas (sidebar / Command Center / ⌘⇧N) — B2 create flow.
     @Published var pendingCreateWorkspace = false
+
+    /// Read-only git clone/init terminal after layout is created; cleared when done or cancelled.
+    @Published private(set) var createBootstrap: CreateBootstrapSession?
+
+    /// Draft fields for the inline create canvas (shared with sidebar Untitled row).
+    @Published var createDraftSource: CreateProjectSource = .remote
+    @Published var createDraftName = ""
+    @Published var createDraftPrefix = ""
+    @Published var createDraftCloneURL = ""
 
     /// Pending Workspace rename sheet target.
     @Published var pendingRenameWorkspace: WorkspaceSummary?
@@ -67,34 +76,181 @@ final class WorkspaceController: ObservableObject {
         }
     }
 
-    /// Create Workspace under optional Prefix (empty → Workspaces Root), then select it.
-    /// When `cloneURL` is non-empty, Main is cloned from that URL instead of `git init`.
-    func createWorkspace(slug: String, prefix: String = "", cloneURL: String = "") {
+    /// Form canvas or bootstrap terminal is covering Main.
+    var isCreateFlowActive: Bool {
+        pendingCreateWorkspace || createBootstrap != nil
+    }
+
+    /// Sidebar label for the in-progress create draft (`Untitled` until a name is typed).
+    var createDraftSidebarTitle: String {
+        let trimmed = createDraftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Untitled" : trimmed
+    }
+
+    /// Commit the inline create draft: write layout without git, then show a read-only
+    /// progress terminal. On success the host selects the Project and spawns Main CLI.
+    func confirmCreateWorkspace() {
+        let cloneURL = createDraftSource == .remote
+            ? createDraftCloneURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            : ""
+        beginCreateBootstrap(
+            slug: createDraftName,
+            prefix: createDraftPrefix,
+            cloneURL: cloneURL
+        )
+    }
+
+    /// Create dirs + config (no git), then enter the read-only bootstrap terminal.
+    func beginCreateBootstrap(slug: String, prefix: String = "", cloneURL: String = "") {
         do {
             let summary = try store.create(
                 slug: slug,
                 prefix: prefix.isEmpty ? nil : prefix,
                 workspacesRoot: workspacesRoot,
-                cloneURL: cloneURL.isEmpty ? nil : cloneURL
+                cloneURL: cloneURL.isEmpty ? nil : cloneURL,
+                deferGit: true
             )
+            let trimmedClone = cloneURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            let session: CreateBootstrapSession
+            if trimmedClone.isEmpty {
+                session = CreateBootstrapSession(
+                    summary: summary,
+                    workingDirectory: summary.dataDirURL.path,
+                    command: Self.initBootstrapCommand(),
+                    kind: .initRepo
+                )
+            } else {
+                session = CreateBootstrapSession(
+                    summary: summary,
+                    workingDirectory: summary.dataDirURL.path,
+                    command: Self.cloneBootstrapCommand(remoteURL: trimmedClone),
+                    kind: .clone
+                )
+            }
+            resetCreateDraft()
             pendingCreateWorkspace = false
+            createBootstrap = session
             refresh()
-            select(summary)
             lastError = nil
         } catch {
             lastError = error.localizedDescription
         }
     }
 
-    /// Open the New Workspace sheet.
+    /// Open the inline New Project canvas. Keeps current selection so open Main CLIs stay alive;
+    /// chrome treats the draft row as selected while pending.
     func beginCreateWorkspace() {
+        if createBootstrap != nil {
+            cancelCreateWorkspace()
+        }
         lastError = nil
+        resetCreateDraft()
         pendingCreateWorkspace = true
     }
 
     func cancelCreateWorkspace() {
-        pendingCreateWorkspace = false
+        if let bootstrap = createBootstrap {
+            createBootstrap = nil
+            try? store.remove(bootstrap.summary, workspacesRoot: workspacesRoot)
+            refresh()
+        }
+        if pendingCreateWorkspace { pendingCreateWorkspace = false }
+        if lastError != nil { lastError = nil }
+        resetCreateDraft()
+    }
+
+    /// Git finished successfully — pause for “press any key” before opening Main CLI.
+    func markCreateBootstrapReady() {
+        guard var session = createBootstrap else { return }
+        session.awaitingContinue = true
+        session.failed = false
+        createBootstrap = session
         lastError = nil
+    }
+
+    /// Git finished successfully — select the new Project (heal is a no-op).
+    func finishCreateBootstrap() {
+        guard let bootstrap = createBootstrap else { return }
+        let summary = bootstrap.summary
+        createBootstrap = nil
+        pendingCreateWorkspace = false
+        resetCreateDraft()
+        refresh()
+        select(summary)
+        lastError = nil
+    }
+
+    /// Git failed — keep the terminal scrollback; Operator can Retry or Cancel.
+    func markCreateBootstrapFailed(exitCode: UInt32) {
+        guard var session = createBootstrap else { return }
+        session.failed = true
+        session.awaitingContinue = false
+        session.exitCode = exitCode
+        createBootstrap = session
+        lastError = "Setup failed (exit \(exitCode))"
+    }
+
+    /// Wipe `main/` and respawn the bootstrap terminal command.
+    func retryCreateBootstrap() {
+        guard var session = createBootstrap else { return }
+        do {
+            try store.resetMainDirectory(at: session.summary.dataDirURL)
+            session.generation += 1
+            session.failed = false
+            session.awaitingContinue = false
+            session.exitCode = nil
+            createBootstrap = session
+            lastError = nil
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    /// POSIX single-quoted string for `/bin/sh -c` (Ghostty runs surface commands in a shell).
+    private static func shellSingleQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// Ghostty on macOS wraps shell commands as `exec -l <command>`, so the first
+    /// token must be a real binary — not a shell builtin like `set`.
+    private static func wrapBootstrapScript(_ script: String) -> String {
+        "/bin/zsh -c \(shellSingleQuoted(script))"
+    }
+
+    /// Visible setup script: `mkdir` → `cd` → `git init`.
+    private static func initBootstrapCommand() -> String {
+        wrapBootstrapScript("""
+        set -e
+        echo "→ mkdir -p main"
+        mkdir -p main
+        echo "→ cd main"
+        cd main
+        echo "→ git init"
+        git init
+        echo "✓ Main ready"
+        """)
+    }
+
+    /// Visible setup script: `mkdir` → `cd` → `git clone <url> .`
+    private static func cloneBootstrapCommand(remoteURL: String) -> String {
+        let url = shellSingleQuoted(remoteURL)
+        return wrapBootstrapScript("""
+        set -e
+        echo "→ mkdir -p main"
+        mkdir -p main
+        echo "→ cd main"
+        cd main
+        echo "→ git clone \(url) ."
+        git clone --progress \(url) .
+        echo "✓ Main ready"
+        """)
+    }
+
+    private func resetCreateDraft() {
+        if createDraftSource != .remote { createDraftSource = .remote }
+        if !createDraftName.isEmpty { createDraftName = "" }
+        if !createDraftPrefix.isEmpty { createDraftPrefix = "" }
+        if !createDraftCloneURL.isEmpty { createDraftCloneURL = "" }
     }
 
     /// Cycle current Workspace by `delta` (±1), wrapping. No-op if empty.
@@ -122,8 +278,7 @@ final class WorkspaceController: ObservableObject {
             currentConfig = config
             preferences.workspaceOverrides = config.asOverrides
             try store.setLastSelectedSlug(opened.slug)
-            lastError = nil
-            objectWillChange.send()
+            if lastError != nil { lastError = nil }
         } catch {
             lastError = error.localizedDescription
         }
@@ -259,7 +414,7 @@ final class WorkspaceController: ObservableObject {
     }
 
     func cancelRemove() {
-        pendingRemoveWorkspace = nil
+        if pendingRemoveWorkspace != nil { pendingRemoveWorkspace = nil }
     }
 
     /// Delete the Workspace Data Dir and unregister it. Clears selection if it was current
@@ -369,4 +524,62 @@ final class WorkspaceController: ObservableObject {
 struct WorkspaceIdRemap: Equatable, Sendable {
     let from: String
     let to: String
+}
+
+/// Source toggle for the inline New Project canvas (B2).
+enum CreateProjectSource: String, Equatable, Sendable {
+    case remote
+    case local
+}
+
+/// One-shot read-only terminal that runs `git clone` / `git init` during New Project.
+struct CreateBootstrapSession: Identifiable, Equatable, Sendable {
+    enum Kind: Equatable, Sendable {
+        case clone
+        case initRepo
+    }
+
+    let id: UUID
+    let summary: WorkspaceSummary
+    let workingDirectory: String
+    let command: String
+    let kind: Kind
+    /// Bumped on Retry so SwiftUI remounts `TerminalSurfaceView`.
+    var generation: Int
+    var failed: Bool
+    /// Git succeeded — waiting for any key before opening Main CLI.
+    var awaitingContinue: Bool
+    var exitCode: UInt32?
+
+    init(
+        id: UUID = UUID(),
+        summary: WorkspaceSummary,
+        workingDirectory: String,
+        command: String,
+        kind: Kind,
+        generation: Int = 0,
+        failed: Bool = false,
+        awaitingContinue: Bool = false,
+        exitCode: UInt32? = nil
+    ) {
+        self.id = id
+        self.summary = summary
+        self.workingDirectory = workingDirectory
+        self.command = command
+        self.kind = kind
+        self.generation = generation
+        self.failed = failed
+        self.awaitingContinue = awaitingContinue
+        self.exitCode = exitCode
+    }
+
+    var viewIdentity: String { "\(id.uuidString)-\(generation)" }
+
+    var title: String {
+        if awaitingContinue { return "Ready" }
+        switch kind {
+        case .clone: return "Cloning…"
+        case .initRepo: return "Initializing…"
+        }
+    }
 }
