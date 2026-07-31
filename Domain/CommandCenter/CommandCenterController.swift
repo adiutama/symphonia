@@ -62,10 +62,12 @@ final class CommandCenterController: ObservableObject {
             overlays.$sessions,
             preferences.$preferences
         )
-        .receive(on: RunLoop.main)
+        .receive(on: DispatchQueue.main)
         .sink { [weak self] _, _, _, _ in
-            guard let self, self.isActive else { return }
-            self.rebuildItems(resetSelection: false)
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.isActive else { return }
+                self.rebuildItems(resetSelection: false)
+            }
         }
         .store(in: &cancellables)
 

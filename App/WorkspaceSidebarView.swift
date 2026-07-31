@@ -41,7 +41,12 @@ struct WorkspaceSidebarView: View {
                 removeDialogTitle,
                 isPresented: Binding(
                     get: { worktrees.pendingRemove != nil },
-                    set: { if !$0 { worktrees.cancelRemove() } }
+                    set: { presented in
+                        // Only cancel on real dismiss — SwiftUI may write `false` while reconciling.
+                        if !presented, worktrees.pendingRemove != nil {
+                            worktrees.cancelRemove()
+                        }
+                    }
                 ),
                 titleVisibility: .visible
             ) {
@@ -63,7 +68,11 @@ struct WorkspaceSidebarView: View {
             removeWorkspaceDialogTitle,
             isPresented: Binding(
                 get: { workspaces.pendingRemoveWorkspace != nil },
-                set: { if !$0 { workspaces.cancelRemove() } }
+                set: { presented in
+                    if !presented, workspaces.pendingRemoveWorkspace != nil {
+                        workspaces.cancelRemove()
+                    }
+                }
             ),
             titleVisibility: .visible
         ) {
@@ -92,7 +101,9 @@ struct WorkspaceSidebarView: View {
         .sheet(isPresented: Binding(
             get: { worktrees.pendingCreateWorktree },
             set: { presented in
-                if !presented { worktrees.cancelCreateWorktree() }
+                if !presented, worktrees.pendingCreateWorktree {
+                    worktrees.cancelCreateWorktree()
+                }
             }
         )) {
             WorkspaceSidebarSheets.CreateWorktree(
@@ -106,7 +117,17 @@ struct WorkspaceSidebarView: View {
                 presentedWorkspace: $archivedSheetWorkspace
             )
         }
-        .sheet(item: $workspaces.pendingRenameWorkspace) { workspace in
+        .sheet(item: Binding(
+            get: { workspaces.pendingRenameWorkspace },
+            set: { newValue in
+                guard workspaces.pendingRenameWorkspace != nil || newValue != nil else { return }
+                if newValue == nil {
+                    workspaces.pendingRenameWorkspace = nil
+                } else {
+                    workspaces.pendingRenameWorkspace = newValue
+                }
+            }
+        )) { workspace in
             WorkspaceSidebarSheets.RenameWorkspace(
                 workspace: workspace,
                 slug: $renameWorkspaceSlug,
@@ -118,7 +139,17 @@ struct WorkspaceSidebarView: View {
                 }
             )
         }
-        .sheet(item: $worktrees.pendingRename) { agent in
+        .sheet(item: Binding(
+            get: { worktrees.pendingRename },
+            set: { newValue in
+                guard worktrees.pendingRename != nil || newValue != nil else { return }
+                if newValue == nil {
+                    worktrees.cancelRename()
+                } else {
+                    worktrees.pendingRename = newValue
+                }
+            }
+        )) { agent in
             WorkspaceSidebarSheets.RenameWorktree(
                 agent: agent,
                 branch: $renameWorktreeBranch,

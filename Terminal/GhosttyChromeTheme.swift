@@ -59,7 +59,10 @@ final class GhosttyChromeTheme: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.reload()
+            // Defer past any in-flight SwiftUI AttributeGraph update.
+            DispatchQueue.main.async { [weak self] in
+                self?.reload()
+            }
         }
     }
 

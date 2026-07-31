@@ -42,6 +42,8 @@ final class WorktreeController: ObservableObject {
     private var recentMainCLIExitTimestamps: [String: [Date]] = [:]
     private let mainCLICrashLoopWindow: TimeInterval = 2
     private let mainCLICrashLoopThreshold = 3
+    /// Disk list cache for non-current Workspaces (filled by `syncBranchWatchers`).
+    private var worktreesByWorkspaceID: [String: [WorktreeSummary]] = [:]
 
     init(
         preferences: PreferencesController,
@@ -55,16 +57,22 @@ final class WorktreeController: ObservableObject {
         self.store = store
 
         workspaces.$current
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.onWorkspaceChanged()
+                // `receive(on:)` can still deliver inside SwiftUI's AttributeGraph
+                // pass — nest another async hop so @Published writes land after.
+                DispatchQueue.main.async { [weak self] in
+                    self?.onWorkspaceChanged()
+                }
             }
             .store(in: &cancellables)
 
         workspaces.$workspaces
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.syncBranchWatchers()
+                DispatchQueue.main.async { [weak self] in
+                    self?.syncBranchWatchers()
+                }
             }
             .store(in: &cancellables)
 
@@ -104,7 +112,7 @@ final class WorktreeController: ObservableObject {
 
     func refresh() {
         guard let current = workspaces.current else {
-            worktrees = []
+            if !worktrees.isEmpty { worktrees = [] }
             branchWatcher.stopAll()
             if focusedSession != nil {
                 focusedSession = nil
@@ -128,18 +136,25 @@ final class WorktreeController: ObservableObject {
     }
 
     /// Non-archived Worktrees under any Workspace Data Dir (sidebar expansion, Command Center).
+    /// Never hits git for non-current workspaces during view evaluation — uses the cache
+    /// filled by `syncBranchWatchers`.
     func worktrees(in workspace: WorkspaceSummary) -> [WorktreeSummary] {
         _ = branchDiskGeneration
         if workspace.id == workspaces.current?.id {
             return worktrees
         }
         let archived = workspaces.archivedWorktreeNames(for: workspace)
-        return allWorktrees(in: workspace).filter { !archived.contains($0.threeWordName) }
+        return (worktreesByWorkspaceID[workspace.id] ?? []).filter {
+            !archived.contains($0.threeWordName)
+        }
     }
 
     /// All Worktrees under a Workspace **including archived** — folder still exists on disk.
     func allWorktrees(in workspace: WorkspaceSummary) -> [WorktreeSummary] {
-        (try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? []
+        if let cached = worktreesByWorkspaceID[workspace.id] {
+            return cached
+        }
+        return (try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? []
     }
 
     /// Archived Worktrees for the “Archived Worktrees…” sheet (P1.3).
@@ -208,8 +223,8 @@ final class WorktreeController: ObservableObject {
     }
 
     func cancelCreateWorktree() {
-        pendingCreateWorktree = false
-        lastError = nil
+        if pendingCreateWorktree { pendingCreateWorktree = false }
+        if lastError != nil { lastError = nil }
     }
 
     /// Focus Main Repo for the given Workspace (cwd = `<workspace>/main/`).
@@ -350,8 +365,8 @@ final class WorktreeController: ObservableObject {
     }
 
     func cancelRemove() {
-        pendingRemove = nil
-        pendingRemoveDeleteBranch = false
+        if pendingRemove != nil { pendingRemove = nil }
+        if pendingRemoveDeleteBranch { pendingRemoveDeleteBranch = false }
     }
 
     // MARK: - Rename Worktree
@@ -362,7 +377,7 @@ final class WorktreeController: ObservableObject {
     }
 
     func cancelRename() {
-        pendingRename = nil
+        if pendingRename != nil { pendingRename = nil }
     }
 
     /// Rename branch and/or folder; refresh list and re-focus when this Worktree was focused.
@@ -566,17 +581,19 @@ final class WorktreeController: ObservableObject {
     }
 
     private func onWorkspaceChanged() {
-        pendingRemove = nil
-        pendingRemoveDeleteBranch = false
-        pendingRename = nil
-        pendingCreateWorktree = false
-        openedMainCLISessions = []
-        recentMainCLIExitTimestamps = [:]
+        if pendingRemove != nil { pendingRemove = nil }
+        if pendingRemoveDeleteBranch { pendingRemoveDeleteBranch = false }
+        if pendingRename != nil { pendingRename = nil }
+        if pendingCreateWorktree { pendingCreateWorktree = false }
+        if !openedMainCLISessions.isEmpty { openedMainCLISessions = [] }
+        if !recentMainCLIExitTimestamps.isEmpty { recentMainCLIExitTimestamps = [:] }
         guard let current = workspaces.current else {
-            worktrees = []
+            if !worktrees.isEmpty { worktrees = [] }
             branchWatcher.stopAll()
-            focusedSession = nil
-            focusedSpawnEnvironment = []
+            if focusedSession != nil {
+                focusedSession = nil
+                focusedSpawnEnvironment = []
+            }
             return
         }
         refresh()
@@ -617,9 +634,18 @@ final class WorktreeController: ObservableObject {
     /// Watch HEAD for every known Worktree (current + others) so expanded sidebar rows stay live.
     private func syncBranchWatchers() {
         var checkouts: [URL] = []
+        var cache: [String: [WorktreeSummary]] = [:]
         for workspace in workspaces.workspaces {
-            checkouts.append(contentsOf: allWorktrees(in: workspace).map(\.worktreeURL))
+            let listed = (try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? []
+            cache[workspace.id] = listed
+            checkouts.append(contentsOf: listed.map(\.worktreeURL))
         }
+        let cacheChanged = cache != worktreesByWorkspaceID
+        worktreesByWorkspaceID = cache
         branchWatcher.watch(checkouts: checkouts)
+        // Sidebar reads non-current lists from cache — bump so expanded rows refresh.
+        if cacheChanged {
+            branchDiskGeneration &+= 1
+        }
     }
 }

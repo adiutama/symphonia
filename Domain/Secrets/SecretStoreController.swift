@@ -39,12 +39,15 @@ final class SecretStoreController: ObservableObject {
         self.fixedDataDirURL = nil
 
         workspaces.$current
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.reload()
+                DispatchQueue.main.async { [weak self] in
+                    self?.reload()
+                }
             }
             .store(in: &cancellables)
 
+        // Initial load is fine here — App.init runs before any SwiftUI body.
         reload()
     }
 
@@ -70,17 +73,18 @@ final class SecretStoreController: ObservableObject {
 
     func reload() {
         guard let dataDir = activeDataDirURL else {
-            document = .empty
-            selectedVarId = nil
-            selectedGroupId = nil
-            draftVarGroupId = nil
-            lastError = nil
+            if document != .empty { document = .empty }
+            if selectedVarId != nil { selectedVarId = nil }
+            if selectedGroupId != nil { selectedGroupId = nil }
+            if draftVarGroupId != nil { draftVarGroupId = nil }
+            if lastError != nil { lastError = nil }
             return
         }
 
         do {
-            document = try store.load(from: dataDir)
-            lastError = nil
+            let loaded = try store.load(from: dataDir)
+            if loaded != document { document = loaded }
+            if lastError != nil { lastError = nil }
             if let selectedVarId,
                !document.vars.contains(where: { $0.id == selectedVarId })
             {
@@ -98,7 +102,7 @@ final class SecretStoreController: ObservableObject {
             }
         } catch {
             lastError = error.localizedDescription
-            document = .empty
+            if document != .empty { document = .empty }
         }
     }
 

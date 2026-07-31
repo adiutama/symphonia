@@ -36,9 +36,11 @@ final class OverlayController: ObservableObject {
         self.secrets = secrets
 
         agents.$focusedSession
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] focused in
-                self?.onFocusedSessionChanged(focused)
+                DispatchQueue.main.async { [weak self] in
+                    self?.onFocusedSessionChanged(focused)
+                }
             }
             .store(in: &cancellables)
     }
@@ -211,7 +213,10 @@ final class OverlayController: ObservableObject {
         }
         // Tear down only when the owning Main / Worktree is gone (remove / Workspace switch).
         let liveIDs = agents.liveOverlaySessionIDs
-        sessions.removeAll { !liveIDs.contains($0.sessionId) }
+        let kept = sessions.filter { liveIDs.contains($0.sessionId) }
+        if kept.count != sessions.count {
+            sessions = kept
+        }
         if let lastPeekedOverlayID,
            !sessions.contains(where: { $0.id == lastPeekedOverlayID })
         {
