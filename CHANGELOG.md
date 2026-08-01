@@ -9,6 +9,10 @@ Release Please updates this file when you merge a Release PR. See [docs/release.
 
 ## [Unreleased]
 
+### Fixed
+
+- Shared Sparkle build numbers for Stable and Nightly so channel switches/updates compare correctly
+
 ## [0.1.0] - 2026-08-01
 
 Initial public MVP (early access). Build from source is first-class; Release DMGs are unsigned unless Apple signing secrets are set.

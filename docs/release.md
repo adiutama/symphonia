@@ -37,7 +37,7 @@ Everyday pushes never open a Release PR and never run the full macOS compile. Sh
 
 Use Conventional Commits (`feat(scope): …`, `fix: …`, …) — see [`AGENTS.md`](../AGENTS.md).
 
-The app’s marketing version (`MARKETING_VERSION` in Xcode) tracks the Git tag (`v0.1.0`). The Apple **build** number (`CFBundleVersion` / `CURRENT_PROJECT_VERSION`) is set at ship time from the GitHub Actions run number. Sparkle uses that build number to detect newer releases — keep it monotonic.
+The app’s marketing version (`MARKETING_VERSION` in Xcode) tracks the Git tag (`v0.1.0`) or a nightly label (`0.1.0-nightly.…`). The Apple **build** number (`CFBundleVersion` / `CURRENT_PROJECT_VERSION`) is a **shared monotonic ladder** for Stable and Nightly: UTC `YYYYMMDDHHMMSS` from [`scripts/sparkle-build-number.sh`](../scripts/sparkle-build-number.sh). Sparkle compares that build number (not the marketing string) — so a Nightly install can later update to Stable and the other way around. Rebuild either channel after the other and the newer wall-clock build wins.
 
 ## Sparkle auto-updates
 

@@ -39,8 +39,8 @@ jobs:
           fi
           # Marketing version shown in About; Sparkle compares CFBundleVersion (build).
           VERSION="${BASE}-nightly.${DATE_UTC}.${SHA}"
-          # Monotonic build number (UTC timestamp) so nightlies sort above small release run numbers.
-          BUILD="$(date -u +%Y%m%d%H%M%S)"
+          # Same monotonic ladder as Stable (scripts/sparkle-build-number.sh).
+          BUILD="$(./scripts/sparkle-build-number.sh)"
           {
             echo "version=$VERSION"
             echo "build=$BUILD"
