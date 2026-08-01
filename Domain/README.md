@@ -58,7 +58,7 @@ Known Prefixes + last selection: `~/.symphonia/workspace-index.toml` (T.3). Lega
 | Type | Role |
 |------|------|
 | `FocusedSession` | Main Repo or Worktree — scopes Main CLI + Overlays |
-| `MainCLISurfaceSlot` | Opened Main CLI PTY (persists across focus; tear down on remove) |
+| `MainCLISurfaceSlot` | Opened Main CLI PTY (persists across Switch Workspace / Worktree; tear down on remove) |
 | `ThreeWordName` | Auto `{word}-{word}-{word}` folder names; collision-checked |
 | `WorktreeSummary` | One Worktree ↔ one Worktree folder, sibling of `main/` (+ best-effort branch) |
 | `WorktreeStore` | `git worktree add/remove` as siblings of `main/`; branch from Effective Base Ref; refuses reserved names; **rename** branch and/or folder |
@@ -94,7 +94,7 @@ Worktrees…” sheet, which offers **Unarchive** (`WorktreeController.unarchive
 in `WorktreeStore`. Archiving the focused Worktree refocuses Main Repo first. No migration: missing
 `archivedThreeWordNames` in older `config.toml` (or legacy `config.json`) files decodes as `nil` (treated as empty).
 
-Terminal: one live Main CLI PTY **per opened session** (Main or Worktree). Switching focus **hides** other PTYs (same idea as Overlay hide ≠ quit). Respawn is explicit (secrets refresh). Spawn env always includes English locale defaults unless Secret Store sets `LANG` / `LC_*`.
+Terminal: one live Main CLI PTY **per opened session** (Main or Worktree). Switching Workspace or Worktree **hides** other PTYs (same idea as Overlay hide ≠ quit). Tear down only when the owning Worktree or Workspace is removed (or the app quits). Respawn is explicit (secrets refresh). Spawn env always includes English locale defaults unless Secret Store sets `LANG` / `LC_*`.
 
 ## Secret Store (Phase 5)
 

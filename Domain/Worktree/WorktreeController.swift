@@ -3,7 +3,8 @@ import Combine
 
 /// Observable Worktree list / create / focus / remove + focused session (Main Repo or Worktree).
 ///
-/// Main CLI PTYs persist per session (show/hide on focus); tear down only on remove / Workspace switch.
+/// Main CLI PTYs persist per session (show/hide on Switch Workspace / Worktree);
+/// tear down only when the owning Worktree or Workspace is removed (or the app quits).
 @MainActor
 final class WorktreeController: ObservableObject {
     private let store: WorktreeStore
@@ -22,6 +23,10 @@ final class WorktreeController: ObservableObject {
     @Published private(set) var focusedSession: FocusedSession?
     /// Opened Main CLI surfaces (alive PTYs). Host mounts all; only focused is visible.
     @Published private(set) var openedMainCLISessions: [MainCLISurfaceSlot] = []
+    /// Bumped when owner session ids may have changed (remove / relocate) so Overlay / External prune.
+    @Published private(set) var ownerSessionGeneration: UInt64 = 0
+    /// Last Workspace Data Dir path remap (rename / Prefix) — Overlay / External remap before prune.
+    @Published private(set) var lastOwnerDataDirRemap: WorkspaceIdRemap?
     /// Env snapshotted for the focused session (locale + secrets); used by chrome / respawn hints.
     @Published private(set) var focusedSpawnEnvironment: [(key: String, value: String)] = []
     @Published var lastError: String?
@@ -60,6 +65,8 @@ final class WorktreeController: ObservableObject {
         self.store = store
 
         workspaces.$current
+            .map(\.?.id)
+            .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 // `receive(on:)` can still deliver inside SwiftUI's AttributeGraph
@@ -74,8 +81,23 @@ final class WorktreeController: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
-                    self?.syncBranchWatchers()
+                    guard let self else { return }
+                    self.syncBranchWatchers()
+                    // Drop Main CLI slots whose Workspace / Worktree was removed.
+                    self.pruneOpenedSessionsToLiveSet()
                 }
+            }
+            .store(in: &cancellables)
+
+        workspaces.$lastWorkspaceIdRemap
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] remap in
+                // Synchronously remap before `$workspaces` prune can drop old paths.
+                self?.migrateOpenedSessionsAfterWorkspaceRelocate(
+                    from: remap.from,
+                    to: remap.to
+                )
             }
             .store(in: &cancellables)
 
@@ -104,11 +126,17 @@ final class WorktreeController: ObservableObject {
         spawnCommandValue()
     }
 
-    /// Session ids whose Overlay PTYs should stay alive (current Workspace Main + Worktrees).
+    /// Session ids whose owners still exist on disk (any Workspace, including archived Worktrees).
+    /// Used to prune Main CLI / Overlay / External rows only on remove — not on Switch.
     var liveOverlaySessionIDs: Set<String> {
-        var ids = Set(worktrees.map { FocusedSession.worktree($0).id })
-        if let current = workspaces.current {
-            ids.insert(FocusedSession.mainRepo(for: current).id)
+        var ids = Set<String>()
+        for workspace in workspaces.workspaces {
+            ids.insert(FocusedSession.mainRepo(for: workspace).id)
+            let listed = worktreesByWorkspaceID[workspace.id]
+                ?? ((try? store.list(workspaceDataDir: workspace.dataDirURL)) ?? [])
+            for wt in listed {
+                ids.insert(FocusedSession.worktree(wt).id)
+            }
         }
         return ids
     }
@@ -120,8 +148,10 @@ final class WorktreeController: ObservableObject {
             if focusedSession != nil {
                 focusedSession = nil
                 focusedSpawnEnvironment = []
-                openedMainCLISessions = []
             }
+            // Keep Main CLI slots for other Workspaces; drop only missing owners.
+            syncBranchWatchers()
+            pruneOpenedSessionsToLiveSet()
             return
         }
 
@@ -129,9 +159,10 @@ final class WorktreeController: ObservableObject {
             let all = try store.list(workspaceDataDir: current.dataDirURL)
             let archived = workspaces.archivedWorktreeNames(for: current)
             worktrees = all.filter { !archived.contains($0.threeWordName) }
+            worktreesByWorkspaceID[current.id] = all
             reconcileFocusedSession(workspace: current)
-            pruneOpenedSessionsToLiveSet()
             syncBranchWatchers()
+            pruneOpenedSessionsToLiveSet()
         } catch {
             lastError = error.localizedDescription
         }
@@ -466,6 +497,7 @@ final class WorktreeController: ObservableObject {
                 deleteBranch: pendingRemoveDeleteBranch
             )
             openedMainCLISessions.removeAll { $0.id == removedSessionID }
+            ownerSessionGeneration &+= 1
             if focusedSession?.worktree?.id == wt.id {
                 focusMain(for: current)
             }
@@ -555,8 +587,12 @@ final class WorktreeController: ObservableObject {
 
     private func pruneOpenedSessionsToLiveSet() {
         let live = liveOverlaySessionIDs
+        let before = openedMainCLISessions.count
         openedMainCLISessions.removeAll { !live.contains($0.id) }
         recentMainCLIExitTimestamps = recentMainCLIExitTimestamps.filter { live.contains($0.key) }
+        if openedMainCLISessions.count != before {
+            ownerSessionGeneration &+= 1
+        }
     }
 
     private func reconcileFocusedSession(workspace: WorkspaceSummary) {
@@ -608,24 +644,92 @@ final class WorktreeController: ObservableObject {
         }
     }
 
+    /// Keep Main CLI surfaces alive across Workspace Data Dir moves (rename / Prefix).
+    private func migrateOpenedSessionsAfterWorkspaceRelocate(from oldPath: String, to newPath: String) {
+        guard oldPath != newPath else { return }
+        // Publish first so Overlay / External remap session ids before prune sees new live set.
+        lastOwnerDataDirRemap = WorkspaceIdRemap(from: oldPath, to: newPath)
+
+        openedMainCLISessions = openedMainCLISessions.map { slot in
+            let newID = FocusedSession.remappedID(
+                slot.id,
+                fromOldDataDir: oldPath,
+                toNewDataDir: newPath
+            )
+            let newWD = FocusedSession.remappedPath(
+                slot.workingDirectory,
+                fromOldDataDir: oldPath,
+                toNewDataDir: newPath
+            )
+            guard newID != slot.id || newWD != slot.workingDirectory else { return slot }
+            return MainCLISurfaceSlot(
+                id: newID,
+                workingDirectory: newWD,
+                command: slot.command,
+                spawnEnvironment: slot.spawnEnvironment,
+                generation: slot.generation,
+                processExited: slot.processExited
+            )
+        }
+
+        var remappedExits: [String: [Date]] = [:]
+        for (id, times) in recentMainCLIExitTimestamps {
+            let newID = FocusedSession.remappedID(id, fromOldDataDir: oldPath, toNewDataDir: newPath)
+            remappedExits[newID] = times
+        }
+        recentMainCLIExitTimestamps = remappedExits
+
+        if let focusedSession {
+            switch focusedSession {
+            case .mainRepo(let workspaceId, _, _):
+                if workspaceId == oldPath,
+                   let workspace = workspaces.workspaces.first(where: { $0.id == newPath })
+                {
+                    self.focusedSession = .mainRepo(for: workspace)
+                }
+            case .worktree(let wt):
+                let newURL = URL(
+                    fileURLWithPath: FocusedSession.remappedPath(
+                        wt.worktreeURL.path,
+                        fromOldDataDir: oldPath,
+                        toNewDataDir: newPath
+                    )
+                )
+                if newURL != wt.worktreeURL {
+                    self.focusedSession = .worktree(
+                        WorktreeSummary(
+                            threeWordName: wt.threeWordName,
+                            worktreeURL: newURL,
+                            branchName: wt.branchName
+                        )
+                    )
+                }
+            }
+        }
+
+        ownerSessionGeneration &+= 1
+    }
+
     private func onWorkspaceChanged() {
         if pendingRemove != nil { pendingRemove = nil }
         if pendingRemoveDeleteBranch { pendingRemoveDeleteBranch = false }
         if pendingRename != nil { pendingRename = nil }
         if pendingCreateWorktree { pendingCreateWorktree = false }
-        if !openedMainCLISessions.isEmpty { openedMainCLISessions = [] }
-        if !recentMainCLIExitTimestamps.isEmpty { recentMainCLIExitTimestamps = [:] }
-        guard let current = workspaces.current else {
+        // Do not clear openedMainCLISessions — Switch Workspace only hides other PTYs.
+        guard workspaces.current != nil else {
             if !worktrees.isEmpty { worktrees = [] }
             branchWatcher.stopAll()
             if focusedSession != nil {
                 focusedSession = nil
                 focusedSpawnEnvironment = []
             }
+            syncBranchWatchers()
+            pruneOpenedSessionsToLiveSet()
             return
         }
+        // reconcileFocusedSession (via refresh) focuses Main for the new Workspace when
+        // the previous focus belonged elsewhere — without respawning existing slots.
         refresh()
-        focusMain(for: current)
     }
 
     /// Re-read branch names after a watched `HEAD` change (no repo writes — read-only).

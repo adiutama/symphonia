@@ -336,10 +336,12 @@ final class WorkspaceController: ObservableObject {
                 workspacesRoot: workspacesRoot
             )
             lastError = nil
-            refresh()
+            // Remap before refresh so Main CLI / Overlay can rewrite session ids
+            // before prune drops owners under the old Data Dir path.
             if updated.id != oldId {
                 lastWorkspaceIdRemap = WorkspaceIdRemap(from: oldId, to: updated.id)
             }
+            refresh()
             if current?.id == oldId || current?.id == updated.id {
                 if updated.id != oldId {
                     select(updated)
@@ -396,6 +398,10 @@ final class WorkspaceController: ObservableObject {
                 workspacesRoot: workspacesRoot
             )
             pendingRenameWorkspace = nil
+            let oldId = target.id
+            if updated.id != oldId {
+                lastWorkspaceIdRemap = WorkspaceIdRemap(from: oldId, to: updated.id)
+            }
             refresh()
             if wasCurrent {
                 select(updated)
@@ -417,8 +423,8 @@ final class WorkspaceController: ObservableObject {
         if pendingRemoveWorkspace != nil { pendingRemoveWorkspace = nil }
     }
 
-    /// Delete the Workspace Data Dir and unregister it. Clears selection if it was current
-    /// so Main CLI / Overlay / Secret Store release that Workspace first.
+    /// Delete the Workspace Data Dir and unregister it. Clears selection if it was current.
+    /// Main CLI / Overlay PTYs for this Workspace are pruned once it leaves the workspace list.
     func confirmRemove() {
         guard let target = pendingRemoveWorkspace else { return }
         let wasCurrent = current?.id == target.id

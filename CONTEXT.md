@@ -71,7 +71,7 @@ How an Activity is hosted: **Overlay** (internal) or **External** (outside Symph
 _Avoid_: Mode, backend, target (when meaning host kind)
 
 **Overlay**:
-A Presentation state: the Activity runs in a peekable PTY over Main CLI. Only one Overlay is visible at a time; **Toggle Overlay** / Switch Worktree **hide** without killing; **End** (Close Overlay) tears the PTY down. Overlay PTYs are as durable as Main CLI until End, owner removal, or app quit.
+A Presentation state: the Activity runs in a peekable PTY over Main CLI. Only one Overlay is visible at a time; **Toggle Overlay** / Switch Workspace / Switch Worktree **hide** without killing; **End** (Close Overlay) tears the PTY down. Overlay PTYs are as durable as Main CLI until End, owner removal, or app quit.
 _Avoid_: Modal, popup, window, split pane, Peek (as a product noun), Hide Overlay (as the primary Command — use Toggle Overlay); Activity Manager (Overlay is not the manager)
 
 **External**:

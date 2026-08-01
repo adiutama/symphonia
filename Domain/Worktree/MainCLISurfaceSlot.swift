@@ -1,6 +1,6 @@
 import Foundation
 
-/// One opened Main CLI Ghostty surface (persists across focus switches).
+/// One opened Main CLI Ghostty surface (persists across Switch Workspace / Worktree).
 struct MainCLISurfaceSlot: Identifiable, Sendable {
     /// Matches ``FocusedSession/id``.
     let id: String

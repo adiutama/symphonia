@@ -31,6 +31,7 @@ Initial public MVP (early access). Build from source is first-class; Release DMG
 
 ### Fixed
 
+- Main CLI PTYs persist across Switch Workspace / Worktree; tear down only on Worktree or Workspace remove
 - Main CLI / Overlay PTY exit handling with crash-loop guard and Reload CLI
 - Sparkle loading in ad-hoc (unsigned) Release builds
 - Terminal spawn wrapping, Ghostty theme sync, and display scale resync

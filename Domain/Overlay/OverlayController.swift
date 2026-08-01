@@ -5,7 +5,7 @@ import Foundation
 /// Overlay peek/hide host lifecycle (Phase 6 / ADR 0006–0008).
 ///
 /// - One visible Overlay at a time (`visibleOverlayID`); nil = Main CLI.
-/// - Hide / Switch Worktree does not remove the session → PTY stays alive until Close.
+/// - Hide / Switch Workspace / Switch Worktree does not remove the session → PTY stays alive until Close.
 /// - Editor Overlay is first-class; Background CLIs are many freeform peeks.
 /// - Peek UI is scoped to the focused session; processes may span sessions.
 @MainActor
@@ -40,6 +40,25 @@ final class OverlayController: ObservableObject {
             .sink { [weak self] focused in
                 DispatchQueue.main.async { [weak self] in
                     self?.onFocusedSessionChanged(focused)
+                }
+            }
+            .store(in: &cancellables)
+
+        agents.$lastOwnerDataDirRemap
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] remap in
+                DispatchQueue.main.async { [weak self] in
+                    self?.migrateSessionsAfterWorkspaceRelocate(from: remap.from, to: remap.to)
+                }
+            }
+            .store(in: &cancellables)
+
+        agents.$ownerSessionGeneration
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { [weak self] in
+                    self?.pruneOrphanedSessions()
                 }
             }
             .store(in: &cancellables)
@@ -258,7 +277,11 @@ final class OverlayController: ObservableObject {
             lastPeekedOverlayID = visibleOverlayID
             self.visibleOverlayID = nil
         }
-        // Tear down only when the owning Main / Worktree is gone (remove / Workspace switch).
+        pruneOrphanedSessions()
+    }
+
+    /// Tear down only when the owning Main / Worktree / Workspace is gone — not on Switch.
+    private func pruneOrphanedSessions() {
         let liveIDs = agents.liveOverlaySessionIDs
         let kept = sessions.filter { liveIDs.contains($0.sessionId) }
         if kept.count != sessions.count {
@@ -273,6 +296,34 @@ final class OverlayController: ObservableObject {
            !sessions.contains(where: { $0.id == visibleOverlayID })
         {
             self.visibleOverlayID = nil
+        }
+    }
+
+    private func migrateSessionsAfterWorkspaceRelocate(from oldPath: String, to newPath: String) {
+        guard oldPath != newPath else { return }
+        sessions = sessions.map { session in
+            let newSessionID = FocusedSession.remappedID(
+                session.sessionId,
+                fromOldDataDir: oldPath,
+                toNewDataDir: newPath
+            )
+            let newWD = FocusedSession.remappedPath(
+                session.workingDirectory,
+                fromOldDataDir: oldPath,
+                toNewDataDir: newPath
+            )
+            guard newSessionID != session.sessionId || newWD != session.workingDirectory else {
+                return session
+            }
+            return OverlaySession(
+                id: session.id,
+                kind: session.kind,
+                sessionId: newSessionID,
+                title: session.title,
+                command: session.command,
+                workingDirectory: newWD,
+                spawnEnvironment: session.spawnEnvironment
+            )
         }
     }
 

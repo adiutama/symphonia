@@ -36,6 +36,28 @@ final class ActivityManager: ObservableObject {
             }
             .store(in: &cancellables)
 
+        worktrees.$lastOwnerDataDirRemap
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] remap in
+                DispatchQueue.main.async { [weak self] in
+                    self?.migrateExternalActivitiesAfterWorkspaceRelocate(
+                        from: remap.from,
+                        to: remap.to
+                    )
+                }
+            }
+            .store(in: &cancellables)
+
+        worktrees.$ownerSessionGeneration
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { [weak self] in
+                    self?.pruneOrphanedExternalActivities()
+                }
+            }
+            .store(in: &cancellables)
+
         startExternalLifecycleObservation()
     }
 
@@ -253,9 +275,42 @@ final class ActivityManager: ObservableObject {
     }
 
     private func onFocusedSessionChanged(_ focused: FocusedSession?) {
+        pruneOrphanedExternalActivities()
+    }
+
+    private func pruneOrphanedExternalActivities() {
         let liveIDs = worktrees.liveOverlaySessionIDs
         externalActivities.removeAll { !liveIDs.contains($0.sessionId) }
         pruneStaleExternalActivities()
+    }
+
+    private func migrateExternalActivitiesAfterWorkspaceRelocate(from oldPath: String, to newPath: String) {
+        guard oldPath != newPath else { return }
+        externalActivities = externalActivities.map { activity in
+            let newSessionID = FocusedSession.remappedID(
+                activity.sessionId,
+                fromOldDataDir: oldPath,
+                toNewDataDir: newPath
+            )
+            let newWD = FocusedSession.remappedPath(
+                activity.workingDirectory,
+                fromOldDataDir: oldPath,
+                toNewDataDir: newPath
+            )
+            guard newSessionID != activity.sessionId || newWD != activity.workingDirectory else {
+                return activity
+            }
+            return ExternalActivity(
+                id: activity.id,
+                kind: activity.kind,
+                sessionId: newSessionID,
+                bundleID: activity.bundleID,
+                displayName: activity.displayName,
+                label: activity.label,
+                workingDirectory: newWD,
+                processIdentifier: activity.processIdentifier
+            )
+        }
     }
 
     private func startExternalLifecycleObservation() {

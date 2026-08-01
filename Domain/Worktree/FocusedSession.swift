@@ -45,6 +45,26 @@ enum FocusedSession: Equatable, Identifiable, Sendable {
             slug: workspace.slug
         )
     }
+
+    /// Remap a session id when a Workspace Data Dir moves (rename / Prefix relocate).
+    static func remappedID(_ sessionId: String, fromOldDataDir oldPath: String, toNewDataDir newPath: String) -> String {
+        guard oldPath != newPath else { return sessionId }
+        if sessionId == "main:\(oldPath)" {
+            return "main:\(newPath)"
+        }
+        let prefix = "worktree:"
+        guard sessionId.hasPrefix(prefix) else { return sessionId }
+        let path = String(sessionId.dropFirst(prefix.count))
+        guard path == oldPath || path.hasPrefix(oldPath + "/") else { return sessionId }
+        return prefix + newPath + path.dropFirst(oldPath.count)
+    }
+
+    /// Remap an absolute path under a relocated Workspace Data Dir.
+    static func remappedPath(_ path: String, fromOldDataDir oldPath: String, toNewDataDir newPath: String) -> String {
+        guard oldPath != newPath else { return path }
+        guard path == oldPath || path.hasPrefix(oldPath + "/") else { return path }
+        return newPath + path.dropFirst(oldPath.count)
+    }
 }
 
 extension WorktreeSummary {
