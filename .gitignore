@@ -1,8 +1,8 @@
 # Git
 .DS_Store
 
-# Local implementation artifacts (machine-only — see docs/README.md)
-.local/
+# Machine-only scratch (temporary files, session notes, local tooling — see docs/README.md)
+.scratch/
 
 # Xcode
 build/

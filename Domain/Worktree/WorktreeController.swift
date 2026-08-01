@@ -31,13 +31,13 @@ final class WorktreeController: ObservableObject {
     @Published private(set) var focusedSpawnEnvironment: [(key: String, value: String)] = []
     @Published var lastError: String?
 
-    /// Pending remove target for confirm UI (ADR 0020).
+    /// Pending remove target for confirm UI (ADR 2026-07-23-0020-remove-agent-keep-branch-default).
     @Published var pendingRemove: WorktreeSummary?
 
     /// When confirming remove, optionally also delete the branch (default keep).
     @Published var pendingRemoveDeleteBranch: Bool = false
 
-    /// Pending rename target (branch primary, folder secondary — ADR 0018).
+    /// Pending rename target (branch primary, folder secondary — ADR 2026-07-23-0018-agent-folder-auto-branch-independent).
     @Published var pendingRename: WorktreeSummary?
 
     /// New Worktree sheet (sidebar + Command Center parity).
@@ -296,7 +296,7 @@ final class WorktreeController: ObservableObject {
         applyFocus(.worktree(wt), forceRespawn: false)
     }
 
-    /// Cycle Main + Worktrees by `delta` (±1), wrapping (ADR 0022). Requires a current Workspace.
+    /// Cycle Main + Worktrees by `delta` (±1), wrapping (ADR 2026-07-25-0022-keyboard-keymap). Requires a current Workspace.
     func cycleWorktree(delta: Int) {
         guard let current = workspaces.current else {
             lastError = "Select a Workspace first"
@@ -396,7 +396,7 @@ final class WorktreeController: ObservableObject {
         focusedSpawnEnvironment = []
     }
 
-    /// Archive Worktree: soft flag only — folder + git worktree stay on disk (P1.3, ADR 0020
+    /// Archive Worktree: soft flag only — folder + git worktree stay on disk (P1.3, ADR 2026-07-23-0020-remove-agent-keep-branch-default
     /// spirit). Hides it from default lists; refocuses Main Repo if it was the focused session.
     /// Takes a `WorktreeSummary`, not a Workspace — Main can never be archived through this API
     /// (P1.5 protects Main structurally, not just via missing UI affordances).
@@ -417,7 +417,7 @@ final class WorktreeController: ObservableObject {
         }
     }
 
-    /// Begin Remove Worktree confirm (ADR 0020). Takes a `WorktreeSummary`, not a Workspace — Main
+    /// Begin Remove Worktree confirm (ADR 2026-07-23-0020-remove-agent-keep-branch-default). Takes a `WorktreeSummary`, not a Workspace — Main
     /// can never be removed through this API (P1.5 protects Main structurally).
     func requestRemove(_ wt: WorktreeSummary) {
         pendingRemoveDeleteBranch = false

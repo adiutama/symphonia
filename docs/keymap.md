@@ -1,6 +1,6 @@
 # Keymap
 
-Operator-facing keybind reference. **In-app cheatsheet (⌘⇧/) is live from code** (`KeymapBindings` + `CommandRegistry`); this file is the product default for docs/review. Decisions: [ADR 0022](adr/0022-keyboard-keymap.md).
+Operator-facing keybind reference. **In-app cheatsheet (⌘⇧/) is live from code** (`KeymapBindings` + `CommandRegistry`); this file is the product default for docs/review. Decisions: [ADR 2026-07-25-0022-keyboard-keymap](adr/2026-07-25-0022-keyboard-keymap.md).
 
 ⌘⇧/ **toggles** the Keymap window.
 

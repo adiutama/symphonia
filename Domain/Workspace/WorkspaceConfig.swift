@@ -5,7 +5,7 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     /// Operator-picked Slug (folder name under Prefix).
     var slug: String
 
-    /// Optional Prefix override (ADR 0015). `nil` = Global Workspaces Root.
+    /// Optional Prefix override (ADR 2026-07-23-0015-workspace-prefix-self-contained). `nil` = Global Workspaces Root.
     var prefix: String?
 
     /// Workspace override for Main CLI command. Empty string is a valid override (bare shell).
@@ -38,7 +38,7 @@ struct WorkspaceConfig: Codable, Equatable, Sendable {
     /// Workspace override for Base Ref.
     var baseRef: String?
 
-    /// Three-Word folder names of Worktrees soft-archived under this Workspace (P1.3, ADR 0020
+    /// Three-Word folder names of Worktrees soft-archived under this Workspace (P1.3, ADR 2026-07-23-0020-remove-agent-keep-branch-default
     /// spirit: remove still exists; archive is softer). Archived Worktrees keep their folder and
     /// git worktree registration on disk — only the flag lives here. `nil`/missing (legacy
     /// `config.toml` written before this field existed) means none archived.

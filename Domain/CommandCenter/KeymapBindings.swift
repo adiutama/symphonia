@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Single source of truth for Operator chords that are not Normal-mode sequences (ADR 0022).
+/// Single source of truth for Operator chords that are not Normal-mode sequences (ADR 2026-07-25-0022-keyboard-keymap).
 ///
 /// Matched by `CommandCenterController`; listed by `KeymapCheatsheetView` and Settings Hotkeys.
 /// Sequences come from `CommandRegistry` + `CommandBindingResolver`.
@@ -128,7 +128,7 @@ enum KeymapBindings {
         commandCenterOnlyChords.first(where: { $0.matches(event) })?.action
     }
 
-    /// Display string for a Command's fixed modifier chord, if any (ADR 0022).
+    /// Display string for a Command's fixed modifier chord, if any (ADR 2026-07-25-0022-keyboard-keymap).
     /// Settings Hotkey column is read-only from this — Operator overrides do not apply.
     static func hotkeyDisplay(for action: CommandCenterAction) -> String? {
         if let chord = globalChords.first(where: { $0.action == action }) {

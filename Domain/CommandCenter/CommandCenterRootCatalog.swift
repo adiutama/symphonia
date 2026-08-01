@@ -1,6 +1,6 @@
 import Foundation
 
-/// Builds Command Center root palette rows from the command registry (ADR 0021 / 0022).
+/// Builds Command Center root palette rows from the command registry (ADR 2026-07-24-0021-command-center-registry / 2026-07-25-0022-keyboard-keymap).
 ///
 /// Owned by `CommandCenterController`; nest pickers live in `CommandCenterNestCatalog`.
 @MainActor

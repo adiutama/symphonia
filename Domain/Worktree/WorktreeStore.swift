@@ -1,7 +1,7 @@
 import Foundation
 
 /// One Worktree ↔ one Worktree folder, a **sibling of `main/`** under `<workspace>/<three-word>/`
-/// (ADR 0003, 0014, 0018 — flattened in P1.5).
+/// (ADR 2026-07-23-0003-workspace-git-managed-worktrees / 2026-07-23-0014-main-repo-dir-and-external-clone / 2026-07-23-0018-agent-folder-auto-branch-independent; flattened in P1.5).
 struct WorktreeSummary: Equatable, Identifiable, Sendable {
     /// Stable id = absolute Worktree path (folder is on-disk identity).
     var id: String { worktreeURL.path }
@@ -16,7 +16,7 @@ struct WorktreeSummary: Equatable, Identifiable, Sendable {
     var branchName: String?
 }
 
-/// Create / list / remove Worktrees via `git worktree` (ADR 0003, 0014, 0017–0020).
+/// Create / list / remove Worktrees via `git worktree` (ADR 2026-07-23-0003-workspace-git-managed-worktrees / 2026-07-23-0014-main-repo-dir-and-external-clone / 2026-07-23-0017-agent-branch-three-word-auto … 2026-07-23-0020-remove-agent-keep-branch-default).
 struct WorktreeStore: @unchecked Sendable {
     enum StoreError: LocalizedError, Equatable {
         case noWorkspace
@@ -135,7 +135,7 @@ struct WorktreeStore: @unchecked Sendable {
     ///   - workspaceDataDir: Workspace Data Dir containing `main/` and sibling Worktree folders.
     ///   - threeWordName: Folder name (auto Three-Word Name); refused when reserved (`main`).
     ///   - branchName: New branch name (default = folder name when caller passes the same).
-    ///   - baseRef: Effective Base Ref to branch from (ADR 0019).
+    ///   - baseRef: Effective Base Ref to branch from (ADR 2026-07-23-0019-agent-branch-base-setting).
     @discardableResult
     func create(
         workspaceDataDir: URL,
@@ -193,7 +193,7 @@ struct WorktreeStore: @unchecked Sendable {
 
     // MARK: - Rename
 
-    /// Rename branch and/or folder for one Worktree (ADR 0018).
+    /// Rename branch and/or folder for one Worktree (ADR 2026-07-23-0018-agent-folder-auto-branch-independent).
     ///
     /// Pass the Operator-edited branch and folder names; unchanged values are no-ops.
     /// Branch: `git branch -m` in the checkout. Folder: `git worktree move`.
@@ -278,7 +278,7 @@ struct WorktreeStore: @unchecked Sendable {
 
     // MARK: - Remove
 
-    /// Remove Worktree folder + git registration; **keeps** the branch by default (ADR 0020).
+    /// Remove Worktree folder + git registration; **keeps** the branch by default (ADR 2026-07-23-0020-remove-agent-keep-branch-default).
     /// Refuses `main` even if a caller somehow constructs an `WorktreeSummary` for it directly —
     /// Main is protected at every layer, not just the UI (P1.5).
     ///

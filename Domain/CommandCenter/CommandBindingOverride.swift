@@ -1,7 +1,7 @@
 import Foundation
 
 /// Operator override for one Command's Normal-mode sequence, persisted by Command
-/// `id` in Global Setting (`GlobalPreferences.commandBindings`, ADR 0021 CC.3 / ADR 0022).
+/// `id` in Global Setting (`GlobalPreferences.commandBindings`, ADR 2026-07-24-0021-command-center-registry CC.3 / ADR 2026-07-25-0022-keyboard-keymap).
 ///
 /// `sequence == nil` → derive from title (or `Command.defaultSequence`).
 /// `sequence == ""` → explicitly none.
@@ -15,7 +15,7 @@ struct CommandBindingOverride: Codable, Equatable, Sendable {
 }
 
 /// Resolves **effective** Command sequences: Operator override (Global Setting)
-/// if present, otherwise the Command's own default (ADR 0021 CC.3 / ADR 0022).
+/// if present, otherwise the Command's own default (ADR 2026-07-24-0021-command-center-registry CC.3 / ADR 2026-07-25-0022-keyboard-keymap).
 enum CommandBindingResolver {
     /// Effective Normal-mode sequence. `nil` means no sequence.
     static func sequence(

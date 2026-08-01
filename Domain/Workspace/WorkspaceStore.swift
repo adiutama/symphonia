@@ -1,6 +1,6 @@
 import Foundation
 
-/// On-disk Workspace Data Dir create / layout / list (ADR 0012, 0014, 0015).
+/// On-disk Workspace Data Dir create / layout / list (ADR 2026-07-23-0012-workspace-data-dir-plaintext / 2026-07-23-0014-main-repo-dir-and-external-clone / 2026-07-23-0015-workspace-prefix-self-contained).
 ///
 /// Create runs `git init` in `main/` by default so dogfooding works immediately, or
 /// `git clone <url>` when a Clone URL is supplied (P1.4) — the remote URL is then persisted
@@ -257,7 +257,7 @@ struct WorkspaceStore: @unchecked Sendable {
 
     // MARK: - Rename
 
-    /// Rename Workspace slug and move the Workspace Data Dir on disk (ADR 0013, 0015).
+    /// Rename Workspace slug and move the Workspace Data Dir on disk (ADR 2026-07-23-0013-workspace-slug-no-multi-clone / 2026-07-23-0015-workspace-prefix-self-contained).
     /// Updates `config.toml`, the session index, and `lastSelectedSlug` when it matched the old slug.
     func rename(
         summary: WorkspaceSummary,

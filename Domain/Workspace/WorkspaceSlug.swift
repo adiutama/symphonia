@@ -1,6 +1,6 @@
 import Foundation
 
-/// Operator-picked Workspace folder name (ADR 0013).
+/// Operator-picked Workspace folder name (ADR 2026-07-23-0013-workspace-slug-no-multi-clone).
 enum WorkspaceSlug {
     enum ValidationError: LocalizedError, Equatable {
         case empty
@@ -26,7 +26,7 @@ enum WorkspaceSlug {
 
         // "worktrees" stays reserved for safety even though P1.5 flattened Worktree checkouts to
         // siblings of `main/` (no `worktrees/` parent anymore). `main` is the single source of
-        // truth in `SymphoniaPaths.reservedWorkspaceChildNames` (ADR 0014) — folded in here so
+        // truth in `SymphoniaPaths.reservedWorkspaceChildNames` (ADR 2026-07-23-0014-main-repo-dir-and-external-clone) — folded in here so
         // this validator (reused for both Workspace slugs and, in `WorktreeController.createWorktree()`,
         // Operator-edited Worktree folder names) refuses it case-insensitively either way.
         let reserved = Set([

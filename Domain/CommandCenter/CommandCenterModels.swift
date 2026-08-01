@@ -150,7 +150,7 @@ struct CommandCenterItem: Identifiable, Equatable {
     }
 }
 
-/// Actions runnable from Command Center (ADR 0009 / 0022).
+/// Actions runnable from Command Center (ADR 2026-07-23-0009-leader-command-mode / 2026-07-25-0022-keyboard-keymap).
 enum CommandCenterAction: Equatable {
     case dismiss
     case back

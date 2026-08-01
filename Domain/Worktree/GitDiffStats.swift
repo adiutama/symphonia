@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-/// Inserted / deleted line counts for Glance Changes (ADR 0023).
+/// Inserted / deleted line counts for Glance Changes (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 struct GitDiffStats: Equatable, Sendable {
     var inserted: Int
     var deleted: Int

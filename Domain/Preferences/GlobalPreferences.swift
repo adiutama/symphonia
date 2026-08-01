@@ -2,13 +2,13 @@ import Foundation
 
 /// Operator-wide Global Setting persisted at `~/.symphonia/preferences.toml` (T.1).
 ///
-/// Workspace Setting may override these per Workspace; see ``EffectiveSettings`` (ADR 0016).
+/// Workspace Setting may override these per Workspace; see ``EffectiveSettings`` (ADR 2026-07-23-0016-settings-workspace-overrides-global).
 struct GlobalPreferences: Codable, Equatable, Sendable {
-    /// Default Main CLI command (coding agent). Empty = bare shell / login CLI (ADR 0005).
+    /// Default Main CLI command (coding agent). Empty = bare shell / login CLI (ADR 2026-07-23-0005-main-cli-command-config).
     /// Workspace may override with a concrete agent command.
     var mainCLICommand: String
 
-    /// Editor command for Overlay Presentation (ADR 0006).
+    /// Editor command for Overlay Presentation (ADR 2026-07-23-0006-editor-overlay-hide-not-quit).
     /// Empty = resolve `$EDITOR` at Effective Setting time. Prefer TUI editors for Overlay;
     /// GUI editors use External Presentation.
     var editorCommand: String
@@ -42,15 +42,15 @@ struct GlobalPreferences: Codable, Equatable, Sendable {
     /// Mode applied when Leader opens Command Center (`normal` | `input`).
     var commandCenterPreferredMode: CommandCenterMode
 
-    /// Global Workspaces Root (default parent for Workspace containers). ADR 0015.
+    /// Global Workspaces Root (default parent for Workspace containers). ADR 2026-07-23-0015-workspace-prefix-self-contained.
     /// May use `~` for the Operator home directory.
     var workspacesRoot: String
 
-    /// Default Base Ref for new Worktree branches (ADR 0019).
+    /// Default Base Ref for new Worktree branches (ADR 2026-07-23-0019-agent-branch-base-setting).
     var baseRef: String
 
     /// Operator overrides for Command sequences, keyed by stable Command `id`
-    /// (e.g. `"overlay.openEditor"`, ADR 0021 CC.3 / ADR 0022). Missing id → Command defaults.
+    /// (e.g. `"overlay.openEditor"`, ADR 2026-07-24-0021-command-center-registry CC.3 / ADR 2026-07-25-0022-keyboard-keymap). Missing id → Command defaults.
     /// Aliases are no longer used.
     var commandBindings: [String: CommandBindingOverride]
 

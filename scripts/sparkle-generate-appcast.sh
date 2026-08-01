@@ -13,7 +13,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DMG="${1:?usage: sparkle-generate-appcast.sh /path/to/Symphonia-VERSION.dmg [version]}"
 VERSION="${2:-}"
-TOOLS="$ROOT/.local/sparkle"
+TOOLS="$ROOT/.scratch/sparkle"
 OUT_DIR="${SPARKLE_APPCAST_DIR:-$ROOT/build/sparkle}"
 
 if [[ ! -f "$DMG" ]]; then
@@ -30,8 +30,8 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 if [[ -z "${SPARKLE_ED_PRIVATE_KEY:-}" && -z "${SPARKLE_ED_PRIVATE_KEY_FILE:-}" ]]; then
-  if [[ -f "$ROOT/.local/sparkle/ed-private.key" ]]; then
-    SPARKLE_ED_PRIVATE_KEY_FILE="$ROOT/.local/sparkle/ed-private.key"
+  if [[ -f "$ROOT/.scratch/sparkle/ed-private.key" ]]; then
+    SPARKLE_ED_PRIVATE_KEY_FILE="$ROOT/.scratch/sparkle/ed-private.key"
   else
     echo "error: set SPARKLE_ED_PRIVATE_KEY or SPARKLE_ED_PRIVATE_KEY_FILE (run scripts/sparkle-setup-keys.sh)" >&2
     exit 1

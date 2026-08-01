@@ -11,7 +11,7 @@ struct SymphoniaApp: App {
     @StateObject private var overlays: OverlayController
     @StateObject private var activities: ActivityManager
     @StateObject private var commandCenter: CommandCenterController
-    /// Command registry (ADR 0021). Drives `commandCenter`'s root palette (CC.2);
+    /// Command registry (ADR 2026-07-24-0021-command-center-registry). Drives `commandCenter`'s root palette (CC.2);
     /// constructed here so it's app-wide and testable.
     @StateObject private var commandRegistry: CommandRegistry
     /// Ghostty config colors for chrome (bg/fg/scheme). Load once at launch.

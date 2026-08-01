@@ -1,6 +1,6 @@
 import Foundation
 
-/// Editor Overlay vs Background CLI Overlay vs Files Overlay (ADR 0006–0008, 0023).
+/// Editor Overlay vs Background CLI Overlay vs Files Overlay (ADR 2026-07-23-0006-editor-overlay-hide-not-quit / 2026-07-23-0007-background-cli-peek-overlays / 2026-07-23-0008-overlay-switcher-editor-weight, 2026-07-31-0023-activity-manager-overlay-presentation).
 enum OverlayKind: String, Equatable, Sendable {
     /// High-attention craft surface (Editor Overlay).
     case editor
@@ -10,7 +10,7 @@ enum OverlayKind: String, Equatable, Sendable {
     case files
 }
 
-/// One live Overlay session. Hide peeks away without destroying the PTY (ADR 0006/0007).
+/// One live Overlay session. Hide peeks away without destroying the PTY (ADR 2026-07-23-0006-editor-overlay-hide-not-quit / 2026-07-23-0007-background-cli-peek-overlays).
 struct OverlaySession: Identifiable, Equatable {
     let id: UUID
     let kind: OverlayKind
@@ -21,7 +21,7 @@ struct OverlaySession: Identifiable, Equatable {
     /// Ghostty `command`; nil = bare shell.
     let command: String?
     let workingDirectory: String
-    /// Enabled Secret Store snapshot at spawn (ADR 0002).
+    /// Enabled Secret Store snapshot at spawn (ADR 2026-07-23-0002-secret-injection-spawn-then-direnv).
     let spawnEnvironment: [(key: String, value: String)]
 
     static func == (lhs: OverlaySession, rhs: OverlaySession) -> Bool {

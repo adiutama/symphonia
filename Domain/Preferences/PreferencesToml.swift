@@ -38,7 +38,7 @@ enum PreferencesToml {
         let bindingKeys = preferences.commandBindings.keys.sorted()
         if !bindingKeys.isEmpty {
             lines.append("")
-            lines.append("# Command sequences keyed by Command id (ADR 0021 / 0022).")
+            lines.append("# Command sequences keyed by Command id (ADR 2026-07-24-0021-command-center-registry / 2026-07-25-0022-keyboard-keymap).")
             for id in bindingKeys {
                 guard let override = preferences.commandBindings[id] else { continue }
                 // Only sequences are Operator-overridable. Ignore leftover shortcut/alias keys.

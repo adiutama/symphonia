@@ -1,6 +1,6 @@
 import Foundation
 
-/// Context available when evaluating a Command's availability (ADR 0021).
+/// Context available when evaluating a Command's availability (ADR 2026-07-24-0021-command-center-registry).
 ///
 /// Kept intentionally small — enough to gate Overlay-related Commands
 /// (Open Editor needs a focused session; Toggle Overlay needs one too). Extend
@@ -24,7 +24,7 @@ extension CommandContext {
 }
 
 /// A first-class app action exported by an app area and invoked
-/// from Command Center (ADR 0021 / CONTEXT.md "Command").
+/// from Command Center (ADR 2026-07-24-0021-command-center-registry / CONTEXT.md "Command").
 ///
 /// `action` wraps `CommandCenterAction` so `CommandCenterController` stays the place that
 /// executes; the registry adds discovery and a default Normal-mode sequence on top.
@@ -36,7 +36,7 @@ struct Command: Identifiable {
     let subtitle: String?
     /// Loose grouping for palette sections / Settings list (e.g. `"Overlay"`).
     let group: String?
-    /// Normal-mode sequence. `nil` → derive from title (fallback). `""` → no sequence (ADR 0022).
+    /// Normal-mode sequence. `nil` → derive from title (fallback). `""` → no sequence (ADR 2026-07-25-0022-keyboard-keymap).
     let defaultSequence: String?
     /// Existing Command Center action this Command runs.
     let action: CommandCenterAction
@@ -62,7 +62,7 @@ struct Command: Identifiable {
     }
 }
 
-/// An app area's export point for Commands (ADR 0021 §2).
+/// An app area's export point for Commands (ADR 2026-07-24-0021-command-center-registry §2).
 ///
 /// Kept as a plain in-process protocol — no extension host, IPC, or install UI. A future
 /// extension is "just another `CommandProvider`" per the ADR; this seam should not need to
@@ -76,7 +76,7 @@ protocol CommandProvider {
     var commands: [Command] { get }
 }
 
-/// Aggregates every registered `CommandProvider` into one flat Command list (ADR 0021 §2).
+/// Aggregates every registered `CommandProvider` into one flat Command list (ADR 2026-07-24-0021-command-center-registry §2).
 ///
 /// Command Center (CC.2) will read from this instead of owning a private, hardcoded action
 /// table. For CC.1 the registry only needs to compile and be constructible — see

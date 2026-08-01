@@ -21,4 +21,4 @@ Power users who clone via CLI still end up with Main Repo inside that container 
 
 Supersedes the “external main path + worktrees still under ~/.symphonia” split considered earlier.
 
-Prefix is one instance of **Workspace Setting overrides Global Setting** (ADR 0016).
+Prefix is one instance of **Workspace Setting overrides Global Setting** (ADR 2026-07-23-0016-settings-workspace-overrides-global).

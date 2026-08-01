@@ -71,7 +71,7 @@ Sparkle verifies updates with an EdDSA key pair (separate from Apple code signin
 That script:
 
 1. Writes the **public** key into `App/Info.plist` (`SUPublicEDKey`) and `App/SUPublicEDKey.txt` — **commit these**.
-2. Exports the **private** key to `.local/sparkle/ed-private.key` (gitignored).
+2. Exports the **private** key to `.scratch/sparkle/ed-private.key` (gitignored).
 3. You add the private key contents as GitHub Actions secret **`SPARKLE_ED_PRIVATE_KEY`**.
 
 Without `SPARKLE_ED_PRIVATE_KEY`, the release workflow still ships the DMG but **skips** the appcast.

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Builds Command Center nest picker rows and ephemeral nest sequences (ADR 0022).
+/// Builds Command Center nest picker rows and ephemeral nest sequences (ADR 2026-07-25-0022-keyboard-keymap).
 ///
 /// Owned by `CommandCenterController`; kept separate so palette orchestration stays thin.
 @MainActor

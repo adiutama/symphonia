@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Glance — Activity Manager UI (ADR 0023).
+/// Glance — Activity Manager UI (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 ///
 /// Compact inventory of Activities for the focused Worktree: Changes, Shells, Editors, Files.
 /// Overlay Activities support Focus (peek) / Hide; External Activities support Focus / End only.

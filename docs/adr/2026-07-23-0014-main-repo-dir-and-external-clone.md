@@ -14,14 +14,14 @@ P1.5; see below).
 ```
 
 Symphonia may clone or `git init` into `main/`. Power users may CLI-clone into that same `main/`
-path (or prepare a Workspace container under a custom Prefix — ADR 0015). The Main Repo does not
+path (or prepare a Workspace container under a custom Prefix — ADR 2026-07-23-0015-workspace-prefix-self-contained). The Main Repo does not
 live outside the Workspace Data Dir.
 
-**See ADR 0015** for Workspaces Root vs per-Workspace Prefix and the self-contained rule.
+**See ADR 2026-07-23-0015-workspace-prefix-self-contained** for Workspaces Root vs per-Workspace Prefix and the self-contained rule.
 
 ## P1.5: flattened, protected, and healed
 
-**Flat siblings.** Earlier drafts of this ADR (and ADR 0003/0004/0012/0015) nested Worktree
+**Flat siblings.** Earlier drafts of this ADR (and ADR 2026-07-23-0003-workspace-git-managed-worktrees / 2026-07-23-0004-worktree-root-symphonia-home / 2026-07-23-0012-workspace-data-dir-plaintext / 2026-07-23-0015-workspace-prefix-self-contained) nested Worktree
 checkouts under a `worktrees/` parent (`<data-dir>/worktrees/<three-word>/`). P1.5 removes that
 extra level: Worktree checkouts are created directly as siblings of `main/` —
 `<data-dir>/<three-word>/`. `SymphoniaPaths.workspaceWorktreeDirectory(in:threeWordName:)` returns

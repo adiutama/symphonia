@@ -303,7 +303,7 @@ struct ShortcutsSettingsView: View {
         for key in order {
             let commands = buckets[key] ?? []
             let rows = commands.map { command -> ShortcutRow in
-                // nil → title-derived sequence allowed; "" → explicitly none (ADR 0022).
+                // nil → title-derived sequence allowed; "" → explicitly none (ADR 2026-07-25-0022-keyboard-keymap).
                 let allowsSequence = command.defaultSequence.map { !$0.isEmpty } ?? true
                 return ShortcutRow(
                     id: command.id,

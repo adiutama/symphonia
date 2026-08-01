@@ -1,10 +1,10 @@
 import Foundation
 
-/// Persist / load Workspace Secret Store under the Workspace Data Dir (ADR 0001, 0012, T.3).
+/// Persist / load Workspace Secret Store under the Workspace Data Dir (ADR 2026-07-23-0001-workspace-secret-store / 2026-07-23-0012-workspace-data-dir-plaintext, T.3).
 ///
 /// Canonical file: `<data-dir>/secrets.toml` (mode 0600). Never written into `main/` or a
 /// Worktree checkout — both are git repos/checkouts that sit as siblings under the Workspace
-/// Data Dir (ADR 0014, P1.5); the Workspace Data Dir itself never is.
+/// Data Dir (ADR 2026-07-23-0014-main-repo-dir-and-external-clone, P1.5); the Workspace Data Dir itself never is.
 /// Legacy `secrets.json` / non-empty `secrets.env` are ignored (no migration).
 struct SecretStore: @unchecked Sendable {
     enum StoreError: LocalizedError, Equatable {

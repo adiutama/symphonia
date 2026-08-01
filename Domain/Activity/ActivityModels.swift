@@ -1,13 +1,13 @@
 import Foundation
 
-/// Craft-surface kind tracked by Activity Manager (ADR 0023).
+/// Craft-surface kind tracked by Activity Manager (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 enum ActivityKind: String, Equatable, Sendable, Codable {
     case shell
     case editor
     case files
 }
 
-/// Overlay vs External Presentation for an Activity (ADR 0023).
+/// Overlay vs External Presentation for an Activity (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 typealias ActivityPresentation = EditorPresentation
 
 /// One External Presentation Activity (GUI outside Symphonia).
@@ -46,7 +46,7 @@ struct ExternalActivity: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Stable defaults for stock macOS tools (ADR 0023).
+/// Stable defaults for stock macOS tools (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 enum ActivityDefaults {
     static let editorBundleID = "com.apple.TextEdit"
     static let fileManagerBundleID = "com.apple.finder"

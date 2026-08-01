@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import Foundation
 
-/// Overlay peek/hide host lifecycle (Phase 6 / ADR 0006–0008).
+/// Overlay peek/hide host lifecycle (Phase 6 / ADR 2026-07-23-0006-editor-overlay-hide-not-quit / 2026-07-23-0007-background-cli-peek-overlays / 2026-07-23-0008-overlay-switcher-editor-weight).
 ///
 /// - One visible Overlay at a time (`visibleOverlayID`); nil = Main CLI.
 /// - Hide / Switch Workspace / Switch Worktree does not remove the session → PTY stays alive until Close.
@@ -86,7 +86,7 @@ final class OverlayController: ObservableObject {
 
     // MARK: - Peek / hide / toggle
 
-    /// Return to Main CLI without quitting Overlay processes (ADR 0006/0007).
+    /// Return to Main CLI without quitting Overlay processes (ADR 2026-07-23-0006-editor-overlay-hide-not-quit / 2026-07-23-0007-background-cli-peek-overlays).
     func hide() {
         if let visibleOverlayID {
             lastPeekedOverlayID = visibleOverlayID
@@ -103,8 +103,8 @@ final class OverlayController: ObservableObject {
         lastError = nil
     }
 
-    /// Show or hide Overlay (ADR 0022). Visible → hide; hidden → last peeked, else Overlay Editor.
-    /// Does not open External Editors — Toggle Overlay stays Overlay-scoped (ADR 0023).
+    /// Show or hide Overlay (ADR 2026-07-25-0022-keyboard-keymap). Visible → hide; hidden → last peeked, else Overlay Editor.
+    /// Does not open External Editors — Toggle Overlay stays Overlay-scoped (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
     func toggle() {
         if isShowingOverlay {
             hide()

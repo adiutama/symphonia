@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import Foundation
 
-/// Leader → Command Center (ADR 0009 / 0021 / 0022): Normal / Input modes, sequences, nests.
+/// Leader → Command Center (ADR 2026-07-23-0009-leader-command-mode / 2026-07-24-0021-command-center-registry / 2026-07-25-0022-keyboard-keymap): Normal / Input modes, sequences, nests.
 ///
 /// Uses an AppKit local keyDown monitor so Ghostty first-responder PTYs never see
 /// Leader chords or in-mode keystrokes. Effective `leaderKey` is re-parsed each event.
@@ -378,12 +378,12 @@ final class CommandCenterController: ObservableObject {
             return nil
         }
 
-        // ⌃N / ⌃P / ⌃U — both modes (ADR 0022).
+        // ⌃N / ⌃P / ⌃U — both modes (ADR 2026-07-25-0022-keyboard-keymap).
         if handleCommandCenterControlKeys(event) {
             return nil
         }
 
-        // CC-only modifier chords (ADR 0022).
+        // CC-only modifier chords (ADR 2026-07-25-0022-keyboard-keymap).
         if handleCommandCenterOnlyShortcut(event) {
             return nil
         }

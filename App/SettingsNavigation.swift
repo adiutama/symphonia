@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-/// Deep-link target for the Settings window (T.5) and Keymap cheatsheet (ADR 0022).
+/// Deep-link target for the Settings window (T.5) and Keymap cheatsheet (ADR 2026-07-25-0022-keyboard-keymap).
 ///
 /// Sidebar / Command Center set a destination, then present the custom Settings
 /// `Window` (not SwiftUI’s `Settings` scene — that scene forces a system titlebar

@@ -21,7 +21,7 @@ struct ExternalOpenResult: Sendable {
     var processIdentifier: pid_t?
 }
 
-/// NSWorkspace seam for External Presentation (ADR 0023).
+/// NSWorkspace seam for External Presentation (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 protocol ExternalAppLaunching: Sendable {
     func displayName(forBundleID bundleID: String) -> String
     /// Process running (Finder is almost always true on macOS).

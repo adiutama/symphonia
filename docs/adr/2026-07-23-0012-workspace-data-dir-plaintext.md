@@ -14,10 +14,10 @@ Example shape (default):
     <slug>/
       config.toml
       secrets.toml          # plaintext, mode 0600
-      main/                 # primary git repo (see ADR 0014)
+      main/                 # primary git repo (see ADR 2026-07-23-0014-main-repo-dir-and-external-clone)
       <three-word>/         # Worktree checkout (sibling of main/)
 ```
 
-Supersedes the flatter “only worktrees under `~/.symphonia/worktrees/`” layout from ADR 0004. Folder name `<slug>` is Operator-picked (ADR 0013). Main Repo vs Worktrees separation and external CLI clones: ADR 0014.
+Supersedes the flatter “only worktrees under `~/.symphonia/worktrees/`” layout from ADR 2026-07-23-0004-worktree-root-symphonia-home. Folder name `<slug>` is Operator-picked (ADR 2026-07-23-0013-workspace-slug-no-multi-clone). Main Repo vs Worktrees separation and external CLI clones: ADR 2026-07-23-0014-main-repo-dir-and-external-clone.
 
-**See ADR 0015** for Workspaces Root / Prefix; the container stays self-contained.
+**See ADR 2026-07-23-0015-workspace-prefix-self-contained** for Workspaces Root / Prefix; the container stays self-contained.

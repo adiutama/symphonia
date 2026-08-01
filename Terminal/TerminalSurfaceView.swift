@@ -2,7 +2,7 @@ import AppKit
 import GhosttyKit
 import SwiftUI
 
-/// Owns one Ghostty app + surface bound to this `NSView` (ADR 0011).
+/// Owns one Ghostty app + surface bound to this `NSView` (ADR 2026-07-23-0011-swiftui-chrome-appkit-terminal).
 ///
 /// P1.1: render surface. P1.3: AppKit first-responder + key/mouse → `ghostty_surface_*`
 /// (mirrors Ghostty's `SurfaceView_AppKit` / `NSEvent+Extension` patterns).
@@ -433,7 +433,7 @@ final class TerminalSurfaceNSView: NSView, NSMenuItemValidation {
 
 }
 
-/// SwiftUI bridge for the AppKit terminal island (ADR 0011).
+/// SwiftUI bridge for the AppKit terminal island (ADR 2026-07-23-0011-swiftui-chrome-appkit-terminal).
 ///
 /// Intentionally not `.focusable()` — AppKit first-responder owns typing focus
 /// so SwiftUI does not steal key events from the surface.

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Exports Overlay-related Commands into the `CommandRegistry` (ADR 0021 §2 / ADR 0022).
+/// Exports Overlay-related Commands into the `CommandRegistry` (ADR 2026-07-24-0021-command-center-registry §2 / ADR 2026-07-25-0022-keyboard-keymap).
 struct OverlayCommandProvider: CommandProvider {
     var commands: [Command] {
         [

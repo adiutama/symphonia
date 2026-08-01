@@ -1,6 +1,6 @@
 # Terminal
 
-AppKit terminal island for libghostty / GhosttyKit (ADR 0010, 0011).
+AppKit terminal island for libghostty / GhosttyKit (ADR 2026-07-23-0010-native-macos-first / 2026-07-23-0011-swiftui-chrome-appkit-terminal).
 
 | Path | Role |
 |------|------|

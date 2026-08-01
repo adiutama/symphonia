@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import Foundation
 
-/// Activity Manager — Open · Focus · End for Overlay and External Presentations (ADR 0023).
+/// Activity Manager — Open · Focus · End for Overlay and External Presentations (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 @MainActor
 final class ActivityManager: ObservableObject {
     private let preferences: PreferencesController

@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Parsed Leader binding from Effective Setting strings like `cmd+shift+p` (ADR 0009 / P7.3).
+/// Parsed Leader binding from Effective Setting strings like `cmd+shift+p` (ADR 2026-07-23-0009-leader-command-mode / P7.3).
 struct LeaderKeyBinding: Equatable {
     /// Single character key (lowercase letter / digit / punctuation as produced by
     /// `NSEvent.charactersIgnoringModifiers`).

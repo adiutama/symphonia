@@ -2,7 +2,7 @@
 
 ## Chosen approach
 
-Embed Ghostty via upstream **GhosttyKit.xcframework** (clone [ghostty-org/ghostty](https://github.com/ghostty-org/ghostty) at the pin in `Vendor/ghostty.pin`, Zig-build native xcframework). Linked from Xcode like Ghostty’s own macOS app (ADR 0010, 0011).
+Embed Ghostty via upstream **GhosttyKit.xcframework** (clone [ghostty-org/ghostty](https://github.com/ghostty-org/ghostty) at the pin in `Vendor/ghostty.pin`, Zig-build native xcframework). Linked from Xcode like Ghostty’s own macOS app (ADR 2026-07-23-0010-native-macos-first / 2026-07-23-0011-swiftui-chrome-appkit-terminal).
 
 Other options considered during the spike (community SPM, libghostty-vt only, raw `libghostty.a`) were not chosen for the app surface.
 

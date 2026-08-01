@@ -1,6 +1,6 @@
 import Foundation
 
-/// How Symphonia should open the configured Editor (ADR 0006 / 0023).
+/// How Symphonia should open the configured Editor (ADR 2026-07-23-0006-editor-overlay-hide-not-quit / 2026-07-31-0023-activity-manager-overlay-presentation).
 ///
 /// Overlay PTY suits TUI editors (`vim`, `nano`, …). GUI editors launch as External
 /// Activities (Focus / End — no peek/hide).

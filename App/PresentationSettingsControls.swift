@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 // MARK: - Kind pickers
 
-/// Kind-first Presentation picker — short labels; copy explains Overlay vs External (ADR 0023).
+/// Kind-first Presentation picker — short labels; copy explains Overlay vs External (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 struct PresentationKindPicker: View {
     @Binding var presentation: EditorPresentation
 

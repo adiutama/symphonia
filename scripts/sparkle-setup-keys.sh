@@ -2,14 +2,14 @@
 # One-time Sparkle EdDSA key setup for Symphonia maintainers.
 #
 # Writes the public key to App/SUPublicEDKey.txt (commit this file).
-# Exports the private key to .local/sparkle/ed-private.key (gitignored).
+# Exports the private key to .scratch/sparkle/ed-private.key (gitignored).
 # Add the private key contents as GitHub Actions secret SPARKLE_ED_PRIVATE_KEY.
 #
-# Requires Sparkle tools. Downloads them into .local/sparkle/ if missing.
+# Requires Sparkle tools. Downloads them into .scratch/sparkle/ if missing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOLS="$ROOT/.local/sparkle"
+TOOLS="$ROOT/.scratch/sparkle"
 ACCOUNT="xyz.adiutama.symphonia"
 PUBLIC_OUT="$ROOT/App/SUPublicEDKey.txt"
 PRIVATE_OUT="$TOOLS/ed-private.key"

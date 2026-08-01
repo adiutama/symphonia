@@ -445,7 +445,7 @@ final class WorkspaceController: ObservableObject {
 
     // MARK: - Archive (P1.3)
 
-    /// Three-Word names archived under `workspace` (soft flag in `config.toml`; ADR 0020 spirit).
+    /// Three-Word names archived under `workspace` (soft flag in `config.toml`; ADR 2026-07-23-0020-remove-agent-keep-branch-default spirit).
     func archivedWorktreeNames(for workspace: WorkspaceSummary) -> Set<String> {
         let config = workspace.id == current?.id
             ? currentConfig

@@ -2,7 +2,7 @@ import Foundation
 
 /// On-disk Secret Store document (Workspace Data Dir `secrets.toml`, mode 0600, T.3).
 ///
-/// Format version 1 — see Domain README. Values are plaintext (ADR 0012).
+/// Format version 1 — see Domain README. Values are plaintext (ADR 2026-07-23-0012-workspace-data-dir-plaintext).
 /// Still `Codable` for tests/fixtures; on-disk I/O is TOML via `PreferencesToml`.
 struct SecretStoreDocument: Codable, Equatable, Sendable {
     var version: Int
@@ -58,7 +58,7 @@ struct EnvVar: Codable, Equatable, Identifiable, Sendable {
 }
 
 extension SecretStoreDocument {
-    /// Env Vars that should be injected at CLI spawn (ADR 0002).
+    /// Env Vars that should be injected at CLI spawn (ADR 2026-07-23-0002-secret-injection-spawn-then-direnv).
     ///
     /// A var is included when it is Enabled and either ungrouped or its group is Enabled.
     /// Later declarations of the same key win (last write).

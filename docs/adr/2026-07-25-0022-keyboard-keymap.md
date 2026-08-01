@@ -1,10 +1,10 @@
 # Keyboard keymap: globals, Command Center chrome, sequences
 
-Symphonia is keyboard-first. Most domain actions stay behind Leader → Command Center so chords do not fight the PTY (ADR 0009). A small set of **global** macOS-style chords covers high-frequency navigation and create. Command Center has fixed chrome keys plus **Normal-mode sequences**.
+Symphonia is keyboard-first. Most domain actions stay behind Leader → Command Center so chords do not fight the PTY (ADR 2026-07-23-0009-leader-command-mode). A small set of **global** macOS-style chords covers high-frequency navigation and create. Command Center has fixed chrome keys plus **Normal-mode sequences**.
 
 **Lookup tables:** in-app cheatsheet (⌘⇧/, toggle) is built live from `KeymapBindings` + `CommandRegistry`. [docs/keymap.md](../keymap.md) is the written product default for review. This ADR records *why*.
 
-Amends ADR 0021: **default Command aliases are empty** (Operator may add free text; `/` optional). Amends the Hide-first Overlay habit (ADR 0006/0007): primary Command is **Toggle Overlay**, not a separate Hide.
+Amends ADR 2026-07-24-0021-command-center-registry: **default Command aliases are empty** (Operator may add free text; `/` optional). Amends the Hide-first Overlay habit (ADR 2026-07-23-0006-editor-overlay-hide-not-quit / 2026-07-23-0007-background-cli-peek-overlays): primary Command is **Toggle Overlay**, not a separate Hide.
 
 ## Naming
 
@@ -20,7 +20,7 @@ Prefer **Switch** over Select for Command titles (fits cycle language). Select m
 
 ## Design rules
 
-1. **Globals** are ⌘/⌃ chords for create, cycle, Editor, Overlay Terminal, Overlay Switcher, Toggle Overlay, Reload, **Keymap (⌘⇧/)**, plus macOS window life. No Toggle Sidebar. Every global is also a Command (ADR 0021); register `workspace.new` if missing.
+1. **Globals** are ⌘/⌃ chords for create, cycle, Editor, Overlay Terminal, Overlay Switcher, Toggle Overlay, Reload, **Keymap (⌘⇧/)**, plus macOS window life. No Toggle Sidebar. Every global is also a Command (ADR 2026-07-24-0021-command-center-registry); register `workspace.new` if missing.
 2. **Worktree cycle** includes **Main** (Main → Worktrees → wrap).
 3. **Command Center chrome** includes ↑↓, **⌃N/⌃P** (both modes), j/k (Normal only), ⇧Tab, Esc, ⌃U. Held: ⌃J/K, ⌃W, ⌃A/E, Tab-to-run.
 4. **CC-only chords** (⌘O, discard/rename, …) stay off the global map so they do not fight the PTY when CC is closed.

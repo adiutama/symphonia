@@ -1,8 +1,8 @@
 import Foundation
 
-/// Effective Setting: Workspace Setting if present, otherwise Global Setting (ADR 0016).
+/// Effective Setting: Workspace Setting if present, otherwise Global Setting (ADR 2026-07-23-0016-settings-workspace-overrides-global).
 struct EffectiveSettings: Equatable, Sendable {
-    /// Resolved Main CLI command (ADR 0005). Empty means bare shell / default login CLI.
+    /// Resolved Main CLI command (ADR 2026-07-23-0005-main-cli-command-config). Empty means bare shell / default login CLI.
     var mainCLICommand: String
 
     /// Resolved Shell Activity default command. Empty = login shell Overlay.
@@ -26,7 +26,7 @@ struct EffectiveSettings: Equatable, Sendable {
     /// Resolved External file manager bundle id.
     var fileManagerBundleID: String
 
-    /// Resolved Leader binding (ADR 0009).
+    /// Resolved Leader binding (ADR 2026-07-23-0009-leader-command-mode).
     var leaderKey: String
 
     /// Resolved Workspaces Root path string as configured (may still contain `~`).
@@ -35,7 +35,7 @@ struct EffectiveSettings: Equatable, Sendable {
     /// Resolved Workspaces Root as an absolute directory URL.
     var workspacesRootURL: URL
 
-    /// Resolved Base Ref for new Worktree branches (ADR 0019).
+    /// Resolved Base Ref for new Worktree branches (ADR 2026-07-23-0019-agent-branch-base-setting).
     var baseRef: String
 
     /// Resolve Effective Setting from Global Setting + optional Workspace overrides.

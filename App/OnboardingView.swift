@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Stepped first-launch welcome — tour pages, then Tools preferences (ADR 0023).
+/// Stepped first-launch welcome — tour pages, then Tools preferences (ADR 2026-07-31-0023-activity-manager-overlay-presentation).
 struct OnboardingView: View {
     @EnvironmentObject private var preferences: PreferencesController
     @EnvironmentObject private var settingsNavigation: SettingsNavigation

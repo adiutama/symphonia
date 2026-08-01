@@ -16,7 +16,7 @@ Global preferences, Effective Setting resolution, Workspace containers, Worktree
 | `CLISpawnEnvironment` | Locale defaults + login `PATH`; Secret Store overwrites |
 | `PreferencesController` | Observable chrome binding |
 
-Defaults: Main CLI empty (bare shell), Editor empty (login shell `VISUAL`/`EDITOR`), Leader `cmd+shift+p`, Workspaces Root `~/.symphonia/workspaces`, Base Ref `main`, `commandBindings` empty (see Command Center below, ADR 0021 CC.3).
+Defaults: Main CLI empty (bare shell), Editor empty (login shell `VISUAL`/`EDITOR`), Leader `cmd+shift+p`, Workspaces Root `~/.symphonia/workspaces`, Base Ref `main`, `commandBindings` empty (see Command Center below, ADR 2026-07-24-0021-command-center-registry CC.3).
 
 ## Workspace (Phase 3)
 
@@ -82,7 +82,7 @@ defense-in-depth.
 
 Remove: confirm; default **keep** branch; unregister worktree + delete folder; destroy that session’s Main CLI PTY.
 
-**Archive (Phase 6 / P1.3, ADR 0020 spirit — remove still exists; archive is softer):** a Worktree
+**Archive (Phase 6 / P1.3, ADR 2026-07-23-0020-remove-agent-keep-branch-default spirit — remove still exists; archive is softer):** a Worktree
 can be soft-archived instead of removed. Archived state is a list of Three-Word folder names —
 `WorkspaceConfig.archivedThreeWordNames: [String]?` in `config.toml` — **not** a folder move or
 git operation; the Worktree folder and `git worktree` registration are untouched. `WorktreeController`
@@ -106,7 +106,7 @@ Terminal: one live Main CLI PTY **per opened session** (Main or Worktree). Switc
 
 ### Storage format (`secrets.toml`, mode 0600)
 
-Plaintext in the Workspace Data Dir only (ADR 0012, T.3). **Never** written into `main/` or a Worktree
+Plaintext in the Workspace Data Dir only (ADR 2026-07-23-0012-workspace-data-dir-plaintext, T.3). **Never** written into `main/` or a Worktree
 checkout (siblings under the Workspace Data Dir, P1.5) — `SecretStore.write` asserts the target
 dir isn't itself a git repo. Legacy `secrets.json` is ignored (no migration).
 
@@ -129,15 +129,15 @@ value = "ok"
 enabled = false
 ```
 
-**Enabled injection rule (spawn-time, ADR 0002):** an Env Var is injected when `enabled == true` **and** it is either ungrouped (`groupId` omitted) or its Secret Group is Enabled. Duplicate keys: last declaration wins.
+**Enabled injection rule (spawn-time, ADR 2026-07-23-0002-secret-injection-spawn-then-direnv):** an Env Var is injected when `enabled == true` **and** it is either ungrouped (`groupId` omitted) or its Secret Group is Enabled. Duplicate keys: last declaration wins.
 
 Legacy empty `secrets.env` placeholders from Phase 3 are removed on layout ensure; non-empty legacy files are left alone (no auto-import in v1).
 
 ### Spawn injection
 
-When a session is **first opened**, spawn env = English locale defaults (`LANG` / `LC_ALL` / `LC_MESSAGES` = `en_US.UTF-8`) merged with Enabled secrets (secrets win on conflict). Switching focus does **not** respawn. Live Secret Store edits do not rewrite a running shell (ADR 0002); use **Respawn w/ secrets** on the focused session only.
+When a session is **first opened**, spawn env = English locale defaults (`LANG` / `LC_ALL` / `LC_MESSAGES` = `en_US.UTF-8`) merged with Enabled secrets (secrets win on conflict). Switching focus does **not** respawn. Live Secret Store edits do not rewrite a running shell (ADR 2026-07-23-0002-secret-injection-spawn-then-direnv); use **Respawn w/ secrets** on the focused session only.
 
-## Command Center (Phase 7 / ADR 0021)
+## Command Center (Phase 7 / ADR 2026-07-24-0021-command-center-registry)
 
 | Type | Role |
 |------|------|
@@ -149,21 +149,21 @@ When a session is **first opened**, spawn env = English locale defaults (`LANG` 
 | `CommandCenterItem` / `CommandCenterAction` | Palette rows / run actions |
 | `CommandContext` | Small availability snapshot — `hasFocusedSession`, `overlayVisible` — with a `@MainActor` init from `WorktreeController` + `OverlayController` |
 | `Command` | Stable string `id`, title, optional subtitle/group, `defaultSequence`, `isEnabled(CommandContext) -> Bool`, wraps a `CommandCenterAction` |
-| `CommandProvider` | Protocol an app area implements to export `[Command]` (ADR 0021) |
+| `CommandProvider` | Protocol an app area implements to export `[Command]` (ADR 2026-07-24-0021-command-center-registry) |
 | `CommandRegistry` | Aggregates providers; `allCommands`, `availableCommands(context:)`, `command(id:)` |
 | `OverlayCommandProvider` | Open Editor (`ee`), Toggle Overlay (`oo`), Overlay Terminal (`ot`), Overlay Switcher (`os`) |
 | `WorkspaceCommandProvider` | Switch Workspace / Worktree, Focus Main, New/Remove Worktree / Workspace, … |
 | `ChromeCommandProvider` | Settings, Keymap, Dismiss Command Center — no context gating |
-| `KeymapBindings` | Fixed global / Command Center–only Hotkeys (ADR 0022); cheatsheet + runtime match |
+| `KeymapBindings` | Fixed global / Command Center–only Hotkeys (ADR 2026-07-25-0022-keyboard-keymap); cheatsheet + runtime match |
 | `CommandBindingOverride` | Codable Global Setting override for one Command's **sequence**, keyed by Command `id` |
 | `CommandBindingResolver` | `sequence(for:overrides:)` — effective Normal-mode sequence = override ?? Command default |
 
 **Leader** (default `cmd+shift+p`, from Effective Setting) enters **Command Center**. While active, the local monitor swallows keyDown so Main CLI / Overlay PTYs do not receive chords. Esc (or Leader again) dismisses and restores terminal first responder.
 
-Root palette rows come from the `CommandRegistry` (ADR 0021 / CC.2). The picker phases (`pickWorkspace` / `pickWorktree` / `pickBackground`) still build their rows directly from live controller data since each row is a dynamic instance (a Workspace, a Worktree, a live Overlay), not a stable Command.
+Root palette rows come from the `CommandRegistry` (ADR 2026-07-24-0021-command-center-registry / CC.2). The picker phases (`pickWorkspace` / `pickWorktree` / `pickBackground`) still build their rows directly from live controller data since each row is a dynamic instance (a Workspace, a Worktree, a live Overlay), not a stable Command.
 
-`CommandRegistry` is constructed once in `SymphoniaApp.init()` (providers: Workspace, Overlay, Chrome) and injected into `CommandCenterController`, which drives its root palette entirely from `commandRegistry.availableCommands(context:)`. Filtering matches title and subtitle via case-insensitive substring. An empty filter shows every enabled Command; Normal-mode sequences and `KeymapBindings` Hotkeys fire from the key monitor per ADR 0022.
+`CommandRegistry` is constructed once in `SymphoniaApp.init()` (providers: Workspace, Overlay, Chrome) and injected into `CommandCenterController`, which drives its root palette entirely from `commandRegistry.availableCommands(context:)`. Filtering matches title and subtitle via case-insensitive substring. An empty filter shows every enabled Command; Normal-mode sequences and `KeymapBindings` Hotkeys fire from the key monitor per ADR 2026-07-25-0022-keyboard-keymap.
 
-**Operator overrides (ADR 0021 CC.3 / ADR 0022):** `GlobalPreferences.commandBindings` persists per-Command **sequence** overrides at `~/.symphonia/preferences.toml` under `[commandBindings."<id>"]`. Hotkeys are **not** overridable — they come from `KeymapBindings`. Legacy `aliases` / `shortcut` TOML keys are ignored and stripped on load. Legacy `preferences.json` is ignored.
+**Operator overrides (ADR 2026-07-24-0021-command-center-registry CC.3 / ADR 2026-07-25-0022-keyboard-keymap):** `GlobalPreferences.commandBindings` persists per-Command **sequence** overrides at `~/.symphonia/preferences.toml` under `[commandBindings."<id>"]`. Hotkeys are **not** overridable — they come from `KeymapBindings`. Legacy `aliases` / `shortcut` TOML keys are ignored and stripped on load. Legacy `preferences.json` is ignored.
 
 **Settings UI:** Global → Shortcuts lists Commands (plus Leader) as Name | Sequence | Hotkey. Sequence is editable; Hotkey is read-only from `KeymapBindings` (Leader Hotkey remains editable Global Setting). Conflicts warn on duplicate sequences only.

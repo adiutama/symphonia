@@ -131,11 +131,11 @@ Free-text match string(s) for a Command in Input mode. Slash is optional. Multip
 _Avoid_: Slash verb (as a separate system), stock `/editor`-style defaults
 
 **Command Sequence**:
-Normal-mode chord (min 2 letters; `j`/`k` reserved) that runs a Command. Hottest Commands use doubles (`ww`, `tt`, `ee`, …); others prefer object + action. Defaults ship with the Command; Operator may override in Settings. Full list: `docs/keymap.md`; rationale: ADR 0022.
+Normal-mode chord (min 2 letters; `j`/`k` reserved) that runs a Command. Hottest Commands use doubles (`ww`, `tt`, `ee`, …); others prefer object + action. Defaults ship with the Command; Operator may override in Settings. Full list: `docs/keymap.md`; rationale: ADR 2026-07-25-0022-keyboard-keymap.
 _Avoid_: Shortcut (when meaning Normal-mode letters), title-initial auto-derive (superseded)
 
 **Command Shortcut**:
-Optional recorded chord (ctrl/opt/cmd required) for a Command — global or Command Center–scoped per ADR 0022. Distinct from Leader and from Command Sequence.
+Optional recorded chord (ctrl/opt/cmd required) for a Command — global or Command Center–scoped per ADR 2026-07-25-0022-keyboard-keymap. Distinct from Leader and from Command Sequence.
 _Avoid_: Hotkey (when meaning sequence letters); empty-filter bare key (removed)
 
 **Switch** (Workspace / Worktree):
@@ -145,6 +145,22 @@ _Avoid_: Focus (when meaning Switch Workspace / Switch Worktree), Select (as the
 **Focus Main**:
 The Operator verb for jumping to the Workspace’s reserved Main session (home). Not used for peer Workspace/Worktree changes.
 _Avoid_: Switch Main, Goto Main (as the preferred title)
+
+**Attention**:
+A signal that an internal PTY (Main CLI or Overlay) needs the Operator — task done, waiting for input, or an explicit Notify. Distinct from Overlay UI weight (Editor > Background in ADR 2026-07-23-0008-overlay-switcher-editor-weight).
+_Avoid_: Notification (as the product noun), alert, badge (when meaning the event itself); External app ding
+
+**Attention Event**:
+One recorded Attention: timestamp, target surface, reason, optional title/body, and unread state.
+_Avoid_: Log line, toast (when meaning the durable Inbox item)
+
+**Attention Inbox**:
+The chronological list of Attention Events the Operator browses and jumps from (Command Center nest and next/previous Commands).
+_Avoid_: Notification center (macOS), Activity Manager, Glance (Glance is craft inventory, not urgency)
+
+**Notify**:
+The optional CLI helper (e.g. `symphonia notify`) run inside a Symphonia PTY to raise an Attention Event when a tool does not self-signal.
+_Avoid_: Hook script (as the product noun), webhook, MCP notify
 
 ### Configuration
 

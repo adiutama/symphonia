@@ -20,6 +20,6 @@ Symphonia opens craft surfaces (shells, editors, file managers, …) through a m
 
 ## Consequences
 
-- ADR 0006–0008 remain valid for **Overlay** Activities (hide ≠ quit; switcher; editor weight). They do not define External behavior.
+- ADR 2026-07-23-0006-editor-overlay-hide-not-quit / 2026-07-23-0007-background-cli-peek-overlays / 2026-07-23-0008-overlay-switcher-editor-weight remain valid for **Overlay** Activities (hide ≠ quit; switcher; editor weight). They do not define External behavior.
 - Overlay Switcher stays Overlay-scoped until deliberately widened or folded into Glance.
 - Implementation still early (Glance prototype; Editor already branches `terminalOverlay` vs `externalApp`); domain language and Settings/Glance shape should follow this ADR going forward.

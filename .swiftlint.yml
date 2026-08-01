@@ -5,7 +5,7 @@ excluded:
   - build
   - Vendor
   - .tools
-  - .local
+  - .scratch
   - docs/brand
   - "**/.build"
 
